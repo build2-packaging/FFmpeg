@@ -1,0 +1,3 @@
+import libs = libavdevice%lib{avdevice}
+
+exe{driver}: {h c}{**} $libs testscript{**}

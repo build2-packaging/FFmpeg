@@ -1,0 +1,15 @@
+: 1
+name: libavdevice
+version: 7.0.2-a.0.z
+language: c
+project: ffmpeg
+summary: Utility library to aid portable multimedia programming
+license: LGPL-2.1-or-later ; GNU Lesser General Public License v2.1 or later.
+description-file: README.txt
+package-description-file: PACKAGE-README.md
+url: https://git.ffmpeg.org/ffmpeg.git
+email: libav-user@ffmpeg.org ; Mailing list.
+package-url: https://github.com/build2-packaging/ffmpeg
+package-email: libav-user@ffmpeg.org ; Mailing list.
+depends: * build2 >= 0.18.0-
+depends: * bpkg >= 0.18.0-
