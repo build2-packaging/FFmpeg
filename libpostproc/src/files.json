@@ -1,0 +1,5 @@
+[
+{"HAVE_GNU_WINDRES": "postprocres.rc"},
+{"HEADERS": "postprocess.h version.h version_major.h"},
+{"OBJS": "postprocess.c version.c"}
+]
