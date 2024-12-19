@@ -1,3 +1,48 @@
-import libs = libavfilter%lib{avfilter}
+import config = libconfig%lib{config}
+import libs = \
+  libavfilter%liba{avfilter} \
+  $config
 
-exe{driver}: {h c}{**} $libs testscript{**}
+requirements = [string_set] \
+  '{"integral": "nlmeans_filter"}'
+
+# need upstream/tests/checkasm/ lib that conditionally builds the asm files.
+# TODO: Figure out what filtfmts & formats needs as input (the fate testing
+#       is one giant mess).
+for t : tests/c{*.c -filtfmts -formats}
+{
+  n = [string] $name($t)
+  e = [bool] true
+  for str: [string_set] $requirements
+  {
+    pair = [json] $json.parse($str)
+    k = [string] $member_name($pair)
+    if ($k == $n)
+    {
+      s = [string] "$member_value($pair)"
+      v = [strings] $regex.split($s, ' ', ' ')
+      for r: [strings] ($v)
+      {
+        c = $($config: libconfig.$r)
+        if($c == [null] || !$c)
+        {
+          e = false
+        }
+      }
+      if(!$e)
+      {
+        text "skip test: libavfilter/tests/$n.$extension($t) \(requires: $s\)"
+      }
+    }
+  }
+
+  exe{test-$n}: $t $libs testscript
+  {
+    cwd = [path] $path.posix_representation($src_base/tests/)
+  }
+  ./: exe{test-$n}: include = $e
+}
+
+## Build options.
+#
+import [once] libconfig%buildfile{common-configs}

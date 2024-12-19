@@ -2,10 +2,16 @@
 #
 #c.internal.scope = current
 
+c.std = 17
+cxx.std = latest
+
 using c
+using c.as-cpp
+using cxx
 
 h{*}: extension = h
 c{*}: extension = c
+cxx{*}: extension = cpp
 
 # The test target for cross-testing (running tests under Wine, etc).
 #

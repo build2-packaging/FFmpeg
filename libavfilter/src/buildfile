@@ -1,18 +1,98 @@
+using autoconf
+
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
-#import xxxx_libs += libhello%lib{hello}
 
-lib{avfilter}: libul{avfilter}: {h c}{**} $impl_libs $intf_libs
+import config = libconfig%lib{config}
+impl_libs += $config
+import intf_libs += \
+  libavutil%liba{avutil} \
+  libavcodec%liba{avcodec} \
+  libavformat%liba{avformat} \
+  libswscale%liba{swscale} \
+  libswresample%liba{swresample}
 
-libs{avfilter}: def{avfilter}: include = ($c.target.system == 'win32-msvc')
-def{avfilter}: libul{avfilter}
+cpu = [string] $c.target.cpu
+tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
+tgt_macos = [bool] ($c.target.system == 'darwin')
 
+lib{avfilter}: libul{avfilter}: \
+              libavfilter/h{**} \
+              $impl_libs $intf_libs
+
+# conditional source & assembly
+import [once] libconfig%buildfile{conditional-src}
+import [once] libconfig%buildfile{conditional-src}
+import config_h = libconfig%h{autoconf}
+import config_asm = libconfig%file{config.asm}
+
+[rule_hint=c] \
+libul{avfilter-meta}: $impl_libs $intf_libs $config_asm
+libua{avfilter}: enabled_source{avfilter}
+file{enabled_defines}: $config_h: update = match
+libua{avfilter}: enabled_source{avfilter}: file{enabled_defines} libua{avfilter-meta} json{files.json} \
+                                       $config_h $config_asm libavfilter/h{**}: \
+                                       update = match
+
+# these c files are included, not built.
+libul{avfilter}: libavfilter/c{ \
+                  filter_list \
+                }: include = adhoc
+
+libavfilter/c{filter_list}: libavfilter/c{allfilters} file{enabled_defines}
+{{
+  diag generate $>
+
+  s = $path($<[0])     # Source file.
+  f = $path($>)        # Target file.
+  cat $path($<[1]) | set -w enabled_defines [string_set]
+  pattern = "AVFilter"
+  thing = "parser"
+  struct_name = "AVFilter"
+  name = "filter_list"
+
+  sed -n -e "s/^extern const AVFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p" $s | set -n filter_LIST
+  # assert ($size($filter_LIST) > 0)
+  echo "static const $struct_name * const $name[] = {" > $f
+  for c: $filter_LIST
+    group = $string.ucase(CONFIG_$c)
+    if ($enabled_defines[$group])
+      echo "    &ff_$c," >> $path($>)
+    end
+  end
+  echo "    NULL };" >> $path($>)
+}}
 # Build options.
 #
+import [once] libconfig%buildfile{common-configs}
+
 out_pfx = [dir_path] $out_root/src/
 src_pfx = [dir_path] $src_root/src/
 
-c.poptions =+ "-I$out_pfx" "-I$src_pfx"
+c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avfilter -Dav_export_libavfilter=
+
+# System libraries
+sys_libs =
+switch $c.target.class, $c.target.system
+{
+  case 'windows', 'win32-msvc'
+    sys_libs += bcrypt.lib
+  case 'windows', 'mingw32'
+    sys_libs += -lbcrypt
+}
+c.libs += $sys_libs
+
+switch ($c.id)
+{
+  case 'msvc'
+  {
+    c.coptions += -wd4003 -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
+    c.poptions += -DWIN32_LEAN_AND_MEAN -D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
+  }
+}
+
+libs{avfilter}: def{avfilter}: include = ($c.target.system == 'win32-msvc')
+def{avfilter}: libul{avfilter}
 
 if ($c.target.system == 'mingw32')
   c.loptions += -Wl,--export-all-symbols
@@ -22,7 +102,26 @@ if ($c.target.system == 'mingw32')
 lib{avfilter}:
 {
   c.export.poptions = "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs
+  c.export.libs = $intf_libs $sys_libs
+}
+
+if ($c.target.system == 'win32-msvc')
+{
+  liba{avfilter}:
+  {
+    c.export.poptions += -Dav_export_libavfilter=
+  }
+  libs{avfilter}:
+  {
+    c.export.poptions += -Dav_export_libavfilter=__declspec\(dllimport\)
+  }
+}
+else
+{
+  lib{avfilter}:
+  {
+    c.export.poptions += -Dav_export_libavfilter=
+  }
 }
 
 # For pre-releases use the complete version to make sure they cannot
