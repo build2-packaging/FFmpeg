@@ -18,31 +18,32 @@
 #
 #*.png binary
 
-libavcodec/src/libavcodec symlink=dir
-libavcodec/src/libavfilter symlink=dir
-libavcodec/tests/basics/tests symlink=dir
+libavcodec/src/libavcodec        symlink=dir
+libavcodec/src/libavfilter       symlink=dir
+libavcodec/src/libavformat       symlink=dir
+libavcodec/tests/basics/tests    symlink=dir
 
-libavdevice/src/libavdevice symlink=dir
-libavdevice/tests/basics/tests symlink=dir
+libavdevice/src/libavdevice      symlink=dir
+libavdevice/src/libavdevice      symlink=dir
 
-libavutil/src/compat symlink=dir
-libavutil/src/libavutil symlink=dir
-libavutil/tests/basics/tests symlink=dir
+libavdevice/tests/basics/tests   symlink=dir
+libavdevice/tests/basics/tests   symlink=dir
 
-libavformat/src/libavformat symlink=dir
-libavformat/tests/basics/tests symlink=dir
+libavfilter/src/libavfilter      symlink=dir
+libavfilter/tests/basics/tests   symlink=dir
 
-libavfilter/src/libavfilter symlink=dir
-libavfilter/tests/basics/tests symlink=dir
+libavformat/src/libavformat      symlink=dir
+libavformat/tests/basics/tests   symlink=dir
 
-libavdevice/src/libavdevice symlink=dir
-libavdevice/tests/basics/tests symlink=dir
+libavutil/src/compat             symlink=dir
+libavutil/src/libavutil          symlink=dir
+libavutil/tests/basics/tests     symlink=dir
 
-libpostproc/src/libpostproc symlink=dir
-libpostproc/tests/basics/tests symlink=dir
+libpostproc/src/libpostproc      symlink=dir
+libpostproc/tests/basics/tests   symlink=dir
 
-libswscale/src/libswscale symlink=dir
-libswscale/tests/basics/tests symlink=dir
-
-libswresample/src/libswresample symlink=dir
+libswresample/src/libswresample  symlink=dir
 libswresample/tests/basics/tests symlink=dir
+
+libswscale/src/libswscale        symlink=dir
+libswscale/tests/basics/tests    symlink=dir

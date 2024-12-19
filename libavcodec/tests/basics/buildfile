@@ -1,3 +1,57 @@
-import libs = libavcodec%lib{avcodec}
+import config = libconfig%lib{config}
+import libs = \
+  libavcodec%liba{avcodec} \
+  $config
 
-exe{driver}: {h c}{**} $libs testscript{**}
+requirements = [string_set] \
+  '{"av1_levels":       "av1_vaapi_encoder"}' \
+  '{"cabac":            "cabac"}' \
+  '{"golomb":           "golomb"}' \
+  '{"dct":              "idctdsp"}' \
+  '{"iirfilter":        "iirfilter"}' \
+  '{"mjpegenc_huffman": "mjpeg_encoder"}' \
+  '{"motion":           "have_mmx"}' \
+  '{"mpeg12framerate":  "mpegvideo"}' \
+  '{"h264_levels":      "h264_metadata_bsf"}' \
+  '{"h265_levels":      "hevc_metadata_bsf"}' \
+  '{"rangecoder":       "rangecoder"}' \
+  '{"snowenc":          "snow_encoder"}'
+
+# need upstream/tests/checkasm/ lib that conditionally builds the asm files.
+for t : tests/c{*.c}
+{
+  n = [string] $name($t)
+  e = [bool] true
+  for str: [string_set] $requirements
+  {
+    pair = [json] $json.parse($str)
+    k = [string] $member_name($pair)
+    if ($k == $n)
+    {
+      s = [string] "$member_value($pair)"
+      v = [strings] $regex.split($s, ' ', ' ')
+      for r: [strings] ($v)
+      {
+        c = $($config: libconfig.$r)
+        if($c == [null] || !$c)
+        {
+          e = false
+        }
+      }
+      if(!$e)
+      {
+        text "skip test: libavcodec/tests/$n.$extension($t) \(requires: $s\)"
+      }
+    }
+  }
+
+  exe{test-$n}: $t $libs testscript
+  {
+    cwd = [path] $path.posix_representation($src_base/tests/)
+  }
+  ./: exe{test-$n}: include = $e
+}
+
+## Build options.
+#
+import [once] libconfig%buildfile{common-configs}

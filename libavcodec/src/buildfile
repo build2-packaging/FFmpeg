@@ -1,18 +1,279 @@
+using autoconf
+
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
-#import xxxx_libs += libhello%lib{hello}
 
-lib{avcodec}: libul{avcodec}: {h c}{**} $impl_libs $intf_libs
+import config = libconfig%lib{config}
+impl_libs += $config
+import intf_libs += \
+  libavutil%liba{avutil} \
+  libswscale%liba{swscale} \
+  libswresample%liba{swresample}
 
-libs{avcodec}: def{avcodec}: include = ($c.target.system == 'win32-msvc')
-def{avcodec}: libul{avcodec}
+cpu = [string] $c.target.cpu
+tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
+tgt_macos = [bool] ($c.target.system == 'darwin')
+
+lib{avcodec}: libul{avcodec}: \
+              libavcodec/h{**} \
+              $impl_libs $intf_libs
+
+# conditional source & assembly
+import [once] libconfig%buildfile{conditional-src}
+import [once] libconfig%buildfile{conditional-src}
+import config_h = libconfig%h{autoconf}
+import config_asm = libconfig%file{config.asm}
+
+[rule_hint=c] \
+libul{avcodec-meta}: $impl_libs $intf_libs $config_asm
+file{enabled_defines}: $config_h: update = match
+libua{avcodec}: enabled_source{avcodec}: file{enabled_defines} libua{avcodec-meta} json{files.json} \
+                                       $config_h $config_asm libavcodec/h{**}: \
+                                       update = match
+
+# these c files are included, not built.
+libul{avcodec}: libavcodec/c{ \
+                              bsf_list    \
+                              codec_list  \
+                              parser_list \
+                            } \
+                libavcodec/h{ \
+                              cbrt_tables                \
+                              cbrt_fixed_tables          \
+                              aacps_tables               \
+                              aacps_fixed_tables         \
+                              dv_tables                  \
+                              sinewin_tables             \
+                              sinewin_fixed_tables       \
+                              mpegaudio_tables           \
+                              mpegaudiodec_common_tables \
+                              motionpixels_tables        \
+                              pcm_tables                 \
+                              qdm2_tables                \
+                            }: \
+                include = adhoc
+
+libavcodec/c{codec_list}: libavcodec/c{allcodecs} file{enabled_defines}
+{{
+  diag generate $>
+
+  s = $path($<[0])     # Source file.
+  f = $path($>)        # Target file.
+  cat $path($<[1]) | set -w enabled_defines [string_set]
+  pattern = "FFCodec"
+  thing = "parser"
+  struct_name = "FFCodec"
+  name = "codec_list"
+
+  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n codec_LIST
+  # assert ($size($codec_LIST) > 0)
+  echo "static const $struct_name * const $name[] = {" > $f
+  for c: $codec_LIST
+    group = $string.ucase(CONFIG_$c)
+    if ($enabled_defines[$group])
+      echo "    &ff_$c," >> $path($>)
+    end
+  end
+  echo "    NULL };" >> $path($>)
+}}
+
+libavcodec/c{parser_list}: libavcodec/c{allcodecs} file{enabled_defines}
+{{
+  diag generate $>
+
+  s = $path($<[0])     # Source file.
+  f = $path($>)        # Target file.
+  cat $path($<[1]) | set -w enabled_defines [string_set]
+  pattern = "AVCodecParser"
+  thing = "parser"
+  struct_name = "AVCodecParser"
+  name = "parser_list"
+
+  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n parser_LIST
+  # assert ($size($parser_LIST) > 0)
+  echo "static const $struct_name * const $name[] = {" > $f
+  for c: $parser_LIST
+    group = $string.ucase(CONFIG_$c)
+    if ($enabled_defines[$group])
+      echo "    &ff_$c," >> $path($>)
+    end
+  end
+  echo "    NULL };" >> $path($>)
+}}
+
+libavcodec/c{bsf_list}: libavcodec/c{allcodecs} file{enabled_defines}
+{{
+  diag generate $>
+  s = $path($<[0])     # Source file.
+  f = $path($>)        # Target file.
+  cat $path($<[1]) | set -w enabled_defines [string_set]
+  pattern = "FFBitStreamFilter"
+  thing = "bsf"
+  struct_name = "FFBitStreamFilter"
+  name = "bitstream_filters"
+
+  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n bsf_LIST
+  # assert ($size($bsf_LIST) > 0)
+  echo "static const $struct_name * const $name[] = {" > $f
+  for c: $bsf_LIST
+    group = $string.ucase(CONFIG_$c)
+    if ($enabled_defines[$group])
+      echo "    &ff_$c," >> $path($>)
+    end
+  end
+  echo "    NULL };" >> $path($>)
+}}
+
+# generate xxx_tables headers
+#
+
+<libavcodec/h{ \
+  cbrt_tables                \
+  cbrt_fixed_tables          \
+  aacps_tables               \
+  aacps_fixed_tables         \
+  dv_tables                  \
+  sinewin_tables             \
+  sinewin_fixed_tables       \
+  mpegaudio_tables           \
+  mpegaudiodec_common_tables \
+  motionpixels_tables        \
+  pcm_tables                 \
+  qdm2_tables                \
+}>: libua{avcodec-meta} $config \
+    libavcodec/c{                \
+    aacps_tablegen               \
+    aacps_fixed_tablegen         \
+    cbrt_tablegen                \
+    cbrt_fixed_tablegen          \
+    dv_tablegen                  \
+    motionpixels_tablegen        \
+    mpegaudio_tablegen           \
+    mpegaudiodec_common_tablegen \
+    pcm_tablegen                 \
+    qdm2_tablegen                \
+    sinewin_tablegen             \
+    sinewin_fixed_tablegen       \
+  } \
+  libavcodec/h{                  \
+    aacps_tablegen               \
+    aacps_fixed_tablegen         \
+    cbrt_tablegen                \
+    cbrt_tablegen                \
+    dv_tablegen                  \
+    motionpixels_tablegen        \
+    mpegaudio_tablegen           \
+    mpegaudiodec_common_tablegen \
+    pcm_tablegen                 \
+    qdm2_tablegen                \
+    sinewin_tablegen             \
+    sinewin_fixed_tablegen       \
+}
+{{
+  lib_poptions = $c.lib_poptions(libua{avcodec-meta}, obja)
+  lib_poptions += ($($config: libconfig.small) ? '-DCONFIG_SMALL=1' : '-DCONFIG_SMALL=0')
+  depdb hash $lib_poptions
+
+
+  srcs = [paths]
+  hdrs = [paths]
+  required_src = [paths]
+  for i: $integer_sequence(2, $size($<))
+    s = $path($<[$i])
+    if ($extension($s) == 'c')
+      srcs += [paths] $s
+      if ($path.leaf($s) == 'dv_tablegen.c')
+        # dvdata.c is required for dv_tablegen.c
+        required_src += [paths] $src_base/libavcodec/dvdata.c
+      end
+    elif ($extension($s) == 'h')
+      hdrs += [paths] $s
+    end
+  end
+
+  diag generate $>
+
+  if ($size($srcs) != $size($hdrs))
+    echo "There must be one xxx_tablegen.h per xxx_tablegen.c"
+    exit 1
+  end
+  if ($size($srcs) != $size($>))
+    echo "There must be one xxx_tablegen.c per generated output header"
+    exit 1
+  end
+
+  t = [dir_path] $path.posix_representation($out_base/tablegen)
+
+  mkdir -p $t
+
+  for i: $integer_sequence(0, $size($srcs))
+    c = [path] ($srcs[$i])
+    h = [path] ($hdrs[$i])
+    o = [path] $path($>[$i])
+    exe = [path] $path.posix_string("$t/$leaf($c).exe")
+
+    sys_libs = [strings]
+    if ($c.id == 'msvc')
+      args = [strings] -nologo $c.mode "-Fe$exe" $required_src $c
+    else
+      if ($build.host.class != 'windows')
+        sys_libs += [strings] -lm
+      end
+      args = [strings] -Wno-pointer-sign $sys_libs $c.mode "-o$exe" $required_src $c
+    end
+
+    # build for host
+    env -c "$t" -- $effect($c.path) -D_USE_MATH_DEFINES $c.poptions $lib_poptions ($args) 2>! &$t/**
+
+    # generate header
+    $exe >$o
+  end
+}}
 
 # Build options.
 #
+import [once] libconfig%buildfile{common-configs}
+
 out_pfx = [dir_path] $out_root/src/
 src_pfx = [dir_path] $src_root/src/
 
-c.poptions =+ "-I$out_pfx" "-I$src_pfx"
+c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libavcodec/" -DBUILDING_avcodec -Dav_export_libavcodec=
+
+# System libraries
+sys_libs =
+switch $c.target.class, $c.target.system
+{
+  case 'windows', 'win32-msvc'
+    sys_libs += bcrypt.lib \
+                gdi32.lib \
+                mfuuid.lib \
+                ole32.lib \
+                oleaut32.lib \
+                psapi.lib \
+                secur32.lib \
+                shell32.lib \
+                shlwapi.lib \
+                strmiids.lib \
+                user32.lib \
+                uuid.lib \
+                vfw32.lib \
+                ws2_32.lib
+  case 'windows', 'mingw32'
+    sys_libs += -lbcrypt
+}
+c.libs += $sys_libs
+
+switch ($c.id)
+{
+  case 'msvc'
+  {
+    c.coptions += -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
+    c.poptions += -DWIN32_LEAN_AND_MEAN -D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
+  }
+}
+
+libs{avcodec}: def{avcodec}: include = ($c.target.system == 'win32-msvc')
+def{avcodec}: libul{avcodec}
 
 if ($c.target.system == 'mingw32')
   c.loptions += -Wl,--export-all-symbols
@@ -22,7 +283,26 @@ if ($c.target.system == 'mingw32')
 lib{avcodec}:
 {
   c.export.poptions = "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs
+  c.export.libs = $intf_libs $sys_libs
+}
+
+if ($c.target.system == 'win32-msvc')
+{
+  liba{avcodec}:
+  {
+    c.export.poptions += -Dav_export_libavcodec=
+  }
+  libs{avcodec}:
+  {
+    c.export.poptions += -Dav_export_libavcodec=__declspec\(dllimport\)
+  }
+}
+else
+{
+  lib{avcodec}:
+  {
+    c.export.poptions += -Dav_export_libavcodec=
+  }
 }
 
 # For pre-releases use the complete version to make sure they cannot
