@@ -1,0 +1,6 @@
+project = libpostproc
+
+using version
+using config
+using install
+using dist
