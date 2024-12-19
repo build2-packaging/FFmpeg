@@ -1,0 +1,3 @@
+import libs = libavfilter%lib{avfilter}
+
+exe{driver}: {h c}{**} $libs testscript{**}

@@ -15,3 +15,6 @@ location: libavcodec/
 
 :
 location: libavformat/
+
+:
+location: libavfilter/
