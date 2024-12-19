@@ -12,3 +12,6 @@ location: libswresample/
 
 :
 location: libavcodec/
+
+:
+location: libavformat/

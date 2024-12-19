@@ -1,0 +1,3 @@
+import libs = libavformat%lib{avformat}
+
+exe{driver}: {h c}{**} $libs testscript{**}
