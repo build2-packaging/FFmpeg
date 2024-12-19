@@ -1,18 +1,144 @@
+using autoconf
+
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
-#import xxxx_libs += libhello%lib{hello}
 
-lib{avformat}: libul{avformat}: {h c}{**} $impl_libs $intf_libs
+import config = libconfig%lib{config}
+impl_libs += $config
+import intf_libs += \
+  libavutil%liba{avutil} \
+  libavcodec%liba{avcodec} \
+  libswscale%liba{swscale} \
+  libswresample%liba{swresample}
 
-libs{avformat}: def{avformat}: include = ($c.target.system == 'win32-msvc')
-def{avformat}: libul{avformat}
+cpu = [string] $c.target.cpu
+tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
+tgt_macos = [bool] ($c.target.system == 'darwin')
+
+lib{avformat}: libul{avformat}: libavformat/h{**} $impl_libs $intf_libs
+
+# conditional source & assembly
+import [once] libconfig%buildfile{conditional-src}
+import [once] libconfig%buildfile{conditional-src}
+import config_h = libconfig%h{autoconf}
+import config_asm = libconfig%file{config.asm}
+
+[rule_hint=c] \
+libul{avformat-meta}: $impl_libs $intf_libs $config_asm
+file{enabled_defines}: $config_h: update = match
+libua{avformat}: enabled_source{avformat}: file{enabled_defines} libua{avformat-meta} json{files.json} \
+                                       $config_h $config_asm libavformat/h{**}: \
+                                       update = match
+
+libul{avformat}: libavformat/c{ \
+                  protocol_list \
+                  demuxer_list \
+                  muxer_list \
+                }: include = adhoc
+
+libavformat/c{protocol_list}: libavformat/c{protocols} file{enabled_defines}
+{{
+  diag generate $>
+
+  s = $path($<[0])     # Source file.
+  f = $path($>)        # Target file.
+  cat $path($<[1]) | set -w enabled_defines [string_set]
+  pattern = "URLProtocol"
+  thing = "parser"
+  struct_name = "URLProtocol"
+  name = "url_protocols"
+
+  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n format_LIST
+
+  echo "static const $struct_name * const $name[] = {" > $f
+  for c: $format_LIST
+    group = $string.ucase(CONFIG_$c)
+    if ($enabled_defines[$group])
+      echo "    &ff_$c," >> $path($>)
+    end
+  end
+  echo "    NULL };" >> $path($>)
+}}
+
+libavformat/c{demuxer_list}: libavformat/c{allformats} file{enabled_defines}
+{{
+  diag generate $>
+
+  s = $path($<[0])     # Source file.
+  f = $path($>)        # Target file.
+  cat $path($<[1]) | set -w enabled_defines [string_set]
+  pattern = "FFInputFormat"
+  thing = "demuxer"
+  struct_name = "FFInputFormat"
+  name = "demuxer_list"
+
+  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n format_LIST
+
+  echo "static const $struct_name * const $name[] = {" > $f
+  for c: $format_LIST
+    group = $string.ucase(CONFIG_$c)
+    if ($enabled_defines[$group])
+      echo "    &ff_$c," >> $path($>)
+    end
+  end
+  echo "    NULL };" >> $path($>)
+}}
+
+libavformat/c{muxer_list}: libavformat/c{allformats} file{enabled_defines}
+{{
+  diag generate $>
+
+  s = $path($<[0])     # Source file.
+  f = $path($>)        # Target file.
+  cat $path($<[1]) | set -w enabled_defines [string_set]
+  pattern = "FFOutputFormat"
+  thing = "parser"
+  struct_name = "FFOutputFormat"
+  name = "muxer_list"
+
+  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n format_LIST
+
+  echo "static const $struct_name * const $name[] = {" > $f
+  for c: $format_LIST
+    group = $string.ucase(CONFIG_$c)
+    if ($enabled_defines[$group])
+      echo "    &ff_$c," >> $path($>)
+    end
+  end
+  echo "    NULL };" >> $path($>)
+}}
 
 # Build options.
 #
+import [once] libconfig%buildfile{common-configs}
+
 out_pfx = [dir_path] $out_root/src/
 src_pfx = [dir_path] $src_root/src/
 
-c.poptions =+ "-I$out_pfx" "-I$src_pfx"
+c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avformat -Dav_export_libavformat=
+
+# System libraries
+sys_libs =
+switch $c.target.class, $c.target.system
+{
+  case 'windows', 'win32-msvc'
+    sys_libs += bcrypt.lib
+  case 'windows', 'mingw32'
+    sys_libs += -lbcrypt
+}
+c.libs += $sys_libs
+
+switch ($c.id)
+{
+  case 'msvc'
+  {
+    c.coptions += -wd4003 -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
+    c.poptions += -DWIN32_LEAN_AND_MEAN -D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
+  }
+}
+
+libs{avformat}: def{avformat}: include = ($c.target.system == 'win32-msvc')
+def{avformat}: libul{avformat}
 
 if ($c.target.system == 'mingw32')
   c.loptions += -Wl,--export-all-symbols
@@ -22,7 +148,26 @@ if ($c.target.system == 'mingw32')
 lib{avformat}:
 {
   c.export.poptions = "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs
+  c.export.libs = $intf_libs $sys_libs
+}
+
+if ($c.target.system == 'win32-msvc')
+{
+  liba{avformat}:
+  {
+    c.export.poptions += -Dav_export_libavformat=
+  }
+  libs{avformat}:
+  {
+    c.export.poptions += -Dav_export_libavformat=__declspec\(dllimport\)
+  }
+}
+else
+{
+  lib{avformat}:
+  {
+    c.export.poptions += -Dav_export_libavformat=
+  }
 }
 
 # For pre-releases use the complete version to make sure they cannot

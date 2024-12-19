@@ -1,3 +1,54 @@
-import libs = libavformat%lib{avformat}
+import config = libconfig%lib{config}
+import libs = \
+  libavformat%liba{avformat} \
+  $config
 
-exe{driver}: {h c}{**} $libs testscript{**}
+requirements = [string_set] \
+  '{"fifo_muxer": "network"}' \
+  '{"network": "fifo_muxer"}' \
+  '{"rtmpdh": "ffrtmpcrypt_protocol"}' \
+  '{"movenc": "mov_muxer"}' \
+  '{"noproxy": "network"}' \
+  '{"srtp": "srtp"}' \
+  '{"imf": "imf_demuxer"}'
+
+# need upstream/tests/checkasm/ lib that conditionally builds the asm files.
+# TODO: Figure out what seek needs as input (the fate testing
+#       is one giant mess).
+for t : tests/c{*.c -seek}
+{
+  n = [string] $name($t)
+  e = [bool] true
+  for str: [string_set] $requirements
+  {
+    pair = [json] $json.parse($str)
+    k = [string] $member_name($pair)
+    if ($k == $n)
+    {
+      s = [string] "$member_value($pair)"
+      v = [strings] $regex.split($s, ' ', ' ')
+      for r: [strings] ($v)
+      {
+        c = $($config: libconfig.$r)
+        if($c == [null] || !$c)
+        {
+          e = false
+        }
+      }
+      if(!$e)
+      {
+        text "skip test: libavformat/tests/$n.$extension($t) \(requires: $s\)"
+      }
+    }
+  }
+
+  exe{test-$n}: $t $libs testscript
+  {
+    cwd = [path] $path.posix_representation($src_base/tests/)
+  }
+  ./: exe{test-$n}: include = $e
+}
+
+## Build options.
+#
+import [once] libconfig%buildfile{common-configs}
