@@ -80,10 +80,17 @@ if ($c.id != 'msvc')
   {
     c.loptions += -LARGEADDRESSAWARE:NO
   }
-  elif ($c.target.class == 'macos')
+  elif ($c.target.system == 'darwin')
   {
+    c.poptions += -D_DARWIN_C_SOURCE
     c.coptions += -mdynamic-no-pic
     c.loptions += -Wl,-dynamic,-search_paths_first
+    c.libs     += -framework AudioToolbox \
+                  -framework CoreAudio \
+                  -framework CoreFoundation \
+                  -framework CoreMedia \
+                  -framework CoreVideo \
+                  -framework VideoToolbox
   }
   else
   {
