@@ -9,7 +9,7 @@ impl_libs += $config
 
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
 
-./: lib{avutil}: libul{avutil}: libavutil/h{avconfig ffversion} $impl_libs $intf_libs
+./: lib{avutil}: libua{avutil}: libavutil/h{avconfig ffversion} $impl_libs $intf_libs
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
@@ -23,13 +23,13 @@ libua{avutil}: enabled_source{avutil}: file{enabled_defines} libua{avutil-meta} 
                                        $config_h $config_asm compat/h{**} libavcodec/h{**} libavutil/h{**}: \
                                        update = match
 
-libul{avutil}: compat/windows/{h c}{*} \
+libua{avutil}: compat/windows/{h c}{*} \
                compat/msvrt/{h c}{*} \
                compat/{h}{*} \
                : include = $tgt_win32
 
 # these c files are included, not built.
-libul{avutil}: adhoc_source{avutil}: include = adhoc
+libua{avutil}: adhoc_source{avutil}: include = adhoc
 adhoc_source{avutil}: libavutil/c{**_template} libavutil/aarch64/S{asm}
 
 libavutil/h{avconfig}: in{avconfig}

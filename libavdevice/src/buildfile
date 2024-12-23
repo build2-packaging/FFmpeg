@@ -44,14 +44,14 @@ libavdevice/c{outdev_list}: libavdevice/c{alldevices} file{enabled_defines}
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
   cat $path($<[1]) | set -w enabled_defines [string_set]
-  pattern = "FFOutputFormat"
-  thing = "outdev"
-  struct_name = "FFOutputFormat"
-  name = "outdev_list"
 
-  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_demuxer/p" $s | set -n codec_LIST
-  echo "static const $struct_name * const $name[] = {" > $f
-  for c: $codec_LIST
+  sed -n -e 's/.*extern.* FFInputFormat\s+ff_(\S+)_demuxer;/\1_demuxer/p' $s | set -n func_list
+  if $empty($func_list)
+    echo "No outdev functions found"
+    exit 1
+  end
+  echo 'static const FFInputFormat* const outdev_list[] = {' > $f
+  for c: $func_list
     group = $string.ucase(CONFIG_$c)
     if ($enabled_defines[$group])
       echo "    &ff_$c," >> $path($>)
@@ -67,14 +67,14 @@ libavdevice/c{indev_list}: libavdevice/c{alldevices} file{enabled_defines}
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
   cat $path($<[1]) | set -w enabled_defines [string_set]
-  pattern = "FFInputFormat"
-  thing = "indev"
-  struct_name = "FFInputFormat"
-  name = "indev_list"
 
-  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_muxer/p" $s | set -n codec_LIST
-  echo "static const $struct_name * const $name[] = {" > $f
-  for c: $codec_LIST
+  sed -n -e 's/.*extern.* FFOutputFormat\s+ff_(\S+)_muxer;/\1_muxer/p' $s | set -n func_list
+  if $empty($func_list)
+    echo "No indev functions found"
+    exit 1
+  end
+  echo 'static const FFOutputFormat* const indev_list[] = {' > $f
+  for c: $func_list
     group = $string.ucase(CONFIG_$c)
     if ($enabled_defines[$group])
       echo "    &ff_$c," >> $path($>)

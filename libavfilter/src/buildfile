@@ -35,6 +35,9 @@ libua{avfilter}: enabled_source{avfilter}: file{enabled_defines} libua{avfilter-
                                        update = match
 
 # these c files are included, not built.
+libul{avfilter}: adhoc_source{avfilter}: include = adhoc
+adhoc_source{avfilter}: libavfilter/c{**_template blend_modes}
+
 libul{avfilter}: libavfilter/c{ \
                   filter_list \
                 }: include = adhoc
@@ -46,15 +49,14 @@ libavfilter/c{filter_list}: libavfilter/c{allfilters} file{enabled_defines}
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
   cat $path($<[1]) | set -w enabled_defines [string_set]
-  pattern = "AVFilter"
-  thing = "parser"
-  struct_name = "AVFilter"
-  name = "filter_list"
 
-  sed -n -e "s/^extern const AVFilter ff_[avfsinkrc]\{2,5\}_\([[:alnum:]_]\{1,\}\);/\1_filter/p" $s | set -n filter_LIST
-  # assert ($size($filter_LIST) > 0)
-  echo "static const $struct_name * const $name[] = {" > $f
-  for c: $filter_LIST
+  sed -n -e 's/.*extern.* AVFilter\s+ff_(\S+);/\1_filter/p' $s | set -n func_list
+  if $empty($func_list)
+    echo "No filter functions found"
+    exit 1
+  end
+  echo 'static const AVFilter* const filter_list[] = {' > $f
+  for c: $func_list
     group = $string.ucase(CONFIG_$c)
     if ($enabled_defines[$group])
       echo "    &ff_$c," >> $path($>)

@@ -28,8 +28,12 @@ import config_asm = libconfig%file{config.asm}
 libul{avcodec-meta}: $impl_libs $intf_libs $config_asm
 file{enabled_defines}: $config_h: update = match
 libua{avcodec}: enabled_source{avcodec}: file{enabled_defines} libua{avcodec-meta} json{files.json} \
-                                       $config_h $config_asm libavcodec/h{**}: \
+                                       $config_h $config_asm libavcodec/h{**} libavformat/h{**}: \
                                        update = match
+
+# these c files are included, not built.
+libul{avcodec}: adhoc_source{avcodec}: include = adhoc
+adhoc_source{avcodec}: libavcodec/c{**_template} libavcodec/aarch64/S{neon}
 
 # these c files are included, not built.
 libul{avcodec}: libavcodec/c{ \
@@ -60,15 +64,14 @@ libavcodec/c{codec_list}: libavcodec/c{allcodecs} file{enabled_defines}
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
   cat $path($<[1]) | set -w enabled_defines [string_set]
-  pattern = "FFCodec"
-  thing = "parser"
-  struct_name = "FFCodec"
-  name = "codec_list"
 
-  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n codec_LIST
-  # assert ($size($codec_LIST) > 0)
-  echo "static const $struct_name * const $name[] = {" > $f
-  for c: $codec_LIST
+  sed -n -e 's/.*extern.* FFCodec\s+ff_(\S+);/\1/p' $s | set -n func_list
+  if $empty($func_list)
+    echo "No codec functions found"
+    exit 1
+  end
+  echo 'static const FFCodec* const codec_list[] = {' > $f
+  for c: $func_list
     group = $string.ucase(CONFIG_$c)
     if ($enabled_defines[$group])
       echo "    &ff_$c," >> $path($>)
@@ -77,22 +80,21 @@ libavcodec/c{codec_list}: libavcodec/c{allcodecs} file{enabled_defines}
   echo "    NULL };" >> $path($>)
 }}
 
-libavcodec/c{parser_list}: libavcodec/c{allcodecs} file{enabled_defines}
+libavcodec/c{parser_list}: libavcodec/c{parsers} file{enabled_defines}
 {{
   diag generate $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
   cat $path($<[1]) | set -w enabled_defines [string_set]
-  pattern = "AVCodecParser"
-  thing = "parser"
-  struct_name = "AVCodecParser"
-  name = "parser_list"
 
-  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n parser_LIST
-  # assert ($size($parser_LIST) > 0)
-  echo "static const $struct_name * const $name[] = {" > $f
-  for c: $parser_LIST
+  sed -n -e 's/.*extern.* AVCodecParser\s+ff_(\S+)_parser;/\1_parser/p' $s | set -n func_list
+  if $empty($func_list)
+    echo "No parser functions found"
+    exit 1
+  end
+  echo 'static const AVCodecParser* const parser_list[] = {' > $f
+  for c: $func_list
     group = $string.ucase(CONFIG_$c)
     if ($enabled_defines[$group])
       echo "    &ff_$c," >> $path($>)
@@ -101,21 +103,21 @@ libavcodec/c{parser_list}: libavcodec/c{allcodecs} file{enabled_defines}
   echo "    NULL };" >> $path($>)
 }}
 
-libavcodec/c{bsf_list}: libavcodec/c{allcodecs} file{enabled_defines}
+libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} file{enabled_defines}
 {{
   diag generate $>
+
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
   cat $path($<[1]) | set -w enabled_defines [string_set]
-  pattern = "FFBitStreamFilter"
-  thing = "bsf"
-  struct_name = "FFBitStreamFilter"
-  name = "bitstream_filters"
 
-  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n bsf_LIST
-  # assert ($size($bsf_LIST) > 0)
-  echo "static const $struct_name * const $name[] = {" > $f
-  for c: $bsf_LIST
+  sed -n -e 's/.*extern.* FFBitStreamFilter\s+ff_(\S+)_bsf;/\1_bsf/p' $s | set -n func_list
+  if $empty($func_list)
+    echo "No bsf functions found"
+    exit 1
+  end
+  echo 'static const FFBitStreamFilter* const bitstream_filters[] = {' > $f
+  for c: $func_list
     group = $string.ucase(CONFIG_$c)
     if ($enabled_defines[$group])
       echo "    &ff_$c," >> $path($>)

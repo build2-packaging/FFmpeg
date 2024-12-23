@@ -165,14 +165,17 @@ h{config}: in{config}
   EXTERN_ASM                           = ($tgt_macos ? _ : )
   OS_NAME                              = ($c.target.class)
 
-  CONFIG_AVDEVICE                      = 1 #($config.libconfig.avdevice ? 1 : 0)
-  CONFIG_AVFILTER                      = 1 #($config.libconfig.avfilter ? 1 : 0)
-  CONFIG_SWSCALE                       = 1 #($config.libconfig.swscale ? 1 : 0)
-  CONFIG_POSTPROC                      = 1 #($config.libconfig.postproc ? 1 : 0)
-  CONFIG_AVFORMAT                      = 1 #($config.libconfig.avformat ? 1 : 0)
-  CONFIG_AVCODEC                       = 1 #($config.libconfig.avcodec ? 1 : 0)
-  CONFIG_SWRESAMPLE                    = 1 #($config.libconfig.swresample ? 1 : 0)
-  CONFIG_AVUTIL                        = 1 #($config.libconfig.avutil ? 1 : 0)
+  CONFIG_AVDEVICE                      = 1
+  CONFIG_AVFILTER                      = 1
+  CONFIG_SWSCALE                       = 1
+  CONFIG_POSTPROC                      = 1
+  CONFIG_AVFORMAT                      = 1
+  CONFIG_AVCODEC                       = 1
+  CONFIG_SWRESAMPLE                    = 1
+  CONFIG_AVUTIL                        = 1
+  CONFIG_FFPLAY                        = 0 # set to 1 when package added
+  CONFIG_FFPROBE                       = 0 # set to 1 when package added
+  CONFIG_FFMPEG                        = 0 # set to 1 when package added
 
   # Configuration options
   CONFIG_THIS_YEAR                     = 2024
@@ -366,9 +369,6 @@ h{config}: in{config}
   CONFIG_GPL                           = ($config.libconfig.gpl ? 1 : 0)
   CONFIG_NONFREE                       = ($config.libconfig.nonfree ? 1 : 0)
   CONFIG_VERSION3                      = ($config.libconfig.version3 ? 1 : 0)
-  CONFIG_FFPLAY                        = ($config.libconfig.ffplay ? 1 : 0)
-  CONFIG_FFPROBE                       = ($config.libconfig.ffprobe ? 1 : 0)
-  CONFIG_FFMPEG                        = ($config.libconfig.ffmpeg ? 1 : 0)
   CONFIG_DWT                           = ($config.libconfig.dwt ? 1 : 0)
   CONFIG_ERROR_RESILIENCE              = ($config.libconfig.error_resilience ? 1 : 0)
   CONFIG_FAAN                          = ($config.libconfig.faan ? 1 : 0)

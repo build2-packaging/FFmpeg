@@ -30,6 +30,10 @@ libua{avformat}: enabled_source{avformat}: file{enabled_defines} libua{avformat-
                                        $config_h $config_asm libavformat/h{**}: \
                                        update = match
 
+# these c files are included, not built.
+libul{avcodec}: adhoc_source{avcodec}: include = adhoc
+adhoc_source{avcodec}: libavformat/c{**_template}
+
 libul{avformat}: libavformat/c{ \
                   protocol_list \
                   demuxer_list \
@@ -43,15 +47,14 @@ libavformat/c{protocol_list}: libavformat/c{protocols} file{enabled_defines}
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
   cat $path($<[1]) | set -w enabled_defines [string_set]
-  pattern = "URLProtocol"
-  thing = "parser"
-  struct_name = "URLProtocol"
-  name = "url_protocols"
 
-  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n format_LIST
-
-  echo "static const $struct_name * const $name[] = {" > $f
-  for c: $format_LIST
+  sed -n -e 's/.*extern.* URLProtocol\s+ff_(\S+)_protocol;/\1_protocol/p' $s | set -n func_list
+  if $empty($func_list)
+    echo "No protocol functions found"
+    exit 1
+  end
+  echo 'static const URLProtocol* const url_protocols[] = {' > $f
+  for c: $func_list
     group = $string.ucase(CONFIG_$c)
     if ($enabled_defines[$group])
       echo "    &ff_$c," >> $path($>)
@@ -67,15 +70,16 @@ libavformat/c{demuxer_list}: libavformat/c{allformats} file{enabled_defines}
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
   cat $path($<[1]) | set -w enabled_defines [string_set]
-  pattern = "FFInputFormat"
-  thing = "demuxer"
-  struct_name = "FFInputFormat"
-  name = "demuxer_list"
 
-  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n format_LIST
+                # extern const FFInputFormat  ff_ac3_demuxer;
 
-  echo "static const $struct_name * const $name[] = {" > $f
-  for c: $format_LIST
+  sed -n -e 's/^\s*extern.*FFInputFormat\s+ff_(\S*)_demuxer;/\1_demuxer/p' $s | set -n func_list
+  if $empty($func_list)
+    echo "No demuxer functions found"
+    exit 1
+  end
+  echo 'static const FFInputFormat* const demuxer_list[] = {' > $f
+  for c: $func_list
     group = $string.ucase(CONFIG_$c)
     if ($enabled_defines[$group])
       echo "    &ff_$c," >> $path($>)
@@ -91,15 +95,14 @@ libavformat/c{muxer_list}: libavformat/c{allformats} file{enabled_defines}
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
   cat $path($<[1]) | set -w enabled_defines [string_set]
-  pattern = "FFOutputFormat"
-  thing = "parser"
-  struct_name = "FFOutputFormat"
-  name = "muxer_list"
 
-  sed -n -e "s/^[^#]*extern.*$pattern *ff_\([^ ]*\)_$thing;/\1_$thing/p" $s | set -n format_LIST
-
-  echo "static const $struct_name * const $name[] = {" > $f
-  for c: $format_LIST
+  sed -n -e 's/^\s*extern.*FFOutputFormat\s+ff_(\S*)_muxer;/\1_muxer/p' $s | set -n func_list
+  if $empty($func_list)
+    echo "No muxer functions found"
+    exit 1
+  end
+  echo 'static const FFOutputFormat* const muxer_list[] = {' > $f
+  for c: $func_list
     group = $string.ucase(CONFIG_$c)
     if ($enabled_defines[$group])
       echo "    &ff_$c," >> $path($>)
