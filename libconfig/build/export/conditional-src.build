@@ -95,7 +95,7 @@ enabled_source{~'/(.+)/'}: file{^'/enabled_defines/'} json{~'/.+/'} libua{~'/\1-
   depdb hash $poptions
 
   # append default groups
-  enabled_defines += [string_set] OBJS ARCH_
+  enabled_defines += [string_set] OBJS ARCH_ HAVE_ HAVE_BSF
 
   # iterate all files and filter out if the corresponding
   # group(s) isn't enabled
@@ -112,7 +112,7 @@ enabled_source{~'/(.+)/'}: file{^'/enabled_defines/'} json{~'/.+/'} libua{~'/\1-
       dir = $regex.match($dir, '(.*)/', return_subs)
       arch_dir = $string.ucase("ARCH_$dir")
       have_dir = $string.ucase("HAVE_$dir")
-      enabled = [bool] true
+      enabled = [bool] $empty($groups)
       for group: $groups
         negate = [bool] $string.starts_with($group, '!')
         if($negate)
@@ -120,15 +120,13 @@ enabled_source{~'/(.+)/'}: file{^'/enabled_defines/'} json{~'/.+/'} libua{~'/\1-
         end
 
         # check if group is enabled, either (eg.) 'HAVE_X86ASM', or for CPU specific 'ARCH_ARM'
-        if (!$enabled_defines[$group])
+        if (($enabled_defines[$group] && \
+            ($enabled_defines[$arch_dir] || $enabled_defines[$have_dir])) && \
+            !$negate)
+          enabled = true
+        else
           enabled = false
-          skipped_srcs += "$src-\($group)"
-        elif (!$enabled_defines[$arch_dir] && !$enabled_defines[$have_dir])
-          enabled = false
-          skipped_srcs += "$src-\(!$arch_dir && !$have_dir)"
-        elif ($negate)
-          enabled = false
-          skipped_srcs += "$src-\(Negated)"
+          skipped_srcs += "$src-\(!$arch_dir && !$have_dir \(group: $group, negate: $negate))"
         end
       end
       if ($enabled)
