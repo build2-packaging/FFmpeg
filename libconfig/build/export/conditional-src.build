@@ -95,7 +95,7 @@ enabled_source{~'/(.+)/'}: file{^'/enabled_defines/'} json{~'/.+/'} libua{~'/\1-
   depdb hash $poptions
 
   # append default groups
-  enabled_defines += [string_set] OBJS ARCH_ HAVE_ HAVE_BSF
+  enabled_defines += [string_set] OBJS ARCH_ HAVE_ HAVE_BSF HAVE_VVC
 
   # iterate all files and filter out if the corresponding
   # group(s) isn't enabled

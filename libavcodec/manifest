@@ -16,3 +16,4 @@ depends: * bpkg >= 0.18.0-
 depends: libconfig == $
 depends: libavutil == $
 depends: libswresample == $
+depends: libz ^1.2.1200

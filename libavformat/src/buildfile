@@ -5,6 +5,9 @@ impl_libs = # Implementation dependencies.
 
 import config = libconfig%lib{config}
 impl_libs += $config
+
+import impl_libs += \
+  libz%lib{z}
 import intf_libs += \
   libavutil%liba{avutil} \
   libavcodec%liba{avcodec} \
