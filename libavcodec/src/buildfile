@@ -31,11 +31,13 @@ libua{avcodec}: enabled_source{avcodec}: file{enabled_defines} libua{avcodec-met
                                        $config_h $config_asm libavcodec/h{**} libavformat/h{**}: \
                                        update = match
 
+# required by test/dct.c
+libul{avcodec}: libavcodec/c{dctref}
+
 # these c files are included, not built.
 libul{avcodec}: adhoc_source{avcodec}: include = adhoc
 adhoc_source{avcodec}: libavcodec/c{**_template} libavcodec/aarch64/S{neon}
 
-# these c files are included, not built.
 libul{avcodec}: libavcodec/c{ \
                               bsf_list    \
                               codec_list  \
