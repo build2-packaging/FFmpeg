@@ -1,19 +1,20 @@
 if (!$defined(libconfig))
   import! libconfig [metadata] = libconfig%lib{config}
 
-switch $c.target.system
+# FFmpeg requires a certain level of optimization to inline compile-time capable
+# checks and remove dead code, otherwise it'll try to link unbuilt symbols.
+if($regex.find_search($c.coptions $cc.coptions, '[-\/]O[d0]'))
 {
-  case 'win32-msvc'
+  text "$\nAppending -O1: FFmpeg requires optimization as it relies on dead code removal."
+  c.coptions  = (!$empty($c.coptions) ? $regex.apply($c.coptions, '[-\/]O[d0]', '-O1') :)
+  cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, '[-\/]O[d0]', '-O1') :)
+
+  # /RCT[1su] is incompatible with optimization turned on.
+  if ($c.target.system == 'win32-msvc')
   {
-    if(!$empty($c.coptions))
-    {
-      if(($string.find($c.coptions, "-Od") || $string.find($c.coptions, '/Od')) \
-         && (!$find($c.coptions, '-Og') && !$find($c.coptions, '/Og')))
-      {
-        warn "/Od is not supported with MSVC, complementing with /Og"
-        c.coptions += -Og
-      }
-    }
+    text "$\nRemove /RTC: Incompatible with optimizations turned on."
+    c.coptions  = (!$empty($c.coptions) ? $regex.apply($c.coptions, '[-\/]RTC\S', '') :)
+    cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, '[-\/]RTC\S', '') :)
   }
 }
 
@@ -51,10 +52,6 @@ switch $c.target.cpu $c.id.type
 
 if ($c.id.type == 'msvc')
 {
-  objs{**}: c.poptions += -DCONFIG_PIC=1 \
-                          -DPIC=1
-  obja{**}: c.poptions += -DCONFIG_PIC=0
-
   c.poptions += -DWIN32_LEAN_AND_MEAN \
                 -D_CRT_NONSTDC_NO_WARNINGS \
                 -D_CRT_SECURE_NO_WARNINGS \
@@ -68,16 +65,21 @@ if ($c.id.type == 'msvc')
                 -wd4554
 
   c.loptions += -LARGEADDRESSAWARE
-}
-elif ($c.target.system == 'win32-msvc')
-{
-  c.loptions += -LARGEADDRESSAWARE:NO
+
+  objs{**}: c.poptions += -DCONFIG_PIC=1 \
+                          -DPIC=1
+  obja{**}: c.poptions += -DCONFIG_PIC=0
 }
 
 if ($c.id != 'msvc')
 {
   if ($c.target.system == 'win32-msvc')
   {
+    c.poptions += -DWIN32_LEAN_AND_MEAN \
+                  -D_CRT_NONSTDC_NO_WARNINGS \
+                  -D_CRT_SECURE_NO_WARNINGS \
+                  -D_USE_MATH_DEFINES
+
     c.loptions += -LARGEADDRESSAWARE:NO
   }
   elif ($c.target.system == 'darwin')
@@ -101,6 +103,7 @@ if ($c.id != 'msvc')
   c.coptions += -Wno-bool-operation \
                 -Wno-char-subscripts \
                 -Wno-deprecated-declarations \
+                -Wno-deprecated-non-prototype \
                 -Wno-format \
                 -Wno-format-zero-length \
                 -Wno-implicit-function-declaration \
