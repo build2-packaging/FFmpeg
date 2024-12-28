@@ -36,10 +36,9 @@ switch $c.target.cpu $c.id.type
   }
 }
 
-cpu = [string] $c.target.cpu
-tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
-tgt_macos = [bool] ($c.target.system == 'darwin')
-have_opengl = [bool] ($c.find_system_header("GL/glx.h") != [null] || \
+tgt_win32     = [bool] ($c.target.system == 'win32-msvc')
+tgt_macos     = [bool] ($c.target.system == 'darwin')
+have_opengl   = [bool] ($c.find_system_header("GL/glx.h") != [null] || \
                       $c.find_system_header("OpenGL/gl3.h") != [null] \
                      )
 have_opengles = [bool] ($c.find_system_header("ES2/gl.h") != [null])
@@ -83,9 +82,8 @@ c{print_defines}: h{config_cpu config}
           end
 
           file += "#ifdef $c"
-          file += "  $print\(TOSTRING\({#ifndef \"$c\"}\)\)"
+          file += "  $print\(TOSTRING\({#undef \"$c\"}\)\)"
           file += "  $print\($tmp\)"
-          file += "  $print\(TOSTRING\({#endif}\)\)"
           file += "#endif"
         end
       end
