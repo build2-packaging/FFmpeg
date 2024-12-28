@@ -107,9 +107,8 @@ enabled_source{~'/(.+)/'}: file{^'/enabled_defines/'} json{~'/.+/'} libua{~'/\1-
 
     filtered_srcs = [paths]
     for src: [paths] $srcs
-      # if in an immediate subdir, treat as group 'ARCH_<DIR>', eg. 'ARCH_ARM'
-      dir = $directory($src)
-      dir = $regex.match($dir, '(.*)/', return_subs)
+      # if in an subdir, treat first subdir as 'ARCH_<DIR>', eg. 'ARCH_ARM'
+      dir = $regex.replace($directory($src), '/.*', '')
       arch_dir = $string.ucase("ARCH_$dir")
       have_dir = $string.ucase("HAVE_$dir")
       enabled = [bool] $empty($groups)
