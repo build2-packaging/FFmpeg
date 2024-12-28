@@ -39,6 +39,12 @@ src_pfx = [dir_path] $src_root/src/
 
 c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_swresample -Dav_export_libswresample=
 
+libs{swresample}: def{swresample}: include = ($cxx.target.system == 'win32-msvc')
+def{swresample}: libul{swresample}
+
+if ($cxx.target.system == 'mingw32')
+  cxx.loptions += -Wl,--export-all-symbols
+
 # System libraries
 sys_libs =
 switch $c.target.class, $c.target.system

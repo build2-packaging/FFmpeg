@@ -37,6 +37,12 @@ src_pfx = [dir_path] $src_root/src/
 
 c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libpostproc/" -DBUILDING_postproc -Dav_export_postproc=
 
+libs{postproc}: def{postproc}: include = ($cxx.target.system == 'win32-msvc')
+def{postproc}: libul{postproc}
+
+if ($cxx.target.system == 'mingw32')
+  cxx.loptions += -Wl,--export-all-symbols
+
 # System libraries
 sys_libs =
 switch $c.target.class, $c.target.system

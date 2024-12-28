@@ -123,6 +123,12 @@ src_pfx = [dir_path] $src_root/src/
 
 c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avformat -Dav_export_libavformat=
 
+libs{avformat}: def{avformat}: include = ($cxx.target.system == 'win32-msvc')
+def{avformat}: libul{avformat}
+
+if ($cxx.target.system == 'mingw32')
+  cxx.loptions += -Wl,--export-all-symbols
+
 # System libraries
 sys_libs =
 switch $c.target.class, $c.target.system

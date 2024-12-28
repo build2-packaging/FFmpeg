@@ -9,7 +9,7 @@ impl_libs += $config
 
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
 
-./: lib{avutil}: libua{avutil}: libavutil/h{avconfig ffversion} $impl_libs $intf_libs
+./: lib{avutil}: libul{avutil}: libavutil/h{avconfig ffversion} $impl_libs $intf_libs
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
@@ -48,6 +48,12 @@ out_pfx = [dir_path] $out_root/src/
 src_pfx = [dir_path] $src_root/src/
 
 c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avutil
+
+libs{avutil}: def{avutil}: include = ($cxx.target.system == 'win32-msvc')
+def{avutil}: libul{avutil}
+
+if ($cxx.target.system == 'mingw32')
+  cxx.loptions += -Wl,--export-all-symbols
 
 # System libraries
 sys_libs =
