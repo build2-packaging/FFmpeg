@@ -23,16 +23,14 @@ lib{avfilter}: libul{avfilter}: \
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
 import [once] libconfig%buildfile{conditional-src}
-import config_h = libconfig%h{autoconf}
 import config_asm = libconfig%file{config.asm}
+import config_defs = libconfig%file{enabled_defines}
 
 [rule_hint=c] \
 libul{avfilter-meta}: $impl_libs $intf_libs $config_asm
-libua{avfilter}: enabled_source{avfilter}
-file{enabled_defines}: $config_h: update = match
-libua{avfilter}: enabled_source{avfilter}: file{enabled_defines} libua{avfilter-meta} json{files.json} \
-                                       $config_h $config_asm libavfilter/h{**}: \
-                                       update = match
+libua{avfilter}: enabled_source{avfilter}: $config_defs libua{avfilter-meta} json{files.json} \
+                                           $config_asm libavfilter/h{**}: \
+                                         update = match
 
 # these c files are included, not built.
 libul{avfilter}: adhoc_source{avfilter}: include = adhoc

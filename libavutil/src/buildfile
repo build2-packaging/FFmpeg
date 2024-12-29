@@ -13,14 +13,13 @@ tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
-import config_h = libconfig%h{autoconf}
 import config_asm = libconfig%file{config.asm}
+import config_defs = libconfig%file{enabled_defines}
 
 [rule_hint=c] \
 libul{avutil-meta}: $impl_libs $intf_libs
-file{enabled_defines}: $config_h: update = match
-libua{avutil}: enabled_source{avutil}: file{enabled_defines} libua{avutil-meta} json{files.json} \
-                                       $config_h $config_asm compat/h{**} libavcodec/h{**} libavutil/h{**}: \
+libua{avutil}: enabled_source{avutil}: $config_defs libua{avutil-meta} json{files.json} \
+                                       $config_asm compat/h{**} libavcodec/h{**} libavutil/h{**}: \
                                        update = match
 
 libua{avutil}: compat/windows/{h c}{*} \

@@ -23,15 +23,14 @@ lib{avformat}: libul{avformat}: libavformat/h{**} $impl_libs $intf_libs
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
 import [once] libconfig%buildfile{conditional-src}
-import config_h = libconfig%h{autoconf}
 import config_asm = libconfig%file{config.asm}
+import config_defs = libconfig%file{enabled_defines}
 
 [rule_hint=c] \
-libul{avformat-meta}: $impl_libs $intf_libs $config_asm
-file{enabled_defines}: $config_h: update = match
-libua{avformat}: enabled_source{avformat}: file{enabled_defines} libua{avformat-meta} json{files.json} \
-                                       $config_h $config_asm libavformat/h{**}: \
-                                       update = match
+libul{avformat-meta}: $impl_libs $intf_libs
+libua{avformat}: enabled_source{avformat}: $config_defs libua{avformat-meta} json{files.json} \
+                                           $config_asm libavformat/h{**}: \
+                                         update = match
 
 # these c files are included, not built.
 libul{avcodec}: adhoc_source{avcodec}: include = adhoc

@@ -24,14 +24,13 @@ lib{avcodec}: libul{avcodec}: \
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
 import [once] libconfig%buildfile{conditional-src}
-import config_h = libconfig%h{autoconf}
 import config_asm = libconfig%file{config.asm}
+import config_defs = libconfig%file{enabled_defines}
 
 [rule_hint=c] \
-libul{avcodec-meta}: $impl_libs $intf_libs $config_asm
-file{enabled_defines}: $config_h: update = match
-libua{avcodec}: enabled_source{avcodec}: file{enabled_defines} libua{avcodec-meta} json{files.json} \
-                                       $config_h $config_asm libavcodec/h{**} libavformat/h{**}: \
+libul{avcodec-meta}: $impl_libs $intf_libs
+libua{avcodec}: enabled_source{avcodec}: $config_defs libua{avcodec-meta} json{files.json} \
+                                         $config_asm libavcodec/h{**} libavformat/h{**}: \
                                        update = match
 
 # required by test/dct.c

@@ -16,15 +16,14 @@ tgt_macos = [bool] ($c.target.system == 'darwin')
 lib{swresample}: libul{swresample}: libswresample/h{**} $impl_libs $intf_libs
 
 import [once] libconfig%buildfile{conditional-src}
-import config_h = libconfig%h{autoconf}
 import config_asm = libconfig%file{config.asm}
+import config_defs = libconfig%file{enabled_defines}
 
 [rule_hint=c] \
-libul{swresample-meta}: $impl_libs $intf_libs $config_asm
-file{enabled_defines}: $config_h: update = match
-libua{swresample}: enabled_source{swresample}: file{enabled_defines} libua{swresample-meta} json{files.json} \
-                                       $config_h $config_asm libswresample/h{**}: \
-                                       update = match
+libul{swresample-meta}: $impl_libs $intf_libs
+libua{swresample}: enabled_source{swresample}: $config_defs libua{swresample-meta} json{files.json} \
+                                               $config_asm libswresample/h{**}: \
+                                             update = match
 
 # these c files are included, not built.
 libul{swresample}: adhoc_source{swresample}: include = adhoc

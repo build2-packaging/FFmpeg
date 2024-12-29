@@ -20,16 +20,14 @@ lib{avdevice}: libul{avdevice}: \
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
 import [once] libconfig%buildfile{conditional-src}
-import config_h = libconfig%h{autoconf}
 import config_asm = libconfig%file{config.asm}
+import config_defs = libconfig%file{enabled_defines}
 
 [rule_hint=c] \
-libul{avdevice-meta}: $impl_libs $intf_libs $config_asm
-libua{avdevice}: enabled_source{avdevice}
-file{enabled_defines}: $config_h: update = match
-libua{avdevice}: enabled_source{avdevice}: file{enabled_defines} libua{avdevice-meta} json{files.json} \
-                                       $config_h $config_asm libavdevice/h{**}: \
-                                       update = match
+libul{avdevice-meta}: $impl_libs $intf_libs
+libua{avdevice}: enabled_source{avdevice}: $config_defs libua{avdevice-meta} json{files.json} \
+                                           $config_asm libavdevice/h{**}: \
+                                         update = match
 
 # these c files are included, not built.
 libul{avdevice}: libavdevice/c{ \

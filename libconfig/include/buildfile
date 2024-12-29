@@ -152,6 +152,33 @@ file{config.asm}: h{autoconf}
   echo "$tmp" >$path($>)
 }}
 
+file{enabled_defines}: h{autoconf}: update = match
+file{enabled_defines}:
+{{
+  d      = [dir_path] $directory($>[0])
+  o      = [dir_path] $path($>[0])
+  config = [path] $path($<[0])
+
+  # extract all enabled "groups" (CONFIG_XXX, HAVE_XXX)
+  sed -n -e 's/#[ ]*define[ ]+([A-Z0-9_]+)[ ]+1$/\1/p' $config \
+    | set -w enabled_defines [string_set]
+  sed -n -e 's/#[ ]*define[ ]+([A-Z0-9_]+)[ ]+[0-1]$/\1/p' $config \
+    | set -w all_defines [string_set]
+
+  depdb dyndep \
+    --dyn-target \
+    --target-cwd $d \
+    --target-what 'extracted source' \
+    --target-default-type 'file' \
+    --format lines \
+    -- echo $regex.merge(enabled_defines, '(.*)', '\1', "$\n")
+
+  diag extract_defines $< $>
+
+  echo $all_defines >!
+  echo $regex.merge($enabled_defines, '(.*)', '\1', "$\n") >$o
+}}
+
 h{config}: in{config}
 {
   FFMPEG_CONFIGURATION                 = "\"$c.target\""
