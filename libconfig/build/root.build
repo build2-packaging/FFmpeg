@@ -56,6 +56,8 @@ config [bool] config.libconfig.disable_neon                  ?= false # disable 
 config [bool] config.libconfig.disable_rvv                   ?= false # disable RISC-V Vector optimizations
 # config [bool] config.libconfig.disable_fast-unaligned        ?= false # consider unaligned accesses slow
 
+config [bool] config.libconfig.have_compile_time_nan         ?= ($c.target.class != 'windows')
+
 # Configuration Options
 config [bool] config.libconfig.doc                           ?= false
 config [bool] config.libconfig.htmlpages                     ?= false
@@ -398,7 +400,7 @@ config [bool] config.libconfig.eac3_core_bsf                 ?= true
 config [bool] config.libconfig.evc_frame_merge_bsf           ?= true
 config [bool] config.libconfig.extract_extradata_bsf         ?= true
 config [bool] config.libconfig.filter_units_bsf              ?= true
-config [bool] config.libconfig.h264_metadata_bsf             ?= true
+config [bool] config.libconfig.h264_metadata_bsf             ?= $config.libconfig.have_compile_time_nan
 config [bool] config.libconfig.h264_mp4toannexb_bsf          ?= true
 config [bool] config.libconfig.h264_redundant_pps_bsf        ?= true
 config [bool] config.libconfig.hapqa_extract_bsf             ?= true
@@ -1909,8 +1911,8 @@ config [bool] config.libconfig.tlut2_filter                  ?= false
 config [bool] config.libconfig.tmedian_filter                ?= false
 config [bool] config.libconfig.tmidequalizer_filter          ?= false
 config [bool] config.libconfig.tmix_filter                   ?= false
-config [bool] config.libconfig.tonemap_filter                ?= false
-config [bool] config.libconfig.tonemap_opencl_filter         ?= false
+config [bool] config.libconfig.tonemap_filter                ?= $config.libconfig.have_compile_time_nan
+config [bool] config.libconfig.tonemap_opencl_filter         ?= $config.libconfig.have_compile_time_nan
 config [bool] config.libconfig.tonemap_vaapi_filter          ?= false
 config [bool] config.libconfig.tpad_filter                   ?= false
 config [bool] config.libconfig.transpose_filter              ?= false
@@ -1957,7 +1959,7 @@ config [bool] config.libconfig.yadif_videotoolbox_filter     ?= false
 config [bool] config.libconfig.yaepblur_filter               ?= false
 config [bool] config.libconfig.zmq_filter                    ?= false
 config [bool] config.libconfig.zoompan_filter                ?= false
-config [bool] config.libconfig.zscale_filter                 ?= false
+config [bool] config.libconfig.zscale_filter                 ?= $config.libconfig.have_compile_time_nan
 config [bool] config.libconfig.hstack_vaapi_filter           ?= false
 config [bool] config.libconfig.vstack_vaapi_filter           ?= false
 config [bool] config.libconfig.xstack_vaapi_filter           ?= false

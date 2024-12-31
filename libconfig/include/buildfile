@@ -190,6 +190,8 @@ h{config}: in{config}
   EXTERN_ASM                           = ($tgt_macos ? _ : )
   OS_NAME                              = ($c.target.class)
 
+  HAVE_COMPILE_TIME_NAN                = ($config.libconfig.have_compile_time_nan ? 1 : 0)
+
   CONFIG_AVDEVICE                      = 1
   CONFIG_AVFILTER                      = 1
   CONFIG_SWSCALE                       = 1

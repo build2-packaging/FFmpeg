@@ -12,10 +12,14 @@ requirements = [string_set] \
   '{"mjpegenc_huffman": "mjpeg_encoder"}' \
   '{"motion":           "have_mmx"}' \
   '{"mpeg12framerate":  "mpegvideo"}' \
+  '{"avcodec":          "h264_metadata_bsf"}' \
   '{"h264_levels":      "h264_metadata_bsf"}' \
+  '{"movenc":           "h264_metadata_bsf"}' \
+  '{"seek_utils":       "h264_metadata_bsf"}' \
+  '{"fifo_muxer":       "h264_metadata_bsf"}' \
   '{"h265_levels":      "hevc_metadata_bsf"}' \
   '{"rangecoder":       "rangecoder"}' \
-  '{"snowenc":          "snow_encoder"}'
+  '{"snowenc":          "snow_encoder h264_metadata_bsf"}'
 
 # need upstream/tests/checkasm/ lib that conditionally builds the asm files.
 for t : tests/c{*.c}

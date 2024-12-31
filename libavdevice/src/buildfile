@@ -19,7 +19,6 @@ lib{avdevice}: libul{avdevice}: \
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
-import [once] libconfig%buildfile{conditional-src}
 import config_asm = libconfig%file{config.asm}
 import config_defs = libconfig%file{enabled_defines}
 

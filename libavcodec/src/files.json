@@ -536,7 +536,7 @@
 {"CONFIG_H264_DXVA2_HWACCEL": "dxva2_h264.c"},
 {"CONFIG_H264_MEDIACODEC_DECODER": "mediacodecdec.c"},
 {"CONFIG_H264_MEDIACODEC_ENCODER": "mediacodecenc.c"},
-{"CONFIG_H264_METADATA_BSF": "bsf/h264_metadata.c"},
+{"CONFIG_H264_METADATA_BSF HAVE_COMPILE_TIME_NAN": "bsf/h264_metadata.c"},
 {"CONFIG_H264_METADATA_BSF": "h264_levels.c h2645data.c"},
 {"CONFIG_H264_MF_ENCODER": "mfenc.c mf_utils.c"},
 {"CONFIG_H264_MMAL_DECODER": "mmaldec.c"},

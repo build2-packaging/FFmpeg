@@ -17,6 +17,9 @@
 #define EXTERN_PREFIX @EXTERN_PREFIX@
 #define EXTERN_ASM @EXTERN_ASM@
 
+// extended upstream checks
+#define HAVE_COMPILE_TIME_NAN @HAVE_COMPILE_TIME_NAN@
+
 // config.h
 //in config_cpu.h: #undef HAVE_ARMV8
 //unused: #undef HAVE_DOTPROD

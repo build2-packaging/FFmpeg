@@ -4,13 +4,12 @@ import libs = \
   $config
 
 requirements = [string_set] \
-  '{"fifo_muxer": "network"}' \
-  '{"network": "fifo_muxer"}' \
-  '{"rtmpdh": "ffrtmpcrypt_protocol"}' \
-  '{"movenc": "mov_muxer"}' \
-  '{"noproxy": "network"}' \
-  '{"srtp": "srtp"}' \
-  '{"imf": "imf_demuxer"}'
+  '{"rtmpdh":     "ffrtmpcrypt_protocol"}' \
+  '{"movenc":     "mov_muxer h264_metadata_bsf"}' \
+  '{"fifo_muxer": "fifo_muxer network h264_metadata_bsf"}' \
+  '{"seek_utils": "h264_metadata_bsf"}' \
+  '{"noproxy":    "network"}' \
+  '{"imf":        "imf_demuxer"}'
 
 # need upstream/tests/checkasm/ lib that conditionally builds the asm files.
 # TODO: Figure out what seek needs as input (the fate testing
