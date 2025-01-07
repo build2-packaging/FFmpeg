@@ -23,7 +23,7 @@ lib{avfilter}: libul{avfilter}: \
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
 import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled_defines}
+import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avfilter-meta}: $impl_libs $intf_libs $config_asm
@@ -39,13 +39,13 @@ libul{avfilter}: libavfilter/c{ \
                   filter_list \
                 }: include = adhoc
 
-libavfilter/c{filter_list}: libavfilter/c{allfilters} file{enabled_defines}
+libavfilter/c{filter_list}: libavfilter/c{allfilters} $config_defs
 {{
   diag generate $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w enabled_defines [string_set]
+  cat $path($<[1]) | set -w defines [string_set]
 
   sed -n -e 's/.*extern.* AVFilter\s+ff_(\S+);/\1_filter/p' $s | set -n func_list
   if $empty($func_list)
@@ -55,7 +55,7 @@ libavfilter/c{filter_list}: libavfilter/c{allfilters} file{enabled_defines}
   echo 'static const AVFilter* const filter_list[] = {' > $f
   for c: $func_list
     group = $string.ucase(CONFIG_$c)
-    if ($enabled_defines[$group])
+    if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
     end
   end

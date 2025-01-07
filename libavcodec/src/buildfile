@@ -24,7 +24,7 @@ lib{avcodec}: libul{avcodec}: \
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
 import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled_defines}
+import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avcodec-meta}: $impl_libs $intf_libs
@@ -60,13 +60,13 @@ libul{avcodec}: libavcodec/c{ \
                             }: \
                 include = adhoc
 
-libavcodec/c{codec_list}: libavcodec/c{allcodecs} file{enabled_defines}
+libavcodec/c{codec_list}: libavcodec/c{allcodecs} $config_defs
 {{
   diag generate $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w enabled_defines [string_set]
+  cat $path($<[1]) | set -w defines [string_set]
 
   sed -n -e 's/.*extern.* FFCodec\s+ff_(\S+);/\1/p' $s | set -n func_list
   if $empty($func_list)
@@ -76,20 +76,20 @@ libavcodec/c{codec_list}: libavcodec/c{allcodecs} file{enabled_defines}
   echo 'static const FFCodec* const codec_list[] = {' > $f
   for c: $func_list
     group = $string.ucase(CONFIG_$c)
-    if ($enabled_defines[$group])
+    if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
     end
   end
   echo "    NULL };" >> $path($>)
 }}
 
-libavcodec/c{parser_list}: libavcodec/c{parsers} file{enabled_defines}
+libavcodec/c{parser_list}: libavcodec/c{parsers} $config_defs
 {{
   diag generate $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w enabled_defines [string_set]
+  cat $path($<[1]) | set -w defines [string_set]
 
   sed -n -e 's/.*extern.* AVCodecParser\s+ff_(\S+)_parser;/\1_parser/p' $s | set -n func_list
   if $empty($func_list)
@@ -99,20 +99,20 @@ libavcodec/c{parser_list}: libavcodec/c{parsers} file{enabled_defines}
   echo 'static const AVCodecParser* const parser_list[] = {' > $f
   for c: $func_list
     group = $string.ucase(CONFIG_$c)
-    if ($enabled_defines[$group])
+    if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
     end
   end
   echo "    NULL };" >> $path($>)
 }}
 
-libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} file{enabled_defines}
+libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} $config_defs
 {{
   diag generate $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w enabled_defines [string_set]
+  cat $path($<[1]) | set -w defines [string_set]
 
   sed -n -e 's/.*extern.* FFBitStreamFilter\s+ff_(\S+)_bsf;/\1_bsf/p' $s | set -n func_list
   if $empty($func_list)
@@ -122,7 +122,7 @@ libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} file{enabled_defines}
   echo 'static const FFBitStreamFilter* const bitstream_filters[] = {' > $f
   for c: $func_list
     group = $string.ucase(CONFIG_$c)
-    if ($enabled_defines[$group])
+    if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
     end
   end

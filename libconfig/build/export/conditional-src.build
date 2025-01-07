@@ -52,16 +52,17 @@ rc_target = [string_map]                \
   # 'generic-plugin'@plugin
 
 define [see_through] enabled_source: group
-enabled_source{~'/(.+)/'}: file{^'/enabled_defines/'} json{~'/.+/'} libua{~'/\1-meta/'}
+enabled_source{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'} libua{~'/\1-meta/'}
 {{
   d = [dir_path] $directory($>[0])
 
-  enabled_configs = [path] $path(file{enabled_defines})
-  meta            = $filter($<, libua)
-  json            = $filter($<, json)
-  config_asm      = [path] $regex.filter_search($path($filter($<, file)), '.+config\.asm')
-  cat $enabled_configs | set -n enabled_defines [string_set]
+  files           = $filter($<, file)
+  config_defs     = ($files[0])
+  meta            = ($filter($<, libua)[0])
+  json            = ($filter($<, json)[0])
+  config_asm      = [path] $regex.filter_search($path($files), '.+config\.asm')
 
+  cat $path($config_defs) | set -n defines [string_set]
   lib_poptions = $c.lib_poptions($meta, obja)
   depdb hash $lib_poptions
 
@@ -69,7 +70,7 @@ enabled_source{~'/(.+)/'}: file{^'/enabled_defines/'} json{~'/.+/'} libua{~'/\1-
   depdb hash $poptions
 
   # append default groups
-  enabled_defines += [string_set] OBJS ARCH_ HAVE_ HAVE_BSF HAVE_VVC
+  defines += [string_set] OBJS ARCH_ HAVE_ HAVE_BSF HAVE_VVC
 
   # iterate all files and filter out if the corresponding
   # group(s) isn't enabled
@@ -93,8 +94,8 @@ enabled_source{~'/(.+)/'}: file{^'/enabled_defines/'} json{~'/.+/'} libua{~'/\1-
         end
 
         # check if group is enabled, either (eg.) 'HAVE_X86ASM', or for CPU specific 'ARCH_ARM'
-        if (($enabled_defines[$group] && \
-            ($enabled_defines[$arch_dir] || $enabled_defines[$have_dir])) && \
+        if (($defines[$group] && \
+            ($defines[$arch_dir] || $defines[$have_dir])) && \
             !$negate)
           enabled = true
         else

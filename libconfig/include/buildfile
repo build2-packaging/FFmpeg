@@ -139,7 +139,8 @@ h{autoconf}:
 # generate config.asm from autoconf.h, replacing
 # '#<spaces>' with '%' and '//' with ';', and remove
 # any spaces between
-file{config.asm}: h{autoconf}
+file{config.asm}: h{autoconf}: update = match
+file{config.asm}:
 {{
   s = $path($<)
 
@@ -152,8 +153,8 @@ file{config.asm}: h{autoconf}
   echo "$tmp" >$path($>)
 }}
 
-file{enabled_defines}: h{autoconf}: update = match
-file{enabled_defines}:
+file{enabled-defines}: h{autoconf}: update = match
+file{enabled-defines}:
 {{
   d      = [dir_path] $directory($>[0])
   o      = [dir_path] $path($>[0])

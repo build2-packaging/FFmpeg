@@ -23,7 +23,7 @@ lib{avformat}: libul{avformat}: libavformat/h{**} $impl_libs $intf_libs
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
 import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled_defines}
+import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avformat-meta}: $impl_libs $intf_libs
@@ -41,13 +41,13 @@ libul{avformat}: libavformat/c{ \
                   muxer_list \
                 }: include = adhoc
 
-libavformat/c{protocol_list}: libavformat/c{protocols} file{enabled_defines}
+libavformat/c{protocol_list}: libavformat/c{protocols} $config_defs
 {{
   diag generate $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w enabled_defines [string_set]
+  cat $path($<[1]) | set -w defines [string_set]
 
   sed -n -e 's/.*extern.* URLProtocol\s+ff_(\S+)_protocol;/\1_protocol/p' $s | set -n func_list
   if $empty($func_list)
@@ -57,20 +57,20 @@ libavformat/c{protocol_list}: libavformat/c{protocols} file{enabled_defines}
   echo 'static const URLProtocol* const url_protocols[] = {' > $f
   for c: $func_list
     group = $string.ucase(CONFIG_$c)
-    if ($enabled_defines[$group])
+    if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
     end
   end
   echo "    NULL };" >> $path($>)
 }}
 
-libavformat/c{demuxer_list}: libavformat/c{allformats} file{enabled_defines}
+libavformat/c{demuxer_list}: libavformat/c{allformats} $config_defs
 {{
   diag generate $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w enabled_defines [string_set]
+  cat $path($<[1]) | set -w defines [string_set]
 
                 # extern const FFInputFormat  ff_ac3_demuxer;
 
@@ -82,20 +82,20 @@ libavformat/c{demuxer_list}: libavformat/c{allformats} file{enabled_defines}
   echo 'static const FFInputFormat* const demuxer_list[] = {' > $f
   for c: $func_list
     group = $string.ucase(CONFIG_$c)
-    if ($enabled_defines[$group])
+    if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
     end
   end
   echo "    NULL };" >> $path($>)
 }}
 
-libavformat/c{muxer_list}: libavformat/c{allformats} file{enabled_defines}
+libavformat/c{muxer_list}: libavformat/c{allformats} $config_defs
 {{
   diag generate $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w enabled_defines [string_set]
+  cat $path($<[1]) | set -w defines [string_set]
 
   sed -n -e 's/^\s*extern.*FFOutputFormat\s+ff_(\S*)_muxer;/\1_muxer/p' $s | set -n func_list
   if $empty($func_list)
@@ -105,7 +105,7 @@ libavformat/c{muxer_list}: libavformat/c{allformats} file{enabled_defines}
   echo 'static const FFOutputFormat* const muxer_list[] = {' > $f
   for c: $func_list
     group = $string.ucase(CONFIG_$c)
-    if ($enabled_defines[$group])
+    if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
     end
   end

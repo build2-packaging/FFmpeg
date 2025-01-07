@@ -18,7 +18,7 @@ lib{swscale}: libul{swscale}: \
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
 import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled_defines}
+import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{swscale-meta}: $impl_libs $intf_libs
