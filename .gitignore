@@ -3,3 +3,5 @@
 # Local default options files.
 #
 .build2/local/
+.cache/
+compile_commands.json
