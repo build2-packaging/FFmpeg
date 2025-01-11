@@ -6,8 +6,8 @@ if (!$defined(libconfig))
 if($regex.find_search($c.coptions $cc.coptions, '[-\/]O[d0]'))
 {
   text "$\nAppending -O1: FFmpeg requires optimization as it relies on dead code removal."
-  c.coptions  = (!$empty($c.coptions) ? $regex.apply($c.coptions, '[-\/]O[d0]', '-O1') :)
-  cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, '[-\/]O[d0]', '-O1') :)
+  c.coptions  = (!$empty($c.coptions) ? $regex.apply($c.coptions, '[-\/]O[d0]', '-O2') :)
+  cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, '[-\/]O[d0]', '-O2') :)
 
   # /RCT[1su] is incompatible with optimization turned on.
   if ($c.target.system == 'win32-msvc')
@@ -103,7 +103,6 @@ if ($c.id != 'msvc')
   c.coptions += -Wno-bool-operation \
                 -Wno-char-subscripts \
                 -Wno-deprecated-declarations \
-                -Wno-deprecated-non-prototype \
                 -Wno-format \
                 -Wno-format-zero-length \
                 -Wno-implicit-function-declaration \
