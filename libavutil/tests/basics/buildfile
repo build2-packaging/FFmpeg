@@ -31,7 +31,7 @@ for t : tests/c{*.c -lzo -file}
       }
       if(!$e)
       {
-        text "skip test: libavutil/tests/$n.$extension($t) \(requires: $s\)"
+        text "$\tskip test: libavutil/tests/$n.$extension($t) \(requires: $s\)"
       }
     }
   }

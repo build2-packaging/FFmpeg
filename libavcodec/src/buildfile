@@ -62,7 +62,7 @@ libul{avcodec}: libavcodec/c{ \
 
 libavcodec/c{codec_list}: libavcodec/c{allcodecs} $config_defs
 {{
-  diag generate $>
+  diag gen $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
@@ -85,7 +85,7 @@ libavcodec/c{codec_list}: libavcodec/c{allcodecs} $config_defs
 
 libavcodec/c{parser_list}: libavcodec/c{parsers} $config_defs
 {{
-  diag generate $>
+  diag gen $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
@@ -108,7 +108,7 @@ libavcodec/c{parser_list}: libavcodec/c{parsers} $config_defs
 
 libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} $config_defs
 {{
-  diag generate $>
+  diag gen $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
@@ -195,7 +195,7 @@ libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} $config_defs
     end
   end
 
-  diag generate $>
+  diag gen $>
 
   if ($size($srcs) != $size($hdrs))
     echo "There must be one xxx_tablegen.h per xxx_tablegen.c"

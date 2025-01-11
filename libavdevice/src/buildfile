@@ -36,7 +36,7 @@ libul{avdevice}: libavdevice/c{ \
 
 libavdevice/c{outdev_list}: libavdevice/c{alldevices} $config_defs
 {{
-  diag generate $>
+  diag gen $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
@@ -59,7 +59,7 @@ libavdevice/c{outdev_list}: libavdevice/c{alldevices} $config_defs
   
 libavdevice/c{indev_list}: libavdevice/c{alldevices} $config_defs
 {{
-  diag generate $>
+  diag gen $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.

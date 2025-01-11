@@ -36,7 +36,7 @@ for t : tests/c{*.c -seek}
       }
       if(!$e)
       {
-        text "skip test: libavformat/tests/$n.$extension($t) \(requires: $s\)"
+        text "$\tskip test: libavformat/tests/$n.$extension($t) \(requires: $s\)"
       }
     }
   }

@@ -41,7 +41,7 @@ libul{avfilter}: libavfilter/c{ \
 
 libavfilter/c{filter_list}: libavfilter/c{allfilters} $config_defs
 {{
-  diag generate $>
+  diag gen $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.

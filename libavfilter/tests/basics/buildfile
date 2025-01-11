@@ -31,7 +31,7 @@ for t : tests/c{*.c -filtfmts -formats}
       }
       if(!$e)
       {
-        text "skip test: libavfilter/tests/$n.$extension($t) \(requires: $s\)"
+        text "$\tskip test: libavfilter/tests/$n.$extension($t) \(requires: $s\)"
       }
     }
   }

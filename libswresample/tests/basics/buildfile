@@ -29,7 +29,7 @@ for t : tests/c{*.c}
       }
       if(!$e)
       {
-        text "skip test: libswresample/tests/$n.$extension($t) \(requires: $s\)"
+        text "$\tskip test: libswresample/tests/$n.$extension($t) \(requires: $s\)"
       }
     }
   }

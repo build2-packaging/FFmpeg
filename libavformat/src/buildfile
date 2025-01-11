@@ -43,7 +43,7 @@ libul{avformat}: libavformat/c{ \
 
 libavformat/c{protocol_list}: libavformat/c{protocols} $config_defs
 {{
-  diag generate $>
+  diag gen $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
@@ -66,7 +66,7 @@ libavformat/c{protocol_list}: libavformat/c{protocols} $config_defs
 
 libavformat/c{demuxer_list}: libavformat/c{allformats} $config_defs
 {{
-  diag generate $>
+  diag gen $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
@@ -91,7 +91,7 @@ libavformat/c{demuxer_list}: libavformat/c{allformats} $config_defs
 
 libavformat/c{muxer_list}: libavformat/c{allformats} $config_defs
 {{
-  diag generate $>
+  diag gen $>
 
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
