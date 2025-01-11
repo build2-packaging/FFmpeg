@@ -65,12 +65,6 @@ switch ($c.id)
   }
 }
 
-libs{swscale}: def{swscale}: include = ($c.target.system == 'win32-msvc')
-def{swscale}: libul{swscale}
-
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
-
 # Export options.
 #
 lib{swscale}:

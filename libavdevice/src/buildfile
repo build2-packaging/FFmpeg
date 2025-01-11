@@ -128,12 +128,6 @@ switch ($c.id)
   }
 }
 
-libs{avdevice}: def{avdevice}: include = ($c.target.system == 'win32-msvc')
-def{avdevice}: libul{avdevice}
-
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
-
 # Export options.
 #
 lib{avdevice}:

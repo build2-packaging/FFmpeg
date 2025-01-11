@@ -282,12 +282,6 @@ switch ($c.id)
   }
 }
 
-libs{avcodec}: def{avcodec}: include = ($c.target.system == 'win32-msvc')
-def{avcodec}: libul{avcodec}
-
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
-
 # Export options.
 #
 lib{avcodec}:

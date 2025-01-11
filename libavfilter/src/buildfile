@@ -96,12 +96,6 @@ switch ($c.id)
   }
 }
 
-libs{avfilter}: def{avfilter}: include = ($c.target.system == 'win32-msvc')
-def{avfilter}: libul{avfilter}
-
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
-
 # Export options.
 #
 lib{avfilter}:
