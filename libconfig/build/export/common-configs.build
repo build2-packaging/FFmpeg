@@ -3,48 +3,70 @@ if (!$defined(libconfig))
 
 # FFmpeg requires a certain level of optimization to inline compile-time capable
 # checks and remove dead code, otherwise it'll try to link unbuilt symbols.
-if($regex.find_search($c.coptions $cc.coptions, '[-\/]O[d0]'))
+coptions = [strings] $c.coptions $cc.coptions
+regex = '[-\/]O[d0]'
+if($empty($coptions) || $regex.find_search($coptions, $regex))
 {
-  text "$\nAppending -O1: FFmpeg requires optimization as it relies on dead code removal."
-  c.coptions  = (!$empty($c.coptions) ? $regex.apply($c.coptions, '[-\/]O[d0]', '-O2') :)
-  cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, '[-\/]O[d0]', '-O2') :)
+  text "$\tbuilding with -O1: requires optimization for dead code removal"
+  if($empty($coptions))
+  {
+    c.coptions += -O1
+  }
+  else
+  {
+    c.coptions   = (!$empty($c.coptions)  ? $regex.apply($c.coptions,  $regex, '-O1') :)
+    cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, $regex, '-O1') :)
+  }
 
   # /RCT[1su] is incompatible with optimization turned on.
   if ($c.target.system == 'win32-msvc')
   {
-    text "$\nRemove /RTC: Incompatible with optimizations turned on."
-    c.coptions  = (!$empty($c.coptions) ? $regex.apply($c.coptions, '[-\/]RTC\S', '') :)
-    cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, '[-\/]RTC\S', '') :)
+    warn "$\tremove /RTC: incompatible with optimizations turned on."
+    regex = '[-\/]RTC\S'
+    c.coptions   = (!$empty($c.coptions)  ? $regex.apply($c.coptions,  $regex, '') :)
+    cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, $regex, '') :)
   }
 }
 
-switch $c.target.cpu $c.id.type
+# default to highest level of SIMD that can be reasonably
+# guaranteed (if none has been specified)
+if(!$regex.find_search($c.coptions $cc.coptions, '[-\/]?(?:m|arch)'))
 {
-  case 'x86_64' 'msvc'
+  if($c.target.cpu == 'i686' || $c.target.cpu == 'i386' && \
+      !$($libconfig: libconfig.disable_sse))
   {
-    if (!$($libconfig: libconfig.disable_avx2))
-      c.coptions += -arch:AVX2
-    elif (!$($libconfig: libconfig.disable_sse3))
-      c.coptions += -arch:SSE3
-    elif (!$($libconfig: libconfig.disable_sse2))
-      c.coptions += -arch:SSE2
-    elif (!$($libconfig: libconfig.disable_sse))
-      c.coptions += -arch:SSE
+    text "$\tbuilding with -msse: specify '-m' flag to override"
+    c.coptions += -msse
   }
-  case 'x86_64' 'gcc'
+  elif($c.target.cpu == 'x86_64' && \
+      !$($libconfig: libconfig.disable_sse2))
   {
-    if (!$($libconfig: libconfig.disable_fma4))
-      c.coptions += -mfma4
-    elif (!$($libconfig: libconfig.disable_fma3))
-      c.coptions += -mfma3
-    elif (!$($libconfig: libconfig.disable_avx2))
-      c.coptions += -mavx2
-    elif (!$($libconfig: libconfig.disable_sse2))
-      c.coptions += -msse2
-    elif (!$($libconfig: libconfig.disable_sse))
-      c.coptions += -msse
-    elif (!$($libconfig: libconfig.disable_mmx))
-      c.coptions += -mmmx
+    text "$\tbuilding with -msse2: specify '-m' flag to override"
+    c.coptions += -msse2
+  }
+  elif($c.target.cpu == 'aarch64' && \
+      !$($libconfig: libconfig.disable_neon))
+  {
+    text "$\tbuilding with -march=armv8-a+simd: specify '-m' flag to override"
+    c.coptions += -march=armv8-a+simd
+  }
+  elif($c.target.cpu == 'arm' && \
+      !$($libconfig: libconfig.disable_neon))
+  {
+    text "$\tbuilding with -mfpu=neon: specify '-m' flag to override"
+    c.coptions += -mfpu=neon
+  }
+  elif($c.target.cpu == 'riscv32' && \
+      !$($libconfig: libconfig.disable_rvv))
+  {
+    text "$\tbuilding with -march=rv64gc_zve32x: specify '-m' flag to override"
+    c.coptions += -march=rv64gc_zve32x
+  }
+  elif($c.target.cpu == 'riscv64' && \
+      !$($libconfig: libconfig.disable_rvv))
+  {
+    text "$\tbuilding with -march=rv32gc_zve32x: specify '-m' flag to override"
+    c.coptions += -march=rv32gc_zve32x
   }
 }
 

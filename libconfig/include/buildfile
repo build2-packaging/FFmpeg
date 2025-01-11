@@ -5,41 +5,12 @@ intf_libs = # Interface dependencies.
 import intf_libs = \
   libopengl-meta%lib{opengl-meta} \
   libvulkan-meta%lib{vulkan-meta}
+  # libpthread-meta%lib{pthread-meta} \ # not yet published to cppget stable
 
 if (!$config.libconfig.frame_thread_encoder)
 {
   warn "frame_thread_encoder is always enabled, see upstream/configure:7647"
   config.libconfig.frame_thread_encoder = true
-}
-
-switch $c.target.cpu $c.id.type
-{
-  case 'x86_64' 'msvc'
-  {
-    if (!$config.libconfig.disable_avx2)
-      c.coptions += -arch:AVX2
-    elif (!$config.libconfig.disable_sse3)
-      c.coptions += -arch:SSE3
-    elif (!$config.libconfig.disable_sse2)
-      c.coptions += -arch:SSE2
-    elif (!$config.libconfig.disable_sse)
-      c.coptions += -arch:SSE
-  }
-  case 'x86_64' 'gcc'
-  {
-    if (!$config.libconfig.disable_fma4)
-      c.coptions += -mfma4
-    elif (!$config.libconfig.disable_fma3)
-      c.coptions += -mfma3
-    elif (!$config.libconfig.disable_avx2)
-      c.coptions += -mavx2
-    elif (!$config.libconfig.disable_sse2)
-      c.coptions += -msse2
-    elif (!$config.libconfig.disable_sse)
-      c.coptions += -msse
-    elif (!$config.libconfig.disable_mmx)
-      c.coptions += -mmmx
-  }
 }
 
 tgt_win32     = [bool] ($c.target.system == 'win32-msvc')
