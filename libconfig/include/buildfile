@@ -1,5 +1,11 @@
 using autoconf
 
+intf_libs = # Interface dependencies.
+
+import intf_libs = \
+  libopengl-meta%lib{opengl-meta} \
+  libvulkan-meta%lib{vulkan-meta}
+
 if (!$config.libconfig.frame_thread_encoder)
 {
   warn "frame_thread_encoder is always enabled, see upstream/configure:7647"
@@ -38,10 +44,6 @@ switch $c.target.cpu $c.id.type
 
 tgt_win32     = [bool] ($c.target.system == 'win32-msvc')
 tgt_macos     = [bool] ($c.target.system == 'darwin')
-have_opengl   = [bool] ($c.find_system_header("GL/glx.h") != [null] || \
-                      $c.find_system_header("OpenGL/gl3.h") != [null] \
-                     )
-have_opengles = [bool] ($c.find_system_header("ES2/gl.h") != [null])
 
 [rule_hint=c] \
 lib{config}: h{config autoconf config_components} file{config.asm}: update = match
@@ -543,13 +545,13 @@ h{config}: in{config}
                      HAVE_AS_OBJECT_ARCH@HAVE_AS_OBJECT_ARCH_DIRECTIVE \
                      HAVE_PTHREADS@HAVE_PTHREAD
 
-  HAVE_CDIO_PARANOIA_H                 = ($c.find_system_header("cdio/paranoia.h") != [null] ? 1 :0)
-  HAVE_CDIO_PARANOIA_PARANOIA_H        = ($c.find_system_header("cdio/paranoia/paranoia.h") != [null] ? 1 :0)
-  HAVE_DEV_VIDEO_BKTR_IOCTL_BT848_H    = ($c.find_system_header("bktr/ioctl_bt848.h") != [null] ? 1 :0)
-  HAVE_DEV_VIDEO_METEOR_IOCTL_METEOR_H = ($c.find_system_header("meteor/ioctl_bt848.h") != [null] ? 1 :0)
-  HAVE_ES2_GL_H                        = ($c.find_system_header("GLES2/gl2.h") != [null] ? 1 :0)
-  HAVE_WGLGETPROCADDRESS               = ($have_opengl ? 1 :0)
-  HAVE_GLXGETPROCADDRESS               = ($have_opengles ? 1 :0)
+  HAVE_CDIO_PARANOIA_H                 = ($c.find_system_header("cdio/paranoia.h") != [null] ? 1 : 0)
+  HAVE_CDIO_PARANOIA_PARANOIA_H        = ($c.find_system_header("cdio/paranoia/paranoia.h") != [null] ? 1 : 0)
+  HAVE_DEV_VIDEO_BKTR_IOCTL_BT848_H    = ($c.find_system_header("bktr/ioctl_bt848.h") != [null] ? 1 : 0)
+  HAVE_DEV_VIDEO_METEOR_IOCTL_METEOR_H = ($c.find_system_header("meteor/ioctl_bt848.h") != [null] ? 1 : 0)
+  HAVE_ES2_GL_H                        = ($c.find_system_header("GLES2/gl2.h") != [null] ? 1 : 0)
+  HAVE_WGLGETPROCADDRESS               = ($c.find_system_header("GL/glx.h") != [null] || $c.find_system_header("OpenGL/gl3.h") != [null] ? 1 : 0 )
+  HAVE_GLXGETPROCADDRESS               = ($c.find_system_header("ES2/gl.h") != [null] ? 1 :0)
   HAVE_GSM_H                           = ($c.find_system_header("gsm.h") != [null] ? 1 :0)
   HAVE_OPENCL_D3D11                    = 0 # no package available (TODO: Check for sys-lib)
   HAVE_OPENCL_DRM_ARM                  = 0 # no package available (TODO: Check for sys-lib)
@@ -2828,46 +2830,11 @@ src_pfx = [dir_path] $src_root/include/
 
 c.poptions += "-I$out_pfx" "-I$out_pfx/include/" "-I$src_pfx"
 
-# System libraries
-sys_libs =
-switch $c.target.class, $c.target.system
-{
-  case 'windows', 'win32-msvc'
-    sys_libs += opengl32.lib
-  case 'windows', 'mingw32'
-    sys_libs += -lopengl32 -lgdi32
-  case 'macos'
-  {
-    if($have_opengl)
-    {
-      sys_libs += -Wl,-framework,OpenGL
-    }
-    if($have_opengles)
-    {
-      sys_libs += -Wl,-framework,OpenGLES
-    }
-  }
-  default
-  {
-    if($have_opengl)
-    {
-      sys_libs += -lGL
-    }
-    if($have_opengles)
-    {
-      sys_libs += -lGLESv2
-    }
-  }
-}
-
-c.libs += $sys_libs
-
 # Export options.
 #
 lib{config}:
 {
   c.export.poptions += "-I$out_pfx" "-I$out_pfx/include/" "-I$src_pfx" -DHAVE_AV_CONFIG_H
-  c.export.libs     += $sys_libs
 }
 
 liba{config}:
