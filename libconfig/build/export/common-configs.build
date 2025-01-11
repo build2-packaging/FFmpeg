@@ -19,10 +19,10 @@ if($empty($coptions) || $regex.find_search($coptions, $regex))
   }
 
   # /RCT[1su] is incompatible with optimization turned on.
-  if ($c.target.system == 'win32-msvc')
+  regex = '[-\/]RTC\S'
+  if($c.target.system == 'win32-msvc' && !$empty($coptions) && $regex.find_search($coptions, $regex))
   {
     warn "$\tremove /RTC: incompatible with optimizations turned on."
-    regex = '[-\/]RTC\S'
     c.coptions   = (!$empty($c.coptions)  ? $regex.apply($c.coptions,  $regex, '') :)
     cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, $regex, '') :)
   }
