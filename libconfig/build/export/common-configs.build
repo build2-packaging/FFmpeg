@@ -65,10 +65,6 @@ if ($c.id.type == 'msvc')
                 -wd4554
 
   c.loptions += -LARGEADDRESSAWARE
-
-  objs{**}: c.poptions += -DCONFIG_PIC=1 \
-                          -DPIC=1
-  obja{**}: c.poptions += -DCONFIG_PIC=0
 }
 
 if ($c.id != 'msvc')
@@ -115,20 +111,6 @@ if ($c.id != 'msvc')
                 -Wno-unused-function \
                 -Wno-unused-variable
 
-  if ($c.target.class != 'windows')
-  {
-    c.coptions += -fno-math-errno \
-                  -fno-signed-zeros \
-                  -fomit-frame-pointer
-
-    obj{**}:
-    {
-      c.poptions += -DCONFIG_PIC=1 -DPIC=1
-      c.coptions += -fPIC
-    }
-  }
-
-
   switch $c.id: path.match
   {
     case '*clang*'
@@ -143,6 +125,24 @@ if ($c.id != 'msvc')
     {
       c.poptions += -U__STRICT_ANSI__
       c.coptions += -Wno-maybe-uninitialized
+
+      # unsupported optimizations that when enabled
+      # cause runtime errors (observed with GCC
+      # when targeting Linux)
+      c.coptions += -fno-expensive-optimizations \
+                    -fno-delete-null-pointer-checks
     }
+  }
+}
+
+# ffmpeg always assumes PIC
+obj{**}: c.poptions += -DCONFIG_PIC=1 \
+                       -DPIC=1
+
+if ($c.target.class != 'windows')
+{
+  obj{**}:
+  {
+    c.coptions += -fPIC
   }
 }
