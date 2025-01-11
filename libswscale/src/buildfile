@@ -39,11 +39,11 @@ src_pfx = [dir_path] $src_root/src/
 
 c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_swscale -Dav_export_libswscale=
 
-libs{swscale}: def{swscale}: include = ($cxx.target.system == 'win32-msvc')
+libs{swscale}: def{swscale}: include = ($c.target.system == 'win32-msvc')
 def{swscale}: libul{swscale}
 
-if ($cxx.target.system == 'mingw32')
-  cxx.loptions += -Wl,--export-all-symbols
+if ($c.target.system == 'mingw32')
+  c.loptions += -Wl,--export-all-symbols
 
 # System libraries
 sys_libs =

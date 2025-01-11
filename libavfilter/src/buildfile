@@ -70,11 +70,11 @@ src_pfx = [dir_path] $src_root/src/
 
 c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avfilter -Dav_export_libavfilter=
 
-libs{avfilter}: def{avfilter}: include = ($cxx.target.system == 'win32-msvc')
+libs{avfilter}: def{avfilter}: include = ($c.target.system == 'win32-msvc')
 def{avfilter}: libul{avfilter}
 
-if ($cxx.target.system == 'mingw32')
-  cxx.loptions += -Wl,--export-all-symbols
+if ($c.target.system == 'mingw32')
+  c.loptions += -Wl,--export-all-symbols
 
 # System libraries
 sys_libs =

@@ -243,11 +243,11 @@ src_pfx = [dir_path] $src_root/src/
 
 c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libavcodec/" -DBUILDING_avcodec -Dav_export_libavcodec=
 
-libs{avcodec}: def{avcodec}: include = ($cxx.target.system == 'win32-msvc')
+libs{avcodec}: def{avcodec}: include = ($c.target.system == 'win32-msvc')
 def{avcodec}: libul{avcodec}
 
-if ($cxx.target.system == 'mingw32')
-  cxx.loptions += -Wl,--export-all-symbols
+if ($c.target.system == 'mingw32')
+  c.loptions += -Wl,--export-all-symbols
 
 # System libraries
 sys_libs =
