@@ -1,4 +1,4 @@
-using autoconf
+using in
 
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
@@ -18,17 +18,23 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avutil-meta}: $impl_libs $intf_libs
-libua{avutil}: enabled_source{avutil}: $config_defs libua{avutil-meta} json{files} \
+libul{avutil}: enabled_source{avutil}: $config_defs libua{avutil-meta} json{files} \
                                        $config_asm compat/h{**} libavcodec/h{**} libavutil/h{**}: \
                                        update = match
 
-libua{avutil}: compat/windows/{h c}{*} \
+libul{avutil}: resource{avutil}: libua{avutil-meta} libavutil/rc{avutilres}: \
+               include = ($c.target.system == 'win32-msvc')
+
+if ($c.target.system == 'win32-msvc')
+  c.loptions += "$out_base/libavutil/avutilres.res"
+
+libul{avutil}: compat/windows/{h c}{*} \
                compat/msvrt/{h c}{*} \
                compat/{h}{*} \
                : include = $tgt_win32
 
 # these c files are included, not built.
-libua{avutil}: adhoc_source{avutil}: include = adhoc
+libul{avutil}: adhoc_source{avutil}: include = adhoc
 adhoc_source{avutil}: libavutil/c{**_template} libavutil/aarch64/S{asm}
 
 libavutil/h{avconfig}: in{avconfig}
@@ -36,7 +42,6 @@ libavutil/h{avconfig}: in{avconfig}
   autoconf.prefix = AV_
 }
 
-[rule_hint=version.in] \
 libavutil/h{ffversion}: in{ffversion} $src_root/manifest
 
 # Build options.
@@ -48,13 +53,15 @@ src_pfx = [dir_path] $src_root/src/
 
 c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avutil
 
-libs{avutil}: def{avutil}: include = ($c.target.system == 'win32-msvc')
+obja{*}: c.poptions += -DCONFIG_STATIC
+objs{*}: c.poptions += -DCONFIG_SHARED
+
+lib{avutil}: def{avutil}: include = ($c.target.system == 'win32-msvc')
 def{avutil}: libul{avutil}
 
 if ($c.target.system == 'mingw32')
   c.loptions += -Wl,--export-all-symbols
 
-# System libraries
 sys_libs =
 switch $c.target.class, $c.target.system
 {

@@ -1,4 +1,3 @@
-using autoconf
 
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
@@ -27,9 +26,15 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avfilter-meta}: $impl_libs $intf_libs $config_asm
-libua{avfilter}: enabled_source{avfilter}: $config_defs libua{avfilter-meta} json{files.json} \
+libul{avfilter}: enabled_source{avfilter}: $config_defs libua{avfilter-meta} json{files.json} \
                                            $config_asm libavfilter/h{**}: \
                                          update = match
+
+libul{avfilter}: resource{avfilter}: libua{avfilter-meta} libavfilter/rc{avfilterres}: \
+                include = ($c.target.system == 'win32-msvc')
+
+if ($c.target.system == 'win32-msvc')
+  c.loptions += "$out_base/libavfilter/avfilterres.res"
 
 # these c files are included, not built.
 libul{avfilter}: adhoc_source{avfilter}: include = adhoc
@@ -68,7 +73,10 @@ import [once] libconfig%buildfile{common-configs}
 out_pfx = [dir_path] $out_root/src/
 src_pfx = [dir_path] $src_root/src/
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avfilter -Dav_export_libavfilter=
+c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avfilter
+
+obja{*}: c.poptions += -DCONFIG_STATIC
+objs{*}: c.poptions += -DCONFIG_SHARED
 
 libs{avfilter}: def{avfilter}: include = ($c.target.system == 'win32-msvc')
 def{avfilter}: libul{avfilter}
@@ -102,25 +110,6 @@ lib{avfilter}:
 {
   c.export.poptions = "-I$out_pfx" "-I$src_pfx"
   c.export.libs = $intf_libs $sys_libs
-}
-
-if ($c.target.system == 'win32-msvc')
-{
-  liba{avfilter}:
-  {
-    c.export.poptions += -Dav_export_libavfilter=
-  }
-  libs{avfilter}:
-  {
-    c.export.poptions += -Dav_export_libavfilter=__declspec\(dllimport\)
-  }
-}
-else
-{
-  lib{avfilter}:
-  {
-    c.export.poptions += -Dav_export_libavfilter=
-  }
 }
 
 # For pre-releases use the complete version to make sure they cannot

@@ -1,4 +1,3 @@
-using autoconf
 
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
@@ -6,8 +5,8 @@ impl_libs = # Implementation dependencies.
 import config = libconfig%lib{config}
 impl_libs += $config
 import intf_libs += \
-  libavutil%lib{avutil} \
-  libavformat%lib{avformat}
+  libavutil%liba{avutil} \
+  libavformat%liba{avformat}
 
 cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
@@ -24,9 +23,15 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avdevice-meta}: $impl_libs $intf_libs
-libua{avdevice}: enabled_source{avdevice}: $config_defs libua{avdevice-meta} json{files.json} \
+libul{avdevice}: enabled_source{avdevice}: $config_defs libua{avdevice-meta} json{files.json} \
                                            $config_asm libavdevice/h{**}: \
                                          update = match
+
+libul{avdevice}: resource{avdevice}: libua{avdevice-meta} libavdevice/rc{avdeviceres}: \
+                 include = ($c.target.system == 'win32-msvc')
+
+if ($c.target.system == 'win32-msvc')
+  c.loptions += "$out_base/libavdevice/avdeviceres.res"
 
 # these c files are included, not built.
 libul{avdevice}: libavdevice/c{ \
@@ -87,7 +92,10 @@ import [once] libconfig%buildfile{common-configs}
 out_pfx = [dir_path] $out_root/src/
 src_pfx = [dir_path] $src_root/src/
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libavdevice/" -DBUILDING_avdevice -Dav_export_libavdevice
+c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libavdevice/" -DBUILDING_avdevice
+
+obja{*}: c.poptions += -DCONFIG_STATIC
+objs{*}: c.poptions += -DCONFIG_SHARED
 
 libs{avdevice}: def{avdevice}: include = ($c.target.system == 'win32-msvc')
 def{avdevice}: libul{avdevice}
@@ -134,25 +142,6 @@ lib{avdevice}:
 {
   c.export.poptions = "-I$out_pfx" "-I$src_pfx"
   c.export.libs = $intf_libs $sys_libs
-}
-
-if ($c.target.system == 'win32-msvc')
-{
-  liba{avdevice}:
-  {
-    c.export.poptions += -Dav_export_libavdevice=
-  }
-  libs{avdevice}:
-  {
-    c.export.poptions += -Dav_export_libavdevice=__declspec\(dllimport\)
-  }
-}
-else
-{
-  lib{avdevice}:
-  {
-    c.export.poptions += -Dav_export_libavdevice=
-  }
 }
 
 # For pre-releases use the complete version to make sure they cannot

@@ -1,4 +1,3 @@
-using autoconf
 
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
@@ -22,9 +21,15 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{swscale-meta}: $impl_libs $intf_libs
-libua{swscale}: enabled_source{swscale}: $config_defs libua{swscale-meta} json{files.json} \
+libul{swscale}: enabled_source{swscale}: $config_defs libua{swscale-meta} json{files.json} \
                                          $config_asm libswscale/h{**}: \
                                        update = match
+
+libul{swscale}: resource{swscale}: libua{swscale-meta} libswscale/rc{swscaleres}: \
+                include = ($c.target.system == 'win32-msvc')
+
+if ($c.target.system == 'win32-msvc')
+  c.loptions += "$out_base/libswscale/swscaleres.res"
 
 # these c files are included, not built.
 libul{swscale}: adhoc_source{swscale}: include = adhoc
@@ -37,7 +42,10 @@ import [once] libconfig%buildfile{common-configs}
 out_pfx = [dir_path] $out_root/src/
 src_pfx = [dir_path] $src_root/src/
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_swscale -Dav_export_libswscale=
+c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_swscale
+
+obja{*}: c.poptions += -DCONFIG_STATIC
+objs{*}: c.poptions += -DCONFIG_SHARED
 
 libs{swscale}: def{swscale}: include = ($c.target.system == 'win32-msvc')
 def{swscale}: libul{swscale}
@@ -71,25 +79,6 @@ lib{swscale}:
 {
   c.export.poptions = "-I$out_pfx" "-I$src_pfx"
   c.export.libs = $intf_libs $sys_libs
-}
-
-if ($c.target.system == 'win32-msvc')
-{
-  liba{swscale}:
-  {
-    c.export.poptions += -Dav_export_libswscale=
-  }
-  libs{swscale}:
-  {
-    c.export.poptions += -Dav_export_libswscale=__declspec\(dllimport\)
-  }
-}
-else
-{
-  lib{swscale}:
-  {
-    c.export.poptions += -Dav_export_libswscale=
-  }
 }
 
 # For pre-releases use the complete version to make sure they cannot

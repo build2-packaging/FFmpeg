@@ -1,4 +1,3 @@
-using autoconf
 
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
@@ -27,9 +26,15 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avformat-meta}: $impl_libs $intf_libs
-libua{avformat}: enabled_source{avformat}: $config_defs libua{avformat-meta} json{files.json} \
+libul{avformat}: enabled_source{avformat}: $config_defs libua{avformat-meta} json{files.json} \
                                            $config_asm libavformat/h{**}: \
                                          update = match
+
+libul{avformat}: resource{avformat}: libua{avformat-meta} libavformat/rc{avformatres}: \
+                 include = ($c.target.system == 'win32-msvc')
+
+if ($c.target.system == 'win32-msvc')
+  c.loptions += "$out_base/libavformat/avformatres.res"
 
 # these c files are included, not built.
 libul{avcodec}: adhoc_source{avcodec}: include = adhoc
@@ -119,7 +124,10 @@ import [once] libconfig%buildfile{common-configs}
 out_pfx = [dir_path] $out_root/src/
 src_pfx = [dir_path] $src_root/src/
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avformat -Dav_export_libavformat=
+c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avformat
+
+obja{*}: c.poptions += -DCONFIG_STATIC
+objs{*}: c.poptions += -DCONFIG_SHARED
 
 libs{avformat}: def{avformat}: include = ($c.target.system == 'win32-msvc')
 def{avformat}: libul{avformat}
@@ -155,25 +163,6 @@ lib{avformat}:
 {
   c.export.poptions = "-I$out_pfx" "-I$src_pfx"
   c.export.libs = $intf_libs $sys_libs
-}
-
-if ($c.target.system == 'win32-msvc')
-{
-  liba{avformat}:
-  {
-    c.export.poptions += -Dav_export_libavformat=
-  }
-  libs{avformat}:
-  {
-    c.export.poptions += -Dav_export_libavformat=__declspec\(dllimport\)
-  }
-}
-else
-{
-  lib{avformat}:
-  {
-    c.export.poptions += -Dav_export_libavformat=
-  }
 }
 
 # For pre-releases use the complete version to make sure they cannot

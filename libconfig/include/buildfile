@@ -2801,20 +2801,19 @@ src_pfx = [dir_path] $src_root/include/
 
 c.poptions += "-I$out_pfx" "-I$out_pfx/include/" "-I$src_pfx"
 
+obja{*}: c.poptions += -DCONFIG_STATIC
+objs{*}: c.poptions += -DCONFIG_SHARED
+
+if ($c.target.system == 'win32-msvc')
+  c.libs += msvcrt.lib
+
 # Export options.
 #
+if ($c.target.system == 'win32-msvc')
+  lib{config}: c.export.libs += msvcrt.lib
 lib{config}:
 {
   c.export.poptions += "-I$out_pfx" "-I$out_pfx/include/" "-I$src_pfx" -DHAVE_AV_CONFIG_H
-}
-
-liba{config}:
-{
-  c.export.poptions += -DCONFIG_STATIC
-}
-libs{config}:
-{
-  c.export.poptions += -DCONFIG_SHARED
 }
 
 # For pre-releases use the complete version to make sure they cannot
@@ -5420,3 +5419,8 @@ lib{config}:
   libconfig.ipfs_gateway_protocol         = $config.libconfig.ipfs_gateway_protocol
   libconfig.ipns_gateway_protocol         = $config.libconfig.ipns_gateway_protocol
 }
+
+libconfig = lib{config}
+
+source ../build/export/common-configs.build
+

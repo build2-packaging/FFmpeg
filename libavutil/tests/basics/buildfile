@@ -50,7 +50,7 @@ import [once] libconfig%buildfile{common-configs}
 # needs some (any) file as input
 exe{test-utf8}: test.arguments = $path.posix_string($src_base/tests/file.c)
 
-# includes 'tree.c', so we either need to re-define '-Dav_export_libavutil=' (empty)
+# includes 'tree.c', so we either need to re-define '-Dav_export_avutil=' (empty)
 # or silence the warning. Let's silence, because the test does pass.
 if ($c.target.class == 'windows')
 {

@@ -134,7 +134,7 @@ enabled_source{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'} libua{~'/\1-meta/
     --dyn-target \
     --target-cwd $d \
     --target-what 'enabled source' \
-    --target-extension-type 'asm=obja' \
+    --target-extension-type 'asm=liba' \
     --format lines \
     -- echo $regex.merge($enabled_srcs $enabled_asm, '(.*)', '\1', "$\n")
 
@@ -157,7 +157,7 @@ enabled_source{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'} libua{~'/\1-meta/
   # compile assembly files
   key = [string] "$c.target.system-$c.target.cpu"
   format = [string] ($asm_format[$key])
-  for f : [paths] $path($filter($>, obja))
+  for f : [paths] $path($filter($>, liba))
     s = [path] $src_base/$relative($f, $out_base)
     d = [path] $f
     nasm -f $format "-P$path($config_asm)" \
@@ -183,7 +183,7 @@ adhoc_source{~'/(.+)/'}:
     --format lines \
     -- echo $regex.merge($in, '(.*)', '\1', "$\n")
 
-  diag adhoc_source $>
+  diag adhoc_src $>
 
   for f : [paths] $path($filter_out($>, group))
     s = [path] $src_base/$relative($f, $out_base)
@@ -193,5 +193,35 @@ adhoc_source{~'/(.+)/'}:
       mkdir --no-cleanup --parents $directory($d)
       ln --symbolic $s $d
     end
+  end
+}}
+
+define [see_through] resource: group
+resource{~'/(.+)/'}: rc{~'/.+/'} libua{~'/\1-meta/'}
+{{
+  d    = [dir_path] $directory($>[0])
+  rc   = $filter($<, rc)
+  rc   = [paths] $relative($path($rc), $src_base)
+  meta = ($filter($<, libua)[0])
+
+  lib_poptions = $c.lib_poptions($meta, obja)
+  depdb hash $lib_poptions
+
+  depdb dyndep \
+    --dyn-target \
+    --target-cwd $d \
+    --target-what 'resource' \
+    --format lines \
+    -- echo $regex.merge($rc, '(.*)\.rc', '\1.res', "$\n")
+
+  diag rc $>
+
+  for src : [paths] $path($filter($<, rc))
+    dst = [path] $out_base/$base($relative($src, $src_base)).res
+    mkdir --parents $directory($dst)
+    rc /nologo \
+         $regex.apply($c.poptions, '\\', '/') \
+         $regex.apply($lib_poptions, '\\', '/') \
+         /fo $dst $src
   end
 }}

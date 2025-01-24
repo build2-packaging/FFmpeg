@@ -1,4 +1,3 @@
-using autoconf
 
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
@@ -28,7 +27,7 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avcodec-meta}: $impl_libs $intf_libs
-libua{avcodec}: enabled_source{avcodec}: $config_defs libua{avcodec-meta} json{files.json} \
+libul{avcodec}: enabled_source{avcodec}: $config_defs libua{avcodec-meta} json{files.json} \
                                          $config_asm libavcodec/h{**} libavformat/h{**}: \
                                        update = match
 
@@ -241,7 +240,10 @@ import [once] libconfig%buildfile{common-configs}
 out_pfx = [dir_path] $out_root/src/
 src_pfx = [dir_path] $src_root/src/
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libavcodec/" -DBUILDING_avcodec -Dav_export_libavcodec=
+c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libavcodec/" -DBUILDING_avcodec
+
+obja{*}: c.poptions += -DCONFIG_STATIC
+objs{*}: c.poptions += -DCONFIG_SHARED
 
 libs{avcodec}: def{avcodec}: include = ($c.target.system == 'win32-msvc')
 def{avcodec}: libul{avcodec}
@@ -288,25 +290,6 @@ lib{avcodec}:
 {
   c.export.poptions = "-I$out_pfx" "-I$src_pfx"
   c.export.libs = $intf_libs $sys_libs
-}
-
-if ($c.target.system == 'win32-msvc')
-{
-  liba{avcodec}:
-  {
-    c.export.poptions += -Dav_export_libavcodec=
-  }
-  libs{avcodec}:
-  {
-    c.export.poptions += -Dav_export_libavcodec=__declspec\(dllimport\)
-  }
-}
-else
-{
-  lib{avcodec}:
-  {
-    c.export.poptions += -Dav_export_libavcodec=
-  }
 }
 
 # For pre-releases use the complete version to make sure they cannot
