@@ -5420,7 +5420,5 @@ lib{config}:
   libconfig.ipns_gateway_protocol         = $config.libconfig.ipns_gateway_protocol
 }
 
-libconfig = lib{config}
-
+# Sourced after lib{config} is defined
 source ../build/export/common-configs.build
-

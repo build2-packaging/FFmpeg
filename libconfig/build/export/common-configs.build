@@ -1,5 +1,9 @@
-if (!$defined(libconfig))
+is_libconfig = [bool] ($project == 'libconfig')
+
+if (!$is_libconfig)
   import! libconfig [metadata] = libconfig%lib{config}
+else
+  libconfig = lib{config}
 
 # FFmpeg requires a certain level of optimization to inline compile-time capable
 # checks and remove dead code, otherwise it'll try to link unbuilt symbols.
@@ -7,7 +11,8 @@ coptions = [strings] $c.coptions $cc.coptions
 regex = '[-\/]O[d0]'
 if($empty($coptions) || $regex.find_search($coptions, $regex))
 {
-  text "$\tbuilding with -O1 \(requires optimization)"
+  if ($is_libconfig)
+    text "appending -O1 \(optimization required)"
   if($empty($coptions))
   {
     c.coptions += -O1
@@ -22,7 +27,8 @@ if($empty($coptions) || $regex.find_search($coptions, $regex))
   regex = '[-\/]RTC\S'
   if($c.target.system == 'win32-msvc' && !$empty($coptions) && $regex.find_search($coptions, $regex))
   {
-    warn "$\tremoved /RTC \(incompatible with optimizations)"
+    if ($is_libconfig)
+      warn "removing /RTC \(incompatible with optimizations)"
     c.coptions   = (!$empty($c.coptions)  ? $regex.apply($c.coptions,  $regex, '') :)
     cc.coptions  = (!$empty($cc.coptions) ? $regex.apply($cc.coptions, $regex, '') :)
   }
@@ -39,42 +45,24 @@ if(!$regex.find_search($c.coptions $cc.coptions, '[-\/]?(?:m|arch)'))
   flag_rvv32   = ($c.id != 'msvc' ? '-march=rv32gc_zve32x' : )
   flag_rvv64   = ($c.id != 'msvc' ? '-march=rv64gc_zve32x' : )
 
-  if($c.target.cpu == 'i686' || $c.target.cpu == 'i386' && \
-      !$($libconfig: libconfig.disable_sse))
-  {
-    text "$\tbuilding with $flag_x86"
-    c.coptions += $flag_x86
-  }
-  elif($c.target.cpu == 'x86_64' && \
-      !$($libconfig: libconfig.disable_sse2))
-  {
-    text "$\tbuilding with $flag_x86_64"
-    c.coptions += $flag_x86_64
-  }
-  elif($c.target.cpu == 'arm' && \
-      !$($libconfig: libconfig.disable_neon))
-  {
-    text "$\tbuilding with $flag_arm=neon"
-    c.coptions += $flag_arm
-  }
-  elif($c.target.cpu == 'aarch64' && \
-      !$($libconfig: libconfig.disable_neon))
-  {
-    text "$\tbuilding with $flag_aarch64=armv8-a+simd"
-    c.coptions += $flag_aarch64
-  }
-  elif($c.target.cpu == 'riscv32' && \
-      !$($libconfig: libconfig.disable_rvv))
-  {
-    text "$\tbuilding with $flag_rvv32=rv64gc_zve32x"
-    c.coptions += $flag_rvv32
-  }
-  elif($c.target.cpu == 'riscv64' && \
-      !$($libconfig: libconfig.disable_rvv))
-  {
-    text "$\tbuilding with $flag_rvv64=rv32gc_zve32x"
-    c.coptions += $flag_rvv64
-  }
+  simd_flag =
+  if($c.target.cpu == 'i686' || $c.target.cpu == 'i386' \
+                                  && !$($libconfig: libconfig.disable_sse))
+    simd_flag = $flag_x86
+  elif($c.target.cpu == 'x86_64'  && !$($libconfig: libconfig.disable_sse2))
+    simd_flag = $flag_x86_64
+  elif($c.target.cpu == 'arm'     && !$($libconfig: libconfig.disable_neon))
+    simd_flag = $flag_arm
+  elif($c.target.cpu == 'aarch64' && !$($libconfig: libconfig.disable_neon))
+    simd_flag = $flag_aarch64
+  elif($c.target.cpu == 'riscv32' && !$($libconfig: libconfig.disable_rvv))
+    simd_flag = $flag_rvv32
+  elif($c.target.cpu == 'riscv64' && !$($libconfig: libconfig.disable_rvv))
+    simd_flag = $flag_rvv64
+
+  if ($is_libconfig)
+    text "appending $simd_flag \(SIMD auto-detected)"
+  c.coptions += $simd_flag
 }
 
 # see upstream ./configure (but it's not very sensical)
@@ -84,7 +72,8 @@ if ($c.id.type == 'msvc')
   c.poptions += -DWIN32_LEAN_AND_MEAN \
                 -D_CRT_NONSTDC_NO_WARNINGS \
                 -D_CRT_SECURE_NO_WARNINGS \
-                -D_USE_MATH_DEFINES
+                -D_USE_MATH_DEFINES \
+                -Dinline=__inline
   c.coptions += -wd4018 \
                 -wd4133 \
                 -wd4146 \
@@ -159,7 +148,8 @@ if ($c.id != 'msvc')
       # cause runtime errors (observed with GCC
       # when targeting Linux)
       c.coptions += -fno-expensive-optimizations \
-                    -fno-delete-null-pointer-checks
+                    -fno-delete-null-pointer-checks \
+                    -fno-tree-vectorize
     }
   }
 }
