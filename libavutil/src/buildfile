@@ -22,8 +22,8 @@ libul{avutil}: enabled_source{avutil}: $config_defs libua{avutil-meta} json{file
                                        $config_asm compat/h{**} libavcodec/h{**} libavutil/h{**}: \
                                        update = match
 
-libul{avutil}: resource{avutil}: libua{avutil-meta} libavutil/rc{avutilres}: \
-               include = ($c.target.system == 'win32-msvc')
+libul{avutil}: resource{avutil}: include = ($c.target.system == 'win32-msvc')
+resource{avutil}: libua{avutil-meta} libavutil/rc{avutilres}
 
 if ($c.target.system == 'win32-msvc')
   c.loptions += "$out_base/libavutil/avutilres.res"

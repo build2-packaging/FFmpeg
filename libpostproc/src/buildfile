@@ -26,8 +26,8 @@ libul{postproc}: enabled_source{postproc}: $config_defs libua{postproc-meta} jso
                                            $config_asm libpostproc/h{**}: \
                                          update = match
 
-libul{postproc}: resource{postproc}: libua{postproc-meta} libpostproc/rc{postprocres}: \
-                 include = ($c.target.system == 'win32-msvc')
+libul{postproc}: resource{postproc}: include = ($c.target.system == 'win32-msvc')
+resource{postproc}: libua{postproc-meta} libpostproc/rc{postprocres}
 
 if ($c.target.system == 'win32-msvc')
   c.loptions += "$out_base/libpostproc/postprocres.res"

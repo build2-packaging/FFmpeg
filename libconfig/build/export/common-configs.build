@@ -40,7 +40,7 @@ if(!$regex.find_search($c.coptions $cc.coptions, '[-\/]?(?:m|arch)'))
 {
   flag_x86     = ($c.id != 'msvc' ? '-msse'                : '-arch:SSE')
   flag_x86_64  = ($c.id != 'msvc' ? '-msse2'               : '-arch:SSE2')
-  flag_aarch64 = ($c.id != 'msvc' ? '-march=armv8-a+simd'  : '-arch:VFPv4')
+  flag_aarch64 = ($c.id != 'msvc' ? '-march=armv8.1-a'     : '-arch:VFPv4')
   flag_arm     = ($c.id != 'msvc' ? '-mfpu=neon'           : )
   flag_rvv32   = ($c.id != 'msvc' ? '-march=rv32gc_zve32x' : )
   flag_rvv64   = ($c.id != 'msvc' ? '-march=rv64gc_zve32x' : )

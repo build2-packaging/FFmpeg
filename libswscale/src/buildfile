@@ -25,8 +25,8 @@ libul{swscale}: enabled_source{swscale}: $config_defs libua{swscale-meta} json{f
                                          $config_asm libswscale/h{**}: \
                                        update = match
 
-libul{swscale}: resource{swscale}: libua{swscale-meta} libswscale/rc{swscaleres}: \
-                include = ($c.target.system == 'win32-msvc')
+libul{swscale}: resource{swscale}: include = ($c.target.system == 'win32-msvc')
+resource{swscale}: libua{swscale-meta} libswscale/rc{swscaleres}
 
 if ($c.target.system == 'win32-msvc')
   c.loptions += "$out_base/libswscale/swscaleres.res"

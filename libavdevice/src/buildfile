@@ -27,8 +27,8 @@ libul{avdevice}: enabled_source{avdevice}: $config_defs libua{avdevice-meta} jso
                                            $config_asm libavdevice/h{**}: \
                                          update = match
 
-libul{avdevice}: resource{avdevice}: libua{avdevice-meta} libavdevice/rc{avdeviceres}: \
-                 include = ($c.target.system == 'win32-msvc')
+libul{avdevice}: resource{avdevice}: include = ($c.target.system == 'win32-msvc')
+resource{avdevice}: libua{avdevice-meta} libavdevice/rc{avdeviceres}
 
 if ($c.target.system == 'win32-msvc')
   c.loptions += "$out_base/libavdevice/avdeviceres.res"

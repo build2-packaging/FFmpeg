@@ -30,8 +30,8 @@ libul{avformat}: enabled_source{avformat}: $config_defs libua{avformat-meta} jso
                                            $config_asm libavformat/h{**}: \
                                          update = match
 
-libul{avformat}: resource{avformat}: libua{avformat-meta} libavformat/rc{avformatres}: \
-                 include = ($c.target.system == 'win32-msvc')
+libul{avformat}: resource{avformat}: include = ($c.target.system == 'win32-msvc')
+resource{avformat}: libua{avformat-meta} libavformat/rc{avformatres}
 
 if ($c.target.system == 'win32-msvc')
   c.loptions += "$out_base/libavformat/avformatres.res"

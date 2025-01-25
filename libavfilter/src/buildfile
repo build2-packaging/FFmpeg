@@ -30,8 +30,8 @@ libul{avfilter}: enabled_source{avfilter}: $config_defs libua{avfilter-meta} jso
                                            $config_asm libavfilter/h{**}: \
                                          update = match
 
-libul{avfilter}: resource{avfilter}: libua{avfilter-meta} libavfilter/rc{avfilterres}: \
-                include = ($c.target.system == 'win32-msvc')
+libul{avfilter}: resource{avfilter}: include = ($c.target.system == 'win32-msvc')
+resource{avfilter}: libua{avfilter-meta} libavfilter/rc{avfilterres}
 
 if ($c.target.system == 'win32-msvc')
   c.loptions += "$out_base/libavfilter/avfilterres.res"

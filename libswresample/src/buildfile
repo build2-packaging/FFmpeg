@@ -24,8 +24,8 @@ libul{swresample}: enabled_source{swresample}: $config_defs libua{swresample-met
                                                $config_asm libswresample/h{**}: \
                                              update = match
 
-libul{swresample}: resource{swresample}: libua{swresample-meta} libswresample/rc{swresampleres}: \
-                   include = ($c.target.system == 'win32-msvc')
+libul{swresample}: resource{swresample}: include = ($c.target.system == 'win32-msvc')
+resource{swresample}: libua{swresample-meta} libswresample/rc{swresampleres}
 
 if ($c.target.system == 'win32-msvc')
   c.loptions += "$out_base/libswresample/swresampleres.res"
