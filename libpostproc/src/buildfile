@@ -5,7 +5,7 @@ impl_libs = # Implementation dependencies.
 import config = libconfig%lib{config}
 impl_libs += $config
 import intf_libs += \
-  libavutil%liba{avutil}
+  libavutil%lib{avutil}
 
 cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
@@ -22,9 +22,15 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{postproc-meta}: $impl_libs $intf_libs
-libul{postproc}: enabled_source{postproc}: $config_defs libua{postproc-meta} json{files.json} \
-                                           $config_asm libpostproc/h{**}: \
-                                         update = match
+
+libul{postproc}: enabled_source{postproc}: $config_defs json{files} libpostproc/h{**} libavformat/h{**}: \
+                                       update = match
+
+libua{postproc}: enabled_asm{postproc-a}: $config_defs $config_asm json{files} libua{postproc-meta}: \
+                                      update = match
+
+libus{postproc}: enabled_asm{postproc-s}: $config_defs $config_asm json{files} libus{postproc-meta}: \
+                                      update = match
 
 libul{postproc}: resource{postproc}: include = ($c.target.system == 'win32-msvc')
 resource{postproc}: libua{postproc-meta} libpostproc/rc{postprocres}

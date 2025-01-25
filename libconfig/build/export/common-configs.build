@@ -156,7 +156,7 @@ if ($c.id != 'msvc')
 
 # ffmpeg always assumes PIC
 obj{**}: c.poptions += -DCONFIG_PIC=1 \
-                       -DPIC=1
+                       -DPIC
 
 if ($c.target.system != 'win32-msvc')
 {

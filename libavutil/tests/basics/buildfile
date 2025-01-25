@@ -1,6 +1,6 @@
 import config = libconfig%lib{config}
 import libs = \
-  libavutil%liba{avutil} \
+  libavutil%lib{avutil} \
   $config
 
 requirements = [string_set] \
@@ -43,22 +43,9 @@ for t : tests/c{*.c -lzo -file}
   ./: exe{test-$n}: include = $e
 }
 
-## Build options.
-#
-import [once] libconfig%buildfile{common-configs}
-
 # needs some (any) file as input
 exe{test-utf8}: test.arguments = $path.posix_string($src_base/tests/file.c)
 
-# includes 'tree.c', so we either need to re-define '-Dav_export_avutil=' (empty)
-# or silence the warning. Let's silence, because the test does pass.
-if ($c.target.class == 'windows')
-{
-  switch $c.id: path.match
-  {
-    case 'msvc'
-      tests/obje{tree}: c.coptions += -wd4273
-    case '*clang*'
-      tests/obje{tree}: c.coptions += -Wno-inconsistent-dllimport
-  }
-}
+## Build options.
+#
+import [once] libconfig%buildfile{common-configs}

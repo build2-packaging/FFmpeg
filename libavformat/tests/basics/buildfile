@@ -1,6 +1,6 @@
 import config = libconfig%lib{config}
 import libs = \
-  libavformat%liba{avformat} \
+  libavformat%lib{avformat} \
   $config
 
 requirements = [string_set] \

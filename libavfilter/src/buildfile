@@ -5,11 +5,11 @@ impl_libs = # Implementation dependencies.
 import config = libconfig%lib{config}
 impl_libs += $config
 import intf_libs += \
-  libavutil%liba{avutil} \
-  libavcodec%liba{avcodec} \
-  libavformat%liba{avformat} \
-  libswscale%liba{swscale} \
-  libswresample%liba{swresample}
+  libavutil%lib{avutil} \
+  libavcodec%lib{avcodec} \
+  libavformat%lib{avformat} \
+  libswscale%lib{swscale} \
+  libswresample%lib{swresample}
 
 cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
@@ -25,10 +25,16 @@ import config_asm = libconfig%file{config.asm}
 import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
-libul{avfilter-meta}: $impl_libs $intf_libs $config_asm
-libul{avfilter}: enabled_source{avfilter}: $config_defs libua{avfilter-meta} json{files.json} \
-                                           $config_asm libavfilter/h{**}: \
-                                         update = match
+libul{avfilter-meta}: $impl_libs $intf_libs
+
+libul{avfilter}: enabled_source{avfilter}: $config_defs json{files} libavfilter/h{**} libavformat/h{**}: \
+                                       update = match
+
+libua{avfilter}: enabled_asm{avfilter-a}: $config_defs $config_asm json{files} libua{avfilter-meta}: \
+                                      update = match
+
+libus{avfilter}: enabled_asm{avfilter-s}: $config_defs $config_asm json{files} libus{avfilter-meta}: \
+                                      update = match
 
 libul{avfilter}: resource{avfilter}: include = ($c.target.system == 'win32-msvc')
 resource{avfilter}: libua{avfilter-meta} libavfilter/rc{avfilterres}

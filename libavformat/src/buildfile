@@ -8,10 +8,10 @@ impl_libs += $config
 import impl_libs += \
   libz%lib{z}
 import intf_libs += \
-  libavutil%liba{avutil} \
-  libavcodec%liba{avcodec} \
-  libswscale%liba{swscale} \
-  libswresample%liba{swresample}
+  libavutil%lib{avutil} \
+  libavcodec%lib{avcodec} \
+  libswscale%lib{swscale} \
+  libswresample%lib{swresample}
 
 cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
@@ -26,9 +26,15 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avformat-meta}: $impl_libs $intf_libs
-libul{avformat}: enabled_source{avformat}: $config_defs libua{avformat-meta} json{files.json} \
-                                           $config_asm libavformat/h{**}: \
-                                         update = match
+
+libul{avformat}: enabled_source{avformat}: $config_defs json{files} libavformat/h{**} libavformat/h{**}: \
+                                       update = match
+
+libua{avformat}: enabled_asm{avformat-a}: $config_defs $config_asm json{files} libua{avformat-meta}: \
+                                      update = match
+
+libus{avformat}: enabled_asm{avformat-s}: $config_defs $config_asm json{files} libus{avformat-meta}: \
+                                      update = match
 
 libul{avformat}: resource{avformat}: include = ($c.target.system == 'win32-msvc')
 resource{avformat}: libua{avformat-meta} libavformat/rc{avformatres}

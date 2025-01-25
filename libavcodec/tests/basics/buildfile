@@ -1,7 +1,9 @@
 import config = libconfig%lib{config}
 import libs = \
-  libavcodec%liba{avcodec} \
+  libavcodec%lib{avcodec} \
   $config
+
+import liba_avcodec = libavcodec%liba{avcodec}
 
 requirements = [string_set] \
   '{"av1_levels":       "av1_vaapi_encoder"}' \
@@ -10,16 +12,12 @@ requirements = [string_set] \
   '{"dct":              "idctdsp"}' \
   '{"iirfilter":        "iirfilter"}' \
   '{"mjpegenc_huffman": "mjpeg_encoder"}' \
-  '{"motion":           "have_mmx"}' \
+  '{"motion":           "mmx"}' \
   '{"mpeg12framerate":  "mpegvideo"}' \
-  '{"avcodec":          "h264_metadata_bsf"}' \
   '{"h264_levels":      "h264_metadata_bsf"}' \
-  '{"movenc":           "h264_metadata_bsf"}' \
-  '{"seek_utils":       "h264_metadata_bsf"}' \
-  '{"fifo_muxer":       "h264_metadata_bsf"}' \
   '{"h265_levels":      "hevc_metadata_bsf"}' \
   '{"rangecoder":       "rangecoder"}' \
-  '{"snowenc":          "snow_encoder h264_metadata_bsf"}'
+  '{"snowenc":          "snow_encoder"}'
 
 # need upstream/tests/checkasm/ lib that conditionally builds the asm files.
 for t : tests/c{*.c}
@@ -55,6 +53,11 @@ for t : tests/c{*.c}
   }
   ./: exe{test-$n}: include = $e
 }
+
+## Tests that references hidden symbols need to link statically.
+#
+exe{test-dct}: $liba_avcodec
+exe{test-snowenc}: $liba_avcodec
 
 ## Build options.
 #

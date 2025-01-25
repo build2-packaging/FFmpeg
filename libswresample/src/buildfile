@@ -5,8 +5,8 @@ impl_libs = # Implementation dependencies.
 import config = libconfig%lib{config}
 impl_libs += $config
 import intf_libs += \
-  libavutil%liba{avutil} \
-  libswscale%liba{swscale}
+  libavutil%lib{avutil} \
+  libswscale%lib{swscale}
 
 cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
@@ -20,9 +20,15 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{swresample-meta}: $impl_libs $intf_libs
-libul{swresample}: enabled_source{swresample}: $config_defs libua{swresample-meta} json{files.json} \
-                                               $config_asm libswresample/h{**}: \
-                                             update = match
+
+libul{swresample}: enabled_source{swresample}: $config_defs json{files} libswresample/h{**}: \
+                                       update = match
+
+libua{swresample}: enabled_asm{swresample-a}: $config_defs $config_asm json{files} libua{swresample-meta}: \
+                                      update = match
+
+libus{swresample}: enabled_asm{swresample-s}: $config_defs $config_asm json{files} libus{swresample-meta}: \
+                                      update = match
 
 libul{swresample}: resource{swresample}: include = ($c.target.system == 'win32-msvc')
 resource{swresample}: libua{swresample-meta} libswresample/rc{swresampleres}

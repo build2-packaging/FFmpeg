@@ -1,6 +1,6 @@
 import config = libconfig%lib{config}
 import libs = \
-  libavdevice%liba{avdevice} \
+  libavdevice%lib{avdevice} \
   $config
 
 requirements = [string_set] \

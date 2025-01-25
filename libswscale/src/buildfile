@@ -4,7 +4,8 @@ impl_libs = # Implementation dependencies.
 
 import config = libconfig%lib{config}
 impl_libs += $config
-import intf_libs += libavutil%liba{avutil}
+import intf_libs += \
+  libavutil%lib{avutil}
 
 cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
@@ -21,9 +22,15 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{swscale-meta}: $impl_libs $intf_libs
-libul{swscale}: enabled_source{swscale}: $config_defs libua{swscale-meta} json{files.json} \
-                                         $config_asm libswscale/h{**}: \
+
+libul{swscale}: enabled_source{swscale}: $config_defs json{files} libswscale/h{**}: \
                                        update = match
+
+libua{swscale}: enabled_asm{swscale-a}: $config_defs $config_asm json{files} libua{swscale-meta}: \
+                                      update = match
+
+libus{swscale}: enabled_asm{swscale-s}: $config_defs $config_asm json{files} libus{swscale-meta}: \
+                                      update = match
 
 libul{swscale}: resource{swscale}: include = ($c.target.system == 'win32-msvc')
 resource{swscale}: libua{swscale-meta} libswscale/rc{swscaleres}

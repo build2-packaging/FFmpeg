@@ -8,9 +8,9 @@ impl_libs += $config
 import impl_libs += \
   libz%lib{z}
 import intf_libs += \
-  libavutil%liba{avutil} \
-  libswscale%liba{swscale} \
-  libswresample%liba{swresample}
+  libavutil%lib{avutil} \
+  libswscale%lib{swscale} \
+  libswresample%lib{swresample}
 
 cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
@@ -27,9 +27,15 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avcodec-meta}: $impl_libs $intf_libs
-libul{avcodec}: enabled_source{avcodec}: $config_defs libua{avcodec-meta} json{files.json} \
-                                         $config_asm libavcodec/h{**} libavformat/h{**}: \
+
+libul{avcodec}: enabled_source{avcodec}: $config_defs json{files} libavcodec/h{**} libavfilter/h{**} libavformat/h{**}: \
                                        update = match
+
+libua{avcodec}: enabled_asm{avcodec-a}: $config_defs $config_asm json{files} libua{avcodec-meta}: \
+                                      update = match
+
+libus{avcodec}: enabled_asm{avcodec-s}: $config_defs $config_asm json{files} libus{avcodec-meta}: \
+                                      update = match
 
 # required by test/dct.c
 libul{avcodec}: libavcodec/c{dctref}

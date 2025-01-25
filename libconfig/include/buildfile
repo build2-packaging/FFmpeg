@@ -121,7 +121,7 @@ file{config.asm}:
 
   cat $s | set tmp [string_set]
   tmp = $regex.replace($tmp, '#[ ]*', '%')
-  tmp = $regex.replace($tmp, '^[ ]*//', '; ')
+  tmp = $regex.replace($tmp, '//', '; ')
 
   echo "$tmp" >$path($>)
 }}

@@ -1,6 +1,6 @@
 import config = libconfig%lib{config}
 import libs = \
-  libswscale%liba{swscale} \
+  libswscale%lib{swscale} \
   $config
 
 requirements = [string_set] \

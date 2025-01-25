@@ -18,9 +18,16 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avutil-meta}: $impl_libs $intf_libs
-libul{avutil}: enabled_source{avutil}: $config_defs libua{avutil-meta} json{files} \
-                                       $config_asm compat/h{**} libavcodec/h{**} libavutil/h{**}: \
+
+libul{avutil}: enabled_source{avutil}: $config_defs json{files} \
+                                       compat/h{**} libavcodec/h{**} libavutil/h{**}: \
                                        update = match
+
+libua{avutil}: enabled_asm{avutil-a}: $config_defs $config_asm json{files} libua{avutil-meta}: \
+                                      update = match
+
+libus{avutil}: enabled_asm{avutil-s}: $config_defs $config_asm json{files} libus{avutil-meta}: \
+                                      update = match
 
 libul{avutil}: resource{avutil}: include = ($c.target.system == 'win32-msvc')
 resource{avutil}: libua{avutil-meta} libavutil/rc{avutilres}

@@ -1,15 +1,15 @@
 import config = libconfig%lib{config}
 import libs = \
-  libavfilter%liba{avfilter} \
+  libavfilter%lib{avfilter} \
   $config
 
 requirements = [string_set] \
   '{"integral": "nlmeans_filter"}'
 
-# need upstream/tests/checkasm/ lib that conditionally builds the asm files.
-# TODO: Figure out what filtfmts & formats needs as input (the fate testing
-#       is one giant mess).
-for t : tests/c{*.c -filtfmts -formats}
+## NOTE: filtfmts requires filter names as input.
+#  TODO: extract all enabled filters (from libconfig)
+#        and add as input: exe{test-filtfmts}: test.arguments = <filters>
+for t : tests/c{*.c -filtfmts}
 {
   n = [string] $name($t)
   e = [bool] true
