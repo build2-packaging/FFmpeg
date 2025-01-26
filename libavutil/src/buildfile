@@ -29,11 +29,8 @@ libua{avutil}: enabled_asm{avutil-a}: $config_defs $config_asm json{files} libua
 libus{avutil}: enabled_asm{avutil-s}: $config_defs $config_asm json{files} libus{avutil-meta}: \
                                       update = match
 
-libul{avutil}: resource{avutil}: include = ($c.target.system == 'win32-msvc')
-resource{avutil}: libua{avutil-meta} libavutil/rc{avutilres}
-
-if ($c.target.system == 'win32-msvc')
-  c.loptions += "$out_base/libavutil/avutilres.res"
+libs{avutil}: winres{avutil}: include = ($c.target.system == 'win32-msvc')
+winres{avutil}: libavutil/rc{avutilres} libus{avutil-meta}
 
 libul{avutil}: compat/windows/{h c}{*} \
                compat/msvrt/{h c}{*} \

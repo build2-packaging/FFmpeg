@@ -32,11 +32,8 @@ libua{swscale}: enabled_asm{swscale-a}: $config_defs $config_asm json{files} lib
 libus{swscale}: enabled_asm{swscale-s}: $config_defs $config_asm json{files} libus{swscale-meta}: \
                                       update = match
 
-libul{swscale}: resource{swscale}: include = ($c.target.system == 'win32-msvc')
-resource{swscale}: libua{swscale-meta} libswscale/rc{swscaleres}
-
-if ($c.target.system == 'win32-msvc')
-  c.loptions += "$out_base/libswscale/swscaleres.res"
+libs{swscale}: winres{swscale}: include = ($c.target.system == 'win32-msvc')
+winres{swscale}: libswscale/rc{swscaleres} libus{swscale-meta}
 
 # these c files are included, not built.
 libul{swscale}: adhoc_source{swscale}: include = adhoc

@@ -33,11 +33,8 @@ libua{avdevice}: enabled_asm{avdevice-a}: $config_defs $config_asm json{files} l
 libus{avdevice}: enabled_asm{avdevice-s}: $config_defs $config_asm json{files} libus{avdevice-meta}: \
                                       update = match
 
-libul{avdevice}: resource{avdevice}: include = ($c.target.system == 'win32-msvc')
-resource{avdevice}: libua{avdevice-meta} libavdevice/rc{avdeviceres}
-
-if ($c.target.system == 'win32-msvc')
-  c.loptions += "$out_base/libavdevice/avdeviceres.res"
+libs{avdevice}: winres{avdevice}: include = ($c.target.system == 'win32-msvc')
+winres{avdevice}: libavdevice/rc{avdeviceres} libus{avdevice-meta}
 
 # these c files are included, not built.
 libul{avdevice}: libavdevice/c{ \

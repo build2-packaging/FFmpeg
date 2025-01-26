@@ -36,11 +36,8 @@ libua{avformat}: enabled_asm{avformat-a}: $config_defs $config_asm json{files} l
 libus{avformat}: enabled_asm{avformat-s}: $config_defs $config_asm json{files} libus{avformat-meta}: \
                                       update = match
 
-libul{avformat}: resource{avformat}: include = ($c.target.system == 'win32-msvc')
-resource{avformat}: libua{avformat-meta} libavformat/rc{avformatres}
-
-if ($c.target.system == 'win32-msvc')
-  c.loptions += "$out_base/libavformat/avformatres.res"
+libs{avformat}: winres{avformat}: include = ($c.target.system == 'win32-msvc')
+winres{avformat}: libavformat/rc{avformatres} libus{avformat-meta}
 
 # these c files are included, not built.
 libul{avcodec}: adhoc_source{avcodec}: include = adhoc

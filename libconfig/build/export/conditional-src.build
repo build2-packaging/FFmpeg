@@ -7,6 +7,9 @@ asm{*}: extension = asm
 define rc: file
 rc{*}: extension = rc
 
+define res: file
+res{*}: extension = res
+
 asm_format = [string_map]    \
   'linux-gnu-x86_64'@elf64   \
   'linux-gnu-i686'@elf32     \
@@ -277,32 +280,32 @@ adhoc_source{~'/(.+)/'}:
   end
 }}
 
-define [see_through] resource: group
-resource{~'/(.+)/'}: rc{~'/.+/'} libua{~'/\1-meta/'}
+define [see_through] winres: group
+winres{~'/(.+)/'}: rc{~'/.+/'} libus{~'/\1-meta/'}
 {{
   d    = [dir_path] $directory($>[0])
   rc   = $filter($<, rc)
-  rc   = [paths] $relative($path($rc), $src_base)
-  meta = ($filter($<, libua)[0])
+  meta = ($filter($<, libus)[0])
 
   lib_poptions = $c.lib_poptions($meta, obja)
   depdb hash $lib_poptions
 
+  inputs = [paths] $relative($path($rc), $src_base)
   depdb dyndep \
     --dyn-target \
     --target-cwd $d \
     --target-what 'resource' \
     --format lines \
-    -- echo $regex.merge($rc, '(.*)\.rc', '\1.res', "$\n")
+    -- echo $regex.merge($inputs, '(.*)\.rc', '\1.res', "$\n")
 
-  diag rc $>
+  diag rc $rc -> $filter_out($>, group)
 
-  for src : [paths] $path($filter($<, rc))
+  for src : [paths] $path($rc)
     dst = [path] $out_base/$base($relative($src, $src_base)).res
     mkdir --parents $directory($dst)
-    rc /nologo \
-         $regex.apply($c.poptions, '\\', '/') \
-         $regex.apply($lib_poptions, '\\', '/') \
-         /fo $dst $src
+    rc.exe /nologo \
+           $regex.apply($c.poptions, '\\', '/') \
+           $regex.apply($lib_poptions, '\\', '/') \
+           /fo $dst $src
   end
 }}

@@ -30,11 +30,8 @@ libua{swresample}: enabled_asm{swresample-a}: $config_defs $config_asm json{file
 libus{swresample}: enabled_asm{swresample-s}: $config_defs $config_asm json{files} libus{swresample-meta}: \
                                       update = match
 
-libul{swresample}: resource{swresample}: include = ($c.target.system == 'win32-msvc')
-resource{swresample}: libua{swresample-meta} libswresample/rc{swresampleres}
-
-if ($c.target.system == 'win32-msvc')
-  c.loptions += "$out_base/libswresample/swresampleres.res"
+libs{swresample}: winres{swresample}: include = ($c.target.system == 'win32-msvc')
+winres{swresample}: libswresample/rc{swresampleres} libus{swresample-meta}
 
 # these c files are included, not built.
 libul{swresample}: adhoc_source{swresample}: include = adhoc

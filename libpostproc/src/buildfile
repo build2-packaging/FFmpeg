@@ -32,11 +32,8 @@ libua{postproc}: enabled_asm{postproc-a}: $config_defs $config_asm json{files} l
 libus{postproc}: enabled_asm{postproc-s}: $config_defs $config_asm json{files} libus{postproc-meta}: \
                                       update = match
 
-libul{postproc}: resource{postproc}: include = ($c.target.system == 'win32-msvc')
-resource{postproc}: libua{postproc-meta} libpostproc/rc{postprocres}
-
-if ($c.target.system == 'win32-msvc')
-  c.loptions += "$out_base/libpostproc/postprocres.res"
+libs{postproc}: winres{postproc}: include = ($c.target.system == 'win32-msvc')
+winres{postproc}: libpostproc/rc{postprocres} libus{postproc-meta}
 
 # Build options.
 #
