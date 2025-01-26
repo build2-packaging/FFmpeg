@@ -7,7 +7,7 @@ requirements = [string_set] \
   '{"timefilter": "alsa_indev"}'
 
 # need upstream/tests/checkasm/ lib that conditionally builds the asm files.
-for t : tests/c{*.c}
+for t : tests/c{*}
 {
   n = [string] $name($t)
   e = [bool] true

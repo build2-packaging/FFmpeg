@@ -7,9 +7,10 @@ impl_libs += $config
 import intf_libs += \
   libavutil%lib{avutil}
 
-cpu = [string] $c.target.cpu
-tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
-tgt_macos = [bool] ($c.target.system == 'darwin')
+## Some targets references hidden/non-exported symbols and need to link statically.
+#  NOTE: To resolve correctly the static prerequisite must come first.
+import static = libavutil%liba{avutil}
+libul{swscale}: $static: include = ($c.target.system == 'win32-msvc')
 
 lib{swscale}: libul{swscale}: \
               libswscale/h{**} \

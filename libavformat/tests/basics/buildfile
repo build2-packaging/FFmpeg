@@ -14,7 +14,7 @@ requirements = [string_set] \
 # need upstream/tests/checkasm/ lib that conditionally builds the asm files.
 # TODO: Figure out what seek needs as input (the fate testing
 #       is one giant mess).
-for t : tests/c{*.c -seek}
+for t : tests/c{* -seek}
 {
   n = [string] $name($t)
   e = [bool] true

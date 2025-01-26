@@ -3,13 +3,17 @@ import libs = \
   libavutil%lib{avutil} \
   $config
 
+## Some targets references hidden/non-exported symbols and need to link statically.
+#  NOTE: To resolve correctly the static prerequisite must come first.
+import static = libavutil%liba{avutil}
+exe{test-random_seed}: $static: include = ($c.target.system == 'win32-msvc')
+
 requirements = [string_set] \
   '{"pixelutils": "pixelutils"}'
 
-# need upstream/tests/checkasm/ lib that conditionally builds the asm files.
 # AFAICT test-file is disabled upstream, but it works for all but
 # windows so lets be selective.
-for t : tests/c{*.c -lzo -file}
+for t : tests/c{* -lzo -file}
 {
   n = [string] $name($t)
   e = [bool] true

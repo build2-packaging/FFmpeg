@@ -3,7 +3,14 @@ import libs = \
   libavcodec%lib{avcodec} \
   $config
 
-import liba_avcodec = libavcodec%liba{avcodec}
+## Some targets references hidden/non-exported symbols and need to link statically.
+#  NOTE: To resolve correctly the static prerequisite must come first.
+import static = libavcodec%liba{avcodec}
+exe{test-dct}:             $static: include = ($c.target.system == 'win32-msvc')
+exe{test-golomb}:          $static: include = ($c.target.system == 'win32-msvc')
+exe{test-mpeg12framerate}: $static: include = ($c.target.system == 'win32-msvc')
+exe{test-mathops}:         $static: include = ($c.target.system == 'win32-msvc')
+exe{test-snowenc}:         $static: include = ($c.target.system == 'win32-msvc')
 
 requirements = [string_set] \
   '{"av1_levels":       "av1_vaapi_encoder"}' \
@@ -20,7 +27,7 @@ requirements = [string_set] \
   '{"snowenc":          "snow_encoder"}'
 
 # need upstream/tests/checkasm/ lib that conditionally builds the asm files.
-for t : tests/c{*.c}
+for t : tests/c{*}
 {
   n = [string] $name($t)
   e = [bool] true
@@ -53,11 +60,6 @@ for t : tests/c{*.c}
   }
   ./: exe{test-$n}: include = $e
 }
-
-## Tests that references hidden symbols need to link statically.
-#
-exe{test-dct}: $liba_avcodec
-exe{test-snowenc}: $liba_avcodec
 
 ## Build options.
 #

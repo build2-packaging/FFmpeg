@@ -3,15 +3,14 @@ import libs = \
   libswscale%lib{swscale} \
   $config
 
-requirements = [string_set] \
-  '{"colorspace":     ""}' \
-  '{"floatimg_cmp":   ""}' \
-  '{"pixdesc_query":  ""}' \
-  '{"swscale":        ""}'
+## Some targets references hidden/non-exported symbols and need to link statically.
+#  NOTE: To resolve correctly the static prerequisite must come first.
+import static = libswscale%liba{swscale}
+exe{test-colorspace}: $static: include = ($c.target.system == 'win32-msvc')
 
 # NOTE: Disable tests/swscale.c for the time being, it's unbelievably 
 #       slow (presumably when without correct optimization flags)
-for t : tests/c{*.c -swscale}
+for t : tests/c{* -swscale}
 {
   n = [string] $name($t)
   e = [bool] true

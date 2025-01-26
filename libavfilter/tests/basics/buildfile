@@ -9,7 +9,7 @@ requirements = [string_set] \
 ## NOTE: filtfmts requires filter names as input.
 #  TODO: extract all enabled filters (from libconfig)
 #        and add as input: exe{test-filtfmts}: test.arguments = <filters>
-for t : tests/c{*.c -filtfmts}
+for t : tests/c{* -filtfmts}
 {
   n = [string] $name($t)
   e = [bool] true
