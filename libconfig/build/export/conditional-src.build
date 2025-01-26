@@ -141,11 +141,8 @@ enabled_source{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'}
   for f : [paths] $path($filter_out($>, group))
     s = [path] $src_base/$relative($f, $out_base)
     d = [path] $f
-    if (test -f $d != 0)
-      rm -f $d
-      mkdir --no-cleanup --parents $directory($d)
-      ln --symbolic $s $d
-    end
+    mkdir --no-cleanup --parents $directory($d)
+    ln --symbolic $s $d 2>! || true # re-creating symlink will trigger rebuild
   end
 }}
 
@@ -272,11 +269,8 @@ adhoc_source{~'/(.+)/'}:
   for f : [paths] $path($filter_out($>, group))
     s = [path] $src_base/$relative($f, $out_base)
     d = [path] $f
-    if (test -f $d != 0)
-      rm -f $d
-      mkdir --no-cleanup --parents $directory($d)
-      ln --symbolic $s $d
-    end
+    mkdir --no-cleanup --parents $directory($d)
+    ln --symbolic $s $d 2>! || true # re-creating symlink will trigger rebuild
   end
 }}
 
