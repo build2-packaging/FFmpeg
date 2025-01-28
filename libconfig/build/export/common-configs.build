@@ -39,7 +39,7 @@ if($empty($coptions) || $regex.find_search($coptions, $regex))
 if(!$regex.find_search($c.coptions $cc.coptions, '[-\/]?(?:m|arch)'))
 {
   flag_x86     = ($c.id != 'msvc' ? '-msse'                : '-arch:SSE')
-  flag_x86_64  = ($c.id != 'msvc' ? '-msse2'               : '-arch:SSE2')
+  flag_x86_64  = ($c.id != 'msvc' ? '-msse2'               : '-arch:AVX2')  # with 'SSE2' there are unresolved ext symbols to x86/vvc_init.c functions (MSVC only)
   flag_aarch64 = ($c.id != 'msvc' ? '-march=armv8.1-a'     : '-arch:VFPv4')
   flag_arm     = ($c.id != 'msvc' ? '-mfpu=neon'           : )
   flag_rvv32   = ($c.id != 'msvc' ? '-march=rv32gc_zve32x' : )
