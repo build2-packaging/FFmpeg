@@ -12,9 +12,7 @@ cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
 tgt_macos = [bool] ($c.target.system == 'darwin')
 
-lib{avdevice}: libul{avdevice}: \
-                libavdevice/h{**} \
-                $impl_libs $intf_libs
+lib{avdevice}: libul{avdevice}: $impl_libs $intf_libs
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
@@ -24,7 +22,7 @@ import config_defs = libconfig%file{enabled-defines}
 [rule_hint=c] \
 libul{avdevice-meta}: $impl_libs $intf_libs
 
-libul{avdevice}: enabled_source{avdevice}: $config_defs json{files} libavdevice/h{**} libavdevice/h{**}: \
+libul{avdevice}: enabled_source{avdevice}: $config_defs json{files} h{**}: \
                                        update = match
 
 libua{avdevice}: enabled_asm{avdevice-a}: $config_defs $config_asm json{files} libua{avdevice-meta}: \

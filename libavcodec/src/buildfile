@@ -21,9 +21,7 @@ cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
 tgt_macos = [bool] ($c.target.system == 'darwin')
 
-lib{avcodec}: libul{avcodec}: \
-              libavcodec/h{**} \
-              $impl_libs $intf_libs
+lib{avcodec}: libul{avcodec}: $impl_libs $intf_libs
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
@@ -33,7 +31,7 @@ import config_defs = libconfig%file{enabled-defines}
 [rule_hint=c] \
 libul{avcodec-meta}: $impl_libs $intf_libs
 
-libul{avcodec}: enabled_source{avcodec}: $config_defs json{files} libavcodec/h{**} libavfilter/h{**} libavformat/h{**}: \
+libul{avcodec}: enabled_source{avcodec}: $config_defs json{files} h{**}: \
                                        update = match
 
 libua{avcodec}: enabled_asm{avcodec-a}: $config_defs $config_asm json{files} libua{avcodec-meta}: \

@@ -15,9 +15,7 @@ cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
 tgt_macos = [bool] ($c.target.system == 'darwin')
 
-lib{avfilter}: libul{avfilter}: \
-              libavfilter/h{**} \
-              $impl_libs $intf_libs
+lib{avfilter}: libul{avfilter}: $impl_libs $intf_libs
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
@@ -27,7 +25,7 @@ import config_defs = libconfig%file{enabled-defines}
 [rule_hint=c] \
 libul{avfilter-meta}: $impl_libs $intf_libs
 
-libul{avfilter}: enabled_source{avfilter}: $config_defs json{files} libavfilter/h{**} libavformat/h{**}: \
+libul{avfilter}: enabled_source{avfilter}: $config_defs json{files} h{**}: \
                                        update = match
 
 libua{avfilter}: enabled_asm{avfilter-a}: $config_defs $config_asm json{files} libua{avfilter-meta}: \

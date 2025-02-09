@@ -12,7 +12,7 @@ cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
 tgt_macos = [bool] ($c.target.system == 'darwin')
 
-lib{swresample}: libul{swresample}: libswresample/h{**} $impl_libs $intf_libs
+lib{swresample}: libul{swresample}: $impl_libs $intf_libs
 
 import [once] libconfig%buildfile{conditional-src}
 import config_asm = libconfig%file{config.asm}
@@ -21,7 +21,7 @@ import config_defs = libconfig%file{enabled-defines}
 [rule_hint=c] \
 libul{swresample-meta}: $impl_libs $intf_libs
 
-libul{swresample}: enabled_source{swresample}: $config_defs json{files} libswresample/h{**}: \
+libul{swresample}: enabled_source{swresample}: $config_defs json{files} h{**}: \
                                        update = match
 
 libua{swresample}: enabled_asm{swresample-a}: $config_defs $config_asm json{files} libua{swresample-meta}: \

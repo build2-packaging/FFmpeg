@@ -17,7 +17,7 @@ cpu = [string] $c.target.cpu
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
 tgt_macos = [bool] ($c.target.system == 'darwin')
 
-lib{avformat}: libul{avformat}: libavformat/h{**} $impl_libs $intf_libs
+lib{avformat}: libul{avformat}: $impl_libs $intf_libs
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
@@ -27,7 +27,7 @@ import config_defs = libconfig%file{enabled-defines}
 [rule_hint=c] \
 libul{avformat-meta}: $impl_libs $intf_libs
 
-libul{avformat}: enabled_source{avformat}: $config_defs json{files} libavformat/h{**} libavformat/h{**}: \
+libul{avformat}: enabled_source{avformat}: $config_defs json{files} h{**}: \
                                        update = match
 
 libua{avformat}: enabled_asm{avformat-a}: $config_defs $config_asm json{files} libua{avformat-meta}: \

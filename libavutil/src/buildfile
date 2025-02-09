@@ -9,7 +9,8 @@ impl_libs += $config
 
 tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
 
-./: lib{avutil}: libul{avutil}: libavutil/h{avconfig ffversion} $impl_libs $intf_libs
+./: lib{avutil}: libul{avutil}: libavutil/h{avconfig ffversion} \
+                                $impl_libs $intf_libs
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
@@ -19,8 +20,7 @@ import config_defs = libconfig%file{enabled-defines}
 [rule_hint=c] \
 libul{avutil-meta}: $impl_libs $intf_libs
 
-libul{avutil}: enabled_source{avutil}: $config_defs json{files} \
-                                       compat/h{**} libavcodec/h{**} libavutil/h{**}: \
+libul{avutil}: enabled_source{avutil}: $config_defs json{files} h{** -libavutil/avconfig -libavutil/ffversion}: \
                                        update = match
 
 libua{avutil}: enabled_asm{avutil-a}: $config_defs $config_asm json{files} libua{avutil-meta}: \

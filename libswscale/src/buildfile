@@ -12,9 +12,7 @@ import intf_libs += \
 import static = libavutil%liba{avutil}
 libul{swscale}: $static: include = ($c.target.system == 'win32-msvc')
 
-lib{swscale}: libul{swscale}: \
-              libswscale/h{**} \
-              $impl_libs $intf_libs
+lib{swscale}: libul{swscale}: $impl_libs $intf_libs
 
 # conditional source & assembly
 import [once] libconfig%buildfile{conditional-src}
@@ -24,7 +22,7 @@ import config_defs = libconfig%file{enabled-defines}
 [rule_hint=c] \
 libul{swscale-meta}: $impl_libs $intf_libs
 
-libul{swscale}: enabled_source{swscale}: $config_defs json{files} libswscale/h{**}: \
+libul{swscale}: enabled_source{swscale}: $config_defs json{files} h{**}: \
                                        update = match
 
 libua{swscale}: enabled_asm{swscale-a}: $config_defs $config_asm json{files} libua{swscale-meta}: \
