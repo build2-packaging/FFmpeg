@@ -1,16 +1,9 @@
 import config = libconfig%lib{config}
+## Some targets references hidden/non-exported symbols and need to link statically
+#  and the general assumption for avcodec tests in FFmpeg is to link statically.
 import libs = \
-  libavcodec%lib{avcodec} \
+  libavcodec%liba{avcodec} \
   $config
-
-## Some targets references hidden/non-exported symbols and need to link statically.
-#  NOTE: To resolve correctly the static prerequisite must come first.
-import static = libavcodec%liba{avcodec}
-exe{test-dct}:             $static: include = ($c.target.system == 'win32-msvc')
-exe{test-golomb}:          $static: include = ($c.target.system == 'win32-msvc')
-exe{test-mpeg12framerate}: $static: include = ($c.target.system == 'win32-msvc')
-exe{test-mathops}:         $static: include = ($c.target.system == 'win32-msvc')
-exe{test-snowenc}:         $static: include = ($c.target.system == 'win32-msvc')
 
 requirements = [string_set] \
   '{"av1_levels":       "av1_vaapi_encoder"}' \
