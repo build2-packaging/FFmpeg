@@ -31,14 +31,9 @@ import config_defs = libconfig%file{enabled-defines}
 [rule_hint=c] \
 libul{avcodec-meta}: $impl_libs $intf_libs
 
-libul{avcodec}: enabled_source{avcodec}: $config_defs json{files} h{**}: \
-                                       update = match
-
-libua{avcodec}: enabled_asm{avcodec-a}: $config_defs $config_asm json{files} libua{avcodec-meta}: \
-                                      update = match
-
-libus{avcodec}: enabled_asm{avcodec-s}: $config_defs $config_asm json{files} libus{avcodec-meta}: \
-                                      update = match
+libul{avcodec}: enabled_source{avcodec}: $config_defs json{files} h{**}:                          update = match
+libua{avcodec}: enabled_asm{avcodec-a}: $config_defs $config_asm json{files} libua{avcodec-meta}: update = match
+libus{avcodec}: enabled_asm{avcodec-s}: $config_defs $config_asm json{files} libus{avcodec-meta}: update = match
 
 # required by test/dct.c
 libul{avcodec}: libavcodec/c{dctref}

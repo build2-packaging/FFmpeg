@@ -24,15 +24,9 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avfilter-meta}: $impl_libs $intf_libs
-
-libul{avfilter}: enabled_source{avfilter}: $config_defs json{files} h{**}: \
-                                       update = match
-
-libua{avfilter}: enabled_asm{avfilter-a}: $config_defs $config_asm json{files} libua{avfilter-meta}: \
-                                      update = match
-
-libus{avfilter}: enabled_asm{avfilter-s}: $config_defs $config_asm json{files} libus{avfilter-meta}: \
-                                      update = match
+libul{avfilter}: enabled_source{avfilter}: $config_defs json{files} h{**}:                           update = match
+libua{avfilter}: enabled_asm{avfilter-a}: $config_defs $config_asm json{files} libua{avfilter-meta}: update = match
+libus{avfilter}: enabled_asm{avfilter-s}: $config_defs $config_asm json{files} libus{avfilter-meta}: update = match
 
 libs{avfilter}: winres{avfilter}: include = ($c.target.system == 'win32-msvc')
 winres{avfilter}: libavfilter/rc{avfilterres} libus{avfilter-meta}

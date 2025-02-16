@@ -21,15 +21,9 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{swscale-meta}: $impl_libs $intf_libs
-
-libul{swscale}: enabled_source{swscale}: $config_defs json{files} h{**}: \
-                                       update = match
-
-libua{swscale}: enabled_asm{swscale-a}: $config_defs $config_asm json{files} libua{swscale-meta}: \
-                                      update = match
-
-libus{swscale}: enabled_asm{swscale-s}: $config_defs $config_asm json{files} libus{swscale-meta}: \
-                                      update = match
+libul{swscale}: enabled_source{swscale}: $config_defs json{files} h{**}:                          update = match
+libua{swscale}: enabled_asm{swscale-a}: $config_defs $config_asm json{files} libua{swscale-meta}: update = match
+libus{swscale}: enabled_asm{swscale-s}: $config_defs $config_asm json{files} libus{swscale-meta}: update = match
 
 libs{swscale}: winres{swscale}: include = ($c.target.system == 'win32-msvc')
 winres{swscale}: libswscale/rc{swscaleres} libus{swscale-meta}

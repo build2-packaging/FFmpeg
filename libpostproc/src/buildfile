@@ -20,15 +20,9 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{postproc-meta}: $impl_libs $intf_libs
-
-libul{postproc}: enabled_source{postproc}: $config_defs json{files} h{**}: \
-                                       update = match
-
-libua{postproc}: enabled_asm{postproc-a}: $config_defs $config_asm json{files} libua{postproc-meta}: \
-                                      update = match
-
-libus{postproc}: enabled_asm{postproc-s}: $config_defs $config_asm json{files} libus{postproc-meta}: \
-                                      update = match
+libul{postproc}: enabled_source{postproc}: $config_defs json{files} h{**}:                           update = match
+libua{postproc}: enabled_asm{postproc-a}: $config_defs $config_asm json{files} libua{postproc-meta}: update = match
+libus{postproc}: enabled_asm{postproc-s}: $config_defs $config_asm json{files} libus{postproc-meta}: update = match
 
 libs{postproc}: winres{postproc}: include = ($c.target.system == 'win32-msvc')
 winres{postproc}: libpostproc/rc{postprocres} libus{postproc-meta}

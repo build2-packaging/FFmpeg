@@ -26,15 +26,9 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avformat-meta}: $impl_libs $intf_libs
-
-libul{avformat}: enabled_source{avformat}: $config_defs json{files} h{**}: \
-                                       update = match
-
-libua{avformat}: enabled_asm{avformat-a}: $config_defs $config_asm json{files} libua{avformat-meta}: \
-                                      update = match
-
-libus{avformat}: enabled_asm{avformat-s}: $config_defs $config_asm json{files} libus{avformat-meta}: \
-                                      update = match
+libul{avformat}: enabled_source{avformat}: $config_defs json{files} h{**}:                           update = match
+libua{avformat}: enabled_asm{avformat-a}: $config_defs $config_asm json{files} libua{avformat-meta}: update = match
+libus{avformat}: enabled_asm{avformat-s}: $config_defs $config_asm json{files} libus{avformat-meta}: update = match
 
 libs{avformat}: winres{avformat}: include = ($c.target.system == 'win32-msvc')
 winres{avformat}: libavformat/rc{avformatres} libus{avformat-meta}

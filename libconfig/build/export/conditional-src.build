@@ -122,7 +122,6 @@ enabled_source{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'}
     if ($sub_path($h, $src_base))
       src = [path] $relative($h, $src_base)
       enabled_srcs += [paths] $src
-      appended += [paths] $src
     end
   end
 

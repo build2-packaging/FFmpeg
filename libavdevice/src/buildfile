@@ -21,15 +21,9 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avdevice-meta}: $impl_libs $intf_libs
-
-libul{avdevice}: enabled_source{avdevice}: $config_defs json{files} h{**}: \
-                                       update = match
-
-libua{avdevice}: enabled_asm{avdevice-a}: $config_defs $config_asm json{files} libua{avdevice-meta}: \
-                                      update = match
-
-libus{avdevice}: enabled_asm{avdevice-s}: $config_defs $config_asm json{files} libus{avdevice-meta}: \
-                                      update = match
+libul{avdevice}: enabled_source{avdevice}: $config_defs json{files} h{**}:                           update = match
+libua{avdevice}: enabled_asm{avdevice-a}: $config_defs $config_asm json{files} libua{avdevice-meta}: update = match
+libus{avdevice}: enabled_asm{avdevice-s}: $config_defs $config_asm json{files} libus{avdevice-meta}: update = match
 
 libs{avdevice}: winres{avdevice}: include = ($c.target.system == 'win32-msvc')
 winres{avdevice}: libavdevice/rc{avdeviceres} libus{avdevice-meta}

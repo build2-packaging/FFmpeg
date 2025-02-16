@@ -20,15 +20,9 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{swresample-meta}: $impl_libs $intf_libs
-
-libul{swresample}: enabled_source{swresample}: $config_defs json{files} h{**}: \
-                                       update = match
-
-libua{swresample}: enabled_asm{swresample-a}: $config_defs $config_asm json{files} libua{swresample-meta}: \
-                                      update = match
-
-libus{swresample}: enabled_asm{swresample-s}: $config_defs $config_asm json{files} libus{swresample-meta}: \
-                                      update = match
+libul{swresample}: enabled_source{swresample}: $config_defs json{files} h{**}:                             update = match
+libua{swresample}: enabled_asm{swresample-a}: $config_defs $config_asm json{files} libua{swresample-meta}: update = match
+libus{swresample}: enabled_asm{swresample-s}: $config_defs $config_asm json{files} libus{swresample-meta}: update = match
 
 libs{swresample}: winres{swresample}: include = ($c.target.system == 'win32-msvc')
 winres{swresample}: libswresample/rc{swresampleres} libus{swresample-meta}

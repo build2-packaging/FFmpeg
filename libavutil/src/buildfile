@@ -19,15 +19,9 @@ import config_defs = libconfig%file{enabled-defines}
 
 [rule_hint=c] \
 libul{avutil-meta}: $impl_libs $intf_libs
-
-libul{avutil}: enabled_source{avutil}: $config_defs json{files} h{** -libavutil/avconfig -libavutil/ffversion}: \
-                                       update = match
-
-libua{avutil}: enabled_asm{avutil-a}: $config_defs $config_asm json{files} libua{avutil-meta}: \
-                                      update = match
-
-libus{avutil}: enabled_asm{avutil-s}: $config_defs $config_asm json{files} libus{avutil-meta}: \
-                                      update = match
+libul{avutil}: enabled_source{avutil}: $config_defs json{files} libavutil/h{** -avconfig -ffversion}: update = match
+libua{avutil}: enabled_asm{avutil-a}: $config_defs $config_asm json{files} libua{avutil-meta}:        update = match
+libus{avutil}: enabled_asm{avutil-s}: $config_defs $config_asm json{files} libus{avutil-meta}:        update = match
 
 libs{avutil}: winres{avutil}: include = ($c.target.system == 'win32-msvc')
 winres{avutil}: libavutil/rc{avutilres} libus{avutil-meta}
