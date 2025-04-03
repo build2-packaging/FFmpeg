@@ -1,3 +1,5 @@
+import! nasm = nasm%exe{nasm}
+
 define json: file
 json{*}: extension = json
 
@@ -146,7 +148,7 @@ enabled_source{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'}
 }}
 
 define [see_through] enabled_asm: group
-enabled_asm{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'}
+enabled_asm{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'} $nasm
 {{
   d = [dir_path] $directory($>[0])
 
@@ -241,7 +243,7 @@ enabled_asm{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'}
     d = [path] $f
     # note: use $base() to strip target type extension
     #       from input source path.
-    nasm -f $format "-P$path($config_asm)" \
+    $path($nasm) -f $format "-P$path($config_asm)" \
          $poptions \
          $lib_poptions \
          -o $d $base($s)
