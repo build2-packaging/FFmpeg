@@ -44,19 +44,20 @@ libavdevice/c{outdev_list}: libavdevice/c{alldevices} $config_defs
 
   sed -n -e 's/.*extern.* FFInputFormat\s+ff_(\S+)_demuxer;/\1_demuxer/p' $s | set -n func_list
   if $empty($func_list)
+  {
     echo "No outdev functions found"
     exit 1
-  end
+  }
   echo 'static const FFInputFormat* const outdev_list[] = {' > $f
   for c: $func_list
+  {
     group = $string.ucase(CONFIG_$c)
     if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
-    end
-  end
+  }
   echo "    NULL };" >> $path($>)
 }}
-  
+
 libavdevice/c{indev_list}: libavdevice/c{alldevices} $config_defs
 {{
   diag gen $>
@@ -67,16 +68,17 @@ libavdevice/c{indev_list}: libavdevice/c{alldevices} $config_defs
 
   sed -n -e 's/.*extern.* FFOutputFormat\s+ff_(\S+)_muxer;/\1_muxer/p' $s | set -n func_list
   if $empty($func_list)
+  {
     echo "No indev functions found"
     exit 1
-  end
+  }
   echo 'static const FFOutputFormat* const indev_list[] = {' > $f
   for c: $func_list
+  {
     group = $string.ucase(CONFIG_$c)
     if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
-    end
-  end
+  }
   echo "    NULL };" >> $path($>)
 }}
 

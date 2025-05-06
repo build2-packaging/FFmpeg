@@ -53,16 +53,17 @@ libavformat/c{protocol_list}: libavformat/c{protocols} $config_defs
 
   sed -n -e 's/.*extern.* URLProtocol\s+ff_(\S+)_protocol;/\1_protocol/p' $s | set -n func_list
   if $empty($func_list)
+  {
     echo "No protocol functions found"
     exit 1
-  end
+  }
   echo 'static const URLProtocol* const url_protocols[] = {' > $f
   for c: $func_list
+  {
     group = $string.ucase(CONFIG_$c)
     if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
-    end
-  end
+  }
   echo "    NULL };" >> $path($>)
 }}
 
@@ -78,16 +79,17 @@ libavformat/c{demuxer_list}: libavformat/c{allformats} $config_defs
 
   sed -n -e 's/^\s*extern.*FFInputFormat\s+ff_(\S*)_demuxer;/\1_demuxer/p' $s | set -n func_list
   if $empty($func_list)
+  {
     echo "No demuxer functions found"
     exit 1
-  end
+  }
   echo 'static const FFInputFormat* const demuxer_list[] = {' > $f
   for c: $func_list
+  {
     group = $string.ucase(CONFIG_$c)
     if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
-    end
-  end
+  }
   echo "    NULL };" >> $path($>)
 }}
 
@@ -101,16 +103,17 @@ libavformat/c{muxer_list}: libavformat/c{allformats} $config_defs
 
   sed -n -e 's/^\s*extern.*FFOutputFormat\s+ff_(\S*)_muxer;/\1_muxer/p' $s | set -n func_list
   if $empty($func_list)
+  {
     echo "No muxer functions found"
     exit 1
-  end
+  }
   echo 'static const FFOutputFormat* const muxer_list[] = {' > $f
   for c: $func_list
+  {
     group = $string.ucase(CONFIG_$c)
     if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
-    end
-  end
+  }
   echo "    NULL };" >> $path($>)
 }}
 

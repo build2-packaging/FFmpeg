@@ -39,29 +39,35 @@ c{print_defines}: h{config_cpu config}
 
   file += ""
   for i : $integer_sequence(0, $size($<))
+  {
     s = [path] $path($<[$i])
     cat $s | for -n line
+    {
       if ($regex.find_match($line, '[ ]*#[ ]*define[ ]+.*$'))
+      {
         c = $regex.apply($line, '[ ]*#[ ]*define[ ]+([a-zA-Z0-9_]+)[ ]+.*$', '\1', format_no_copy)
         if (!$empty($c) && !$defs[$c])
+        {
           defs += $c
           tmp = [string] 'TOSTRING({#  define "DEF" VALUE(DEF)})'
           tmp = $string.replace($tmp, 'DEF', "$c")
 
           if ($string.starts_with($c, 'HAVE_'))
+          {
             file += "#ifndef $c"
             file += "  #  define $c 0"
             file += "#endif"
-          end
+          }
 
           file += "#ifdef $c"
           file += "  $print\(TOSTRING\({#undef \"$c\"}\)\)"
           file += "  $print\($tmp\)"
           file += "#endif"
-        end
-      end
-    end
-  end
+        }
+      }
+    }
+  }
+
   file += "$print\(\"#endif\"\)"
   file = $regex.apply($file, '^(.*)$', "\1\n", format_no_copy)
 
@@ -82,17 +88,20 @@ h{autoconf}:
   diag configure $< $>
 
   if ($c.class == 'msvc')
+  {
     echo -nologo $c.poptions $cc.poptions $c.coptions $c.mode -c $s -Fo$o >$r &$r &$o
     # re-run in case of error to print the error output
     $effect($c.path) "@$r" 2>&1 | set tmp [string_set] || $effect($c.path) "@$r" 2>&1 | grep error
     # msvc is very verbose, but luckily all lines that start with a space can be removed.
     tmp = $regex.replace($tmp, '^[ ].*$', '')
+  }
   else
+  {
     # re-run in case of error to print the error output
     $effect($c.path) $c.poptions $cc.poptions $c.coptions $c.mode -E $s 2>- \
                        | set tmp [string_set] \
                      || $effect($c.path) $c.poptions $cc.poptions $c.coptions $c.mode -E $s 2>&1 | grep error
-  end
+  }
 
   # quotes are printed as unicode with clang
   tmp = $regex.replace($tmp, '\\042', '"')

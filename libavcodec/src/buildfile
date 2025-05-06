@@ -73,16 +73,17 @@ libavcodec/c{codec_list}: libavcodec/c{allcodecs} $config_defs
 
   sed -n -e 's/.*extern.* FFCodec\s+ff_(\S+);/\1/p' $s | set -n func_list
   if $empty($func_list)
+  {
     echo "No codec functions found"
     exit 1
-  end
+  }
   echo 'static const FFCodec* const codec_list[] = {' > $f
   for c: $func_list
+  {
     group = $string.ucase(CONFIG_$c)
     if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
-    end
-  end
+  }
   echo "    NULL };" >> $path($>)
 }}
 
@@ -96,16 +97,17 @@ libavcodec/c{parser_list}: libavcodec/c{parsers} $config_defs
 
   sed -n -e 's/.*extern.* AVCodecParser\s+ff_(\S+)_parser;/\1_parser/p' $s | set -n func_list
   if $empty($func_list)
+  {
     echo "No parser functions found"
     exit 1
-  end
+  }
   echo 'static const AVCodecParser* const parser_list[] = {' > $f
   for c: $func_list
+  {
     group = $string.ucase(CONFIG_$c)
     if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
-    end
-  end
+  }
   echo "    NULL };" >> $path($>)
 }}
 
@@ -119,16 +121,17 @@ libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} $config_defs
 
   sed -n -e 's/.*extern.* FFBitStreamFilter\s+ff_(\S+)_bsf;/\1_bsf/p' $s | set -n func_list
   if $empty($func_list)
+  {
     echo "No bsf functions found"
     exit 1
-  end
+  }
   echo 'static const FFBitStreamFilter* const bitstream_filters[] = {' > $f
   for c: $func_list
+  {
     group = $string.ucase(CONFIG_$c)
     if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
-    end
-  end
+  }
   echo "    NULL };" >> $path($>)
 }}
 
@@ -186,34 +189,40 @@ libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} $config_defs
   hdrs = [paths]
   required_src = [paths]
   for i: $integer_sequence(2, $size($<))
+  {
     s = $path($<[$i])
     if ($extension($s) == 'c')
+    {
       srcs += [paths] $s
       if ($path.leaf($s) == 'dv_tablegen.c')
+      {
         # dvdata.c is required for dv_tablegen.c
         required_src += [paths] $src_base/libavcodec/dvdata.c
-      end
+      }
+    }
     elif ($extension($s) == 'h')
       hdrs += [paths] $s
-    end
-  end
+  }
 
   diag gen $>
 
   if ($size($srcs) != $size($hdrs))
+  {
     echo "There must be one xxx_tablegen.h per xxx_tablegen.c"
     exit 1
-  end
+  }
   if ($size($srcs) != $size($>))
+  {
     echo "There must be one xxx_tablegen.c per generated output header"
     exit 1
-  end
+  }
 
   t = [dir_path] $path.posix_representation($out_base/tablegen)
 
   mkdir -p $t
 
   for i: $integer_sequence(0, $size($srcs))
+  {
     c = [path] ($srcs[$i])
     h = [path] ($hdrs[$i])
     o = [path] $path($>[$i])
@@ -223,18 +232,18 @@ libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} $config_defs
     if ($c.id == 'msvc')
       args = [strings] -nologo $c.mode "-Fe$exe" $required_src $c
     else
+    {
       if ($build.host.class != 'windows')
         sys_libs += [strings] -lm
-      end
       args = [strings] -Wno-pointer-sign $sys_libs $c.mode "-o$exe" $required_src $c
-    end
+    }
 
     # build for host
     env -c "$t" -- $effect($c.path) -D_USE_MATH_DEFINES $c.poptions $lib_poptions ($args) 2>! &$t/**
 
     # generate header
     $exe >$o
-  end
+  }
 }}
 
 # Build options.

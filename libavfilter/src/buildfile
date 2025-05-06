@@ -49,16 +49,17 @@ libavfilter/c{filter_list}: libavfilter/c{allfilters} $config_defs
 
   sed -n -e 's/.*extern.* AVFilter\s+ff_(\S+);/\1_filter/p' $s | set -n func_list
   if $empty($func_list)
+  {
     echo "No filter functions found"
     exit 1
-  end
+  }
   echo 'static const AVFilter* const filter_list[] = {' > $f
   for c: $func_list
+  {
     group = $string.ucase(CONFIG_$c)
     if ($defines[$group])
       echo "    &ff_$c," >> $path($>)
-    end
-  end
+  }
   echo "    NULL };" >> $path($>)
 }}
 # Build options.

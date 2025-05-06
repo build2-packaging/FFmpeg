@@ -78,21 +78,25 @@ enabled_source{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'}
   enabled_srcs = [paths]
   skipped_srcs = [strings]
   for pair: [json] $json.load($path($json))
+  {
     echo $member_name($pair)  | set -w groups [strings]
     echo $member_value($pair) | set -w srcs [paths]
 
     filtered_srcs = [paths]
     for src: [paths] $srcs
+    {
       # if in an subdir, treat first subdir as 'ARCH_<DIR>', eg. 'ARCH_ARM'
       dir = $regex.replace($directory($src), '/.*', '')
       arch_dir = $string.ucase("ARCH_$dir")
       have_dir = $string.ucase("HAVE_$dir")
       skip     = [bool] ($extension($src) == 'asm')
       for group: (!$skip ? $groups :)
+      {
         negate = [bool] $string.starts_with($group, '!')
         if($negate)
+        {
           group = $string.replace($group, '!', '')
-        end
+        }
 
         ## check if group is enabled, either (eg.) 'HAVE_X86ASM', or for CPU specific 'ARCH_ARM':
         #  is 'group' not enabled?
@@ -102,30 +106,33 @@ enabled_source{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'}
         if ((!$defines[$group] || \
             (!$defines[$arch_dir] && !$defines[$have_dir])) && \
             !$negate)
+        {
           skip = true
           skipped_srcs += "$src-\(!$arch_dir && !$have_dir \(group: $group, negate: $negate))"
-        end
-      end
+        }
+      }
 
       # append if all checks passed
       if (!$skip)
         filtered_srcs += $project/$src
-      end
-    end
+    }
 
     if (!$empty($filtered_srcs))
+    {
       enabled_srcs += [paths] $filtered_srcs
-    end
-  end
+    }
+  }
 
   # add any header prerequisites so they also get
   # symlinked (to allow relative inclusion)
   for h : $path($filter($<, h))
+  {
     if ($sub_path($h, $src_base))
+    {
       src = [path] $relative($h, $src_base)
       enabled_srcs += [paths] $src
-    end
-  end
+    }
+  }
 
   depdb dyndep \
     --dyn-target \
@@ -140,11 +147,12 @@ enabled_source{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'}
 
   # symlink enabled source to out dir
   for f : [paths] $path($filter_out($>, group))
+  {
     s = [path] $src_base/$relative($f, $out_base)
     d = [path] $f
     mkdir --no-cleanup --parents $directory($d)
     ln --symbolic $s $d 2>! || true # re-creating symlink will trigger rebuild
-  end
+  }
 }}
 
 define [see_through] enabled_asm: group
@@ -177,21 +185,23 @@ enabled_asm{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'} $nasm
   enabled_srcs = [paths]
   skipped_srcs = [strings]
   for pair: [json] $json.load($path($json))
+  {
     echo $member_name($pair)  | set -w groups [strings]
     echo $member_value($pair) | set -w srcs [paths]
 
     filtered_srcs = [paths]
     for src: [paths] $srcs
+    {
       # if in an subdir, treat first subdir as 'ARCH_<DIR>', eg. 'ARCH_ARM'
       dir = $regex.replace($directory($src), '/.*', '')
       arch_dir = $string.ucase("ARCH_$dir")
       have_dir = $string.ucase("HAVE_$dir")
       skip     = [bool] ($extension($src) != 'asm')
       for group: (!$skip ? $groups :)
+      {
         negate = [bool] $string.starts_with($group, '!')
         if($negate)
           group = $string.replace($group, '!', '')
-        end
 
         ## check if group is enabled, either (eg.) 'HAVE_X86ASM', or for CPU specific 'ARCH_ARM':
         #  is 'group' not enabled?
@@ -201,21 +211,20 @@ enabled_asm{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'} $nasm
         if ((!$defines[$group] || \
             (!$defines[$arch_dir] && !$defines[$have_dir])) && \
             !$negate)
+        {
           skip = true
           skipped_srcs += "$src-\(!$arch_dir && !$have_dir \(group: $group, negate: $negate))"
-        end
-      end
+        }
+      }
 
       # append if all checks passed
       if (!$skip)
         filtered_srcs += $project/$(src).$target_type
-      end
-    end
+    }
 
     if (!$empty($filtered_srcs))
       enabled_srcs += [paths] $filtered_srcs
-    end
-  end
+  }
 
   # dummy in case target as no asm prerequisites
   dummy = [path] $out_base/enabled_asm-$(target_type).dummy
@@ -239,6 +248,7 @@ enabled_asm{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'} $nasm
   key = [string] "$c.target.system-$c.target.cpu"
   format = [string] ($asm_format[$key])
   for f : [paths] $path($filter($>, $target_type))
+  {
     s = [path] $src_base/$relative($f, $out_base)
     d = [path] $f
     # note: use $base() to strip target type extension
@@ -247,7 +257,7 @@ enabled_asm{~'/(.+)/'}: file{~'/.*-defines/'} json{~'/.+/'} $nasm
          $poptions \
          $lib_poptions \
          -o $d $base($s)
-  end
+  }
 }}
 
 define [see_through] adhoc_source: group
@@ -268,11 +278,12 @@ adhoc_source{~'/(.+)/'}:
   diag adhoc_src $>
 
   for f : [paths] $path($filter_out($>, group))
+  {
     s = [path] $src_base/$relative($f, $out_base)
     d = [path] $f
     mkdir --no-cleanup --parents $directory($d)
     ln --symbolic $s $d 2>! || true # re-creating symlink will trigger rebuild
-  end
+  }
 }}
 
 define [see_through] winres: group
@@ -296,11 +307,12 @@ winres{~'/(.+)/'}: rc{~'/.+/'} libus{~'/\1-meta/'}
   diag rc $rc -> $filter_out($>, group)
 
   for src : [paths] $path($rc)
+  {
     dst = [path] $out_base/$base($relative($src, $src_base)).res
     mkdir --parents $directory($dst)
     rc.exe /nologo \
            $regex.apply($c.poptions, '\\', '/') \
            $regex.apply($lib_poptions, '\\', '/') \
            /fo $dst $src
-  end
+  }
 }}
