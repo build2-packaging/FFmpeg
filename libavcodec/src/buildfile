@@ -230,16 +230,19 @@ libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} $config_defs
 
     sys_libs = [strings]
     if ($c.id == 'msvc')
-      args = [strings] -nologo $c.mode "-Fe$exe" $required_src $c
+      args = [strings] -nologo "-Fe$exe"
     else
     {
+      args = [strings] -Wno-pointer-sign "-o$exe"
+
       if ($build.host.class != 'windows')
         sys_libs += [strings] -lm
-      args = [strings] -Wno-pointer-sign $sys_libs $c.mode "-o$exe" $required_src $c
     }
 
     # build for host
-    env -c "$t" -- $effect($c.path) -D_USE_MATH_DEFINES $c.poptions $lib_poptions ($args) 2>! &$t/**
+    env -c "$t" -- $effect($c.path) $c.mode                             \
+                   -D_USE_MATH_DEFINES $c.poptions $lib_poptions        \
+                   ($args) $required_src $c $sys_libs 2>! &$t/**
 
     # generate header
     $exe >$o
