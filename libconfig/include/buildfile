@@ -536,6 +536,19 @@ h{config}: in{config}
   #
   HAVE_ALIGNED_STACK = ($tgt_x86 || $tgt_ppc || $tgt_cpu == 'aarch64' )
 
+  # This macro is only referenced in libavutil/arm/ which is where the 32-bit
+  # ARM code lives (ARMv{5,6,7}; the 64-bit code is in aarch64/). Based on the
+  # FFmpeg configure script the "MOD_Q" refers to the %Q template modifier for
+  # AArch32 state in ARM inline assembly (see
+  # https://developer.arm.com/documentation/101754/0622/armclang-Reference/armclang-inline-assembler/Inline-assembly-template-modifiers/Template-modifiers-for-AArch32-state).
+  #
+  # As far as I can tell this is not some obscure feature so assume it's
+  # always available in the 32-bit ARM code.
+  #
+  # @@ TODO Make this dependent on !HAVE_ARMV8.
+  #
+  HAVE_ASM_MOD_Q = 1
+
   HAVE_CDIO_PARANOIA_H                 = ($c.find_system_header("cdio/paranoia.h") != [null] ? 1 : 0)
   HAVE_CDIO_PARANOIA_PARANOIA_H        = ($c.find_system_header("cdio/paranoia/paranoia.h") != [null] ? 1 : 0)
   HAVE_DEV_VIDEO_BKTR_IOCTL_BT848_H    = ($c.find_system_header("bktr/ioctl_bt848.h") != [null] ? 1 : 0)
