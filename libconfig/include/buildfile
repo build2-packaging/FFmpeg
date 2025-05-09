@@ -549,6 +549,17 @@ h{config}: in{config}
   #
   HAVE_ASM_MOD_Q = 1
 
+  # True on all 64-bit CPUs.
+  #
+  HAVE_FAST_64BIT = ($tgt_cpu == 'x86_64'                 ||    \
+                     $tgt_cpu == 'aarch64'                ||    \
+                     $tgt_cpu == 'ia64'                   ||    \
+                     $regex.match($tgt_cpu, '^riscv64.*') ||    \
+                     $regex.match($tgt_cpu, '^ppc64.*')   ||    \
+                     $tgt_cpu == 'sparc64'                ||    \
+                     $tgt_alpha)
+
+
   HAVE_CDIO_PARANOIA_H                 = ($c.find_system_header("cdio/paranoia.h") != [null] ? 1 : 0)
   HAVE_CDIO_PARANOIA_PARANOIA_H        = ($c.find_system_header("cdio/paranoia/paranoia.h") != [null] ? 1 : 0)
 
