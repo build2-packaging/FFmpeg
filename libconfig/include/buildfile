@@ -13,6 +13,13 @@ if (!$config.libconfig.frame_thread_encoder)
   config.libconfig.frame_thread_encoder = true
 }
 
+tgt_cpu = $c.target.cpu
+
+tgt_x86   = ($tgt_cpu == 'x86_64' || $tgt_cpu == 'i686')
+tgt_ppc   = ($regex.match($tgt_cpu, '^powerpc.*') || \
+             $regex.match($tgt_cpu, '^ppc64.*'))
+tgt_alpha = $regex.match($tgt_cpu, '^alpha.*')
+
 tgt_win32     = [bool] ($c.target.system == 'win32-msvc')
 tgt_macos     = [bool] ($c.target.system == 'darwin')
 
