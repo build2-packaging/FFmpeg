@@ -532,7 +532,12 @@ h{config}: in{config}
                      HAVE_AS_OBJECT_ARCH@HAVE_AS_OBJECT_ARCH_DIRECTIVE \
                      HAVE_PTHREADS@HAVE_PTHREAD
 
-  # True on x86, PPC, and AArch64.
+  # True on x86, PPC, and AArch64. Upstream disables it only on x86_32 and
+  # older Loongson CPUs (MIPS as opposed to LoongArch) which are pretty
+  # obscure.
+  #
+  # @@ TODO The (removed) autoconf check also enables this in arm (32-bit) and
+  #    sparc so look into that. Can't see where upstream does this though.
   #
   HAVE_ALIGNED_STACK = ($tgt_x86 || $tgt_ppc || $tgt_cpu == 'aarch64' )
 
