@@ -527,6 +527,7 @@ h{config}: in{config}
                      HAVE_AS_FUNC@HAVE_AS_FUNC_DIRECTIVE \
                      HAVE_EBP_AVAILABLE@HAVE_ASM_EBP \
                      HAVE_EBX_AVAILABLE@HAVE_ASM_EBX \
+                     HAVE_FAST_FLOAT16@HAVE_F16C \
                      HAVE_GMTIME@HAVE__GMTIME \
                      HAVE_INTRINSICS_NEON@HAVE_NEON \
                      HAVE_AS_OBJECT_ARCH@HAVE_AS_OBJECT_ARCH_DIRECTIVE \
