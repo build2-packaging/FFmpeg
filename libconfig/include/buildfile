@@ -551,8 +551,16 @@ h{config}: in{config}
 
   HAVE_CDIO_PARANOIA_H                 = ($c.find_system_header("cdio/paranoia.h") != [null] ? 1 : 0)
   HAVE_CDIO_PARANOIA_PARANOIA_H        = ($c.find_system_header("cdio/paranoia/paranoia.h") != [null] ? 1 : 0)
-  HAVE_DEV_VIDEO_BKTR_IOCTL_BT848_H    = ($c.find_system_header("bktr/ioctl_bt848.h") != [null] ? 1 : 0)
-  HAVE_DEV_VIDEO_METEOR_IOCTL_METEOR_H = ($c.find_system_header("meteor/ioctl_bt848.h") != [null] ? 1 : 0)
+
+  # Check for ioctl_meteor.h, ioctl_bt848.h and alternatives.
+  HAVE_DEV_IC_BT8XX_H                  = ($c.find_system_header("dev/ic/bt8xx.h") != [null])
+  HAVE_DEV_VIDEO_BKTR_IOCTL_BT848_H    = ($c.find_system_header("dev/video/bktr/ioctl_bt848.h") != [null])
+  HAVE_DEV_VIDEO_METEOR_IOCTL_METEOR_H = ($c.find_system_header("dev/video/meteor/ioctl_meteor.h") != [null])
+  HAVE_DEV_BKTR_IOCTL_BT848_H          = ($c.find_system_header("dev/bktr/ioctl_bt848.h") != [null])
+  HAVE_DEV_BKTR_IOCTL_METEOR_H         = ($c.find_system_header("dev/bktr/ioctl_meteor.h") != [null])
+  HAVE_MACHINE_IOCTL_BT848_H           = ($c.find_system_header("machine/ioctl_bt848.h") != [null])
+  HAVE_MACHINE_IOCTL_METEOR_H          = ($c.find_system_header("machine/ioctl_meteor.h") != [null])
+
   HAVE_ES2_GL_H                        = ($c.find_system_header("GLES2/gl2.h") != [null] ? 1 : 0)
   HAVE_WGLGETPROCADDRESS               = ($c.find_system_header("GL/glx.h") != [null] || $c.find_system_header("OpenGL/gl3.h") != [null] ? 1 : 0 )
   HAVE_GLXGETPROCADDRESS               = ($c.find_system_header("ES2/gl.h") != [null] ? 1 :0)
