@@ -559,7 +559,6 @@ h{config}: in{config}
                      $tgt_cpu == 'sparc64'                ||    \
                      $tgt_alpha)
 
-  HAVE_FAST_CLZ = ($tgt_x86 || $tgt_ppc || $tgt_alpha || $tgt_cpu == 'aarch64')
 
   HAVE_CDIO_PARANOIA_H                 = ($c.find_system_header("cdio/paranoia.h") != [null] ? 1 : 0)
   HAVE_CDIO_PARANOIA_PARANOIA_H        = ($c.find_system_header("cdio/paranoia/paranoia.h") != [null] ? 1 : 0)
