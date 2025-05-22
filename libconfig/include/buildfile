@@ -557,7 +557,12 @@ h{config}: in{config}
 
   #  Win32
   ## FFmpeg (incorrectly) assumes that HAVE_BCRYPT implies it's _WIN32
+  ##
+  ## @@ TMP See commit removing HAVE_BCRYPT in libbuild2-autoconf for info
+  ##    with which to update this comment.
+  ##
   HAVE_BCRYPT = ($c.find_system_header("bcrypt.h") != [null] && $tgt_win32 ? 1 : 0)
+
   HAVE_DPI_AWARENESS_CONTEXT   = $tgt_win32
   HAVE_GETMODULEHANDLE         = $tgt_win32
   HAVE_GETPROCESSAFFINITYMASK  = $tgt_win32
