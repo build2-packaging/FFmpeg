@@ -41,8 +41,6 @@
 #undef HAVE_RV
 #undef HAVE_RVV
 
-#undef HAVE_AESNI
-
 // -- DEPRECATED:
 #define HAVE_AMD3DNOW 0
 #define HAVE_AMD3DNOWEXT 0
@@ -339,10 +337,6 @@
    or if it's built as an assembly file (.asm/.S),
    and linked.
 */
-
-// Hardware-accelerated AES support
-#define HAVE_AESNI_EXTERNAL (HAVE_AESNI && HAVE_X86ASM)
-#define HAVE_AESNI_INLINE (HAVE_AESNI && HAVE_X86ASM && HAVE_INLINE_ASM)
 
 // AltiVec is PowerPC specific, not x86
 #define HAVE_ALTIVEC_EXTERNAL HAVE_ALTIVEC
