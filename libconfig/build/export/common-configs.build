@@ -152,6 +152,23 @@ if ($c.id != 'msvc')
                     -fno-tree-vectorize
     }
   }
+
+  if ($c.class == 'gcc')
+  {
+    # no-calloc-transposed-args: Potentially non-trivial bug reported at
+    #                            https://trac.ffmpeg.org/ticket/11620.
+    #
+    # The remaining ones occur all over the codebase and are probably not
+    # super serious.
+    #
+    c.coptions += -Wno-unused-parameter                 \
+                  -Wno-sign-compare                     \
+                  -Wno-implicit-fallthrough             \
+                  -Wno-missing-field-initializers       \
+                  -Wno-old-style-declaration            \
+                  -Wno-calloc-transposed-args           \
+                  -Wno-discarded-qualifiers
+  }
 }
 
 # ffmpeg always assumes PIC

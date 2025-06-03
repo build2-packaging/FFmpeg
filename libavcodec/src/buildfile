@@ -261,6 +261,11 @@ c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libavcodec/" -DBUILDING_avco
 obja{*}: c.poptions += -DCONFIG_STATIC
 objs{*}: c.poptions += -DCONFIG_SHARED
 
+if ($c.class == 'gcc')
+{
+  libavcodec/obj{jrevdct}: c.coptions += -Wno-array-parameter
+}
+
 libs{avcodec}: def{avcodec}: include = ($c.target.system == 'win32-msvc')
 def{avcodec}: libul{avcodec}
 
