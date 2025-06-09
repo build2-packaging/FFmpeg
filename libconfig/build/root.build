@@ -14,6 +14,19 @@ c{*}: extension = c
 #
 test.target = $c.target
 
+config [bool] config.libconfig.avcodec    ?= true
+config [bool] config.libconfig.avdevice   ?= true
+config [bool] config.libconfig.avfilter   ?= true
+config [bool] config.libconfig.avformat   ?= true
+config [bool] config.libconfig.avutil     ?= true
+config [bool] config.libconfig.postproc   ?= true
+config [bool] config.libconfig.swresample ?= true
+config [bool] config.libconfig.swscale    ?= true
+
+config [bool] config.libconfig.ffmpeg  ?= false
+config [bool] config.libconfig.ffplay  ?= false
+config [bool] config.libconfig.ffprobe ?= false
+
 # Optimization options
 # config [bool] config.libconfig.disable_asm                   ?= false # disable all assembly optimizations
 # config [bool] config.libconfig.disable_altivec               ?= false # disable AltiVec optimizations
