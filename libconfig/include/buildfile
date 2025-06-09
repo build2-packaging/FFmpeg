@@ -2901,9 +2901,13 @@ if $version.pre_release
 else
   lib{config}: bin.lib.version = "-$version.major.$version.minor"
 
-# Install recreating subdirectories.
+# Install.
 #
-h{*}: install = false
+# @@ TODO Have to install headers somewhere unique but what name to use?
+#    Debian installs to libavutil/ etc but libconfig/ is too generic.
+#
+h{*} file{config.asm}: install = include/libavconfig/
+lib{config}: c.pkgconfig.include = include/libavconfig/
 
 # Export variables
 #
