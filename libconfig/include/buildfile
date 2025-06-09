@@ -23,8 +23,11 @@ tgt_alpha = $regex.match($tgt_cpu, '^alpha.*')
 tgt_win32     = [bool] ($c.target.system == 'win32-msvc')
 tgt_macos     = [bool] ($c.target.system == 'darwin')
 
-[rule_hint=c] \
-lib{config}: h{config autoconf config_components} file{config.asm}: update = match
+lib{config}: h{config_components config_cpu}
+
+# Generated headers
+#
+lib{config}: h{config autoconf} file{config.asm}: update = match
 
 # extract all '#define' from input files and generate print_defines.c
 # with '#pragma message' to print values for each during pre-process.
