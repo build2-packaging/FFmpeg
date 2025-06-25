@@ -39,10 +39,40 @@ libul{swscale}: libswscale/c{alphablend           \
 #
 libul{swscale}: libswscale/c{log2_tab}
 
+# Conditionally-compiled source files
+#
+
+# Windows Resources
+#
 # @@ TODO Disabled for the time being but see note in libavutil/src/buildfile.
 #
 # libs{swscale}: winres{swscale}: include = ($c.target.system == 'win32-msvc')
 # winres{swscale}: libswscale/rc{swscaleres} libus{swscale-meta}
+
+# Libraries
+#
+libul{swscale}: $impl_libs $intf_libs
+
+# Unit tests
+#
+exe{*.test...}:
+{
+  test = true
+  install = false
+}
+
+for t: libswscale/c{*.test... -utf8.test...}
+{
+  d = $directory($t)
+  n = $name($t)
+
+  ./: $d/exe{$n...}: $t $d/testscript
+  $d/exe{$n...}: libul{swscale}: bin.whole = false
+}
+
+# Disable swscale test because it's very slow.
+#
+libswscale/exe{swscale.test...}: test = false
 
 # Build options.
 #
