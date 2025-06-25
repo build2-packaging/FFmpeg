@@ -1,6 +1,25 @@
-import intf_libs = libavutil%lib{avutil}
+import                               avutil        = libavutil%lib{avutil}
+import! [metadata, rule_hint=c.link] avutil_priv   = libavutil%lib{avutil_private}
+import                               avutil_static = libavutil%liba{avutil}
 
-impl_libs = # Implementation dependencies.
+# The paths to config.h and config.asm from libavutil.
+#
+config_h_path   = $($avutil_priv: libavutil_private.config_h_path)
+config_asm_path = $($avutil_priv: libavutil_private.config_asm_path)
+
+# If avutil_private defines a path for config.{h,asm} then the libavutils
+# package is installed, in which case create local file{} targets from the
+# exported paths; otherwise import the exported config.{h,asm} file{} targets.
+#
+ifn $config_h_path
+  import! config_h = libavutil%h{config}
+else
+  config_h = file{$config_h_path}
+
+ifn $config_asm_path
+  import! config_asm = libavutil%file{config.asm}
+else
+  config_asm = file{$config_asm_path}
 
 # A utility library is required by the bin.def rule and the unit test
 # executables.
@@ -11,9 +30,21 @@ impl_libs = # Implementation dependencies.
 #
 libul{swscale}: libswscale/h{**}
 
+# This target exports the path to the private headers in the installed case
+# only. See lib{avutil_private} in libavutil/src/buildfile for more
+# information.
+#
+[rule_hint=c] lib{swscale_private}:
+./: lib{swscale_private}
+
 # Included source files
 #
 libul{swscale}: libswscale/c{**_template}: include = adhoc
+
+# Private libavutil headers and included .asm source files.
+#
+libul{swscale}: libavutil/x86/h{*}
+libul{swscale}: libavutil/x86/file{*.asm}: include = adhoc
 
 # Compiled source files
 #
@@ -21,7 +52,6 @@ libul{swscale}: libswscale/c{alphablend           \
 			     hscale               \
 			     hscale_fast_bilinear \
 			     gamma                \
-			     half2float           \
 			     input                \
 			     options              \
 			     output               \
@@ -34,13 +64,92 @@ libul{swscale}: libswscale/c{alphablend           \
 			     yuv2rgb              \
 			     vscale}
 
-# Note: This source file is a symlink to libavutil/log2_tab.c. Upstream this
-#       is done via `#include "libavutil/log2_tab.c"`.
+# Note: The following source files are symlinks to libavutil/*.c. Upstream
+#       this is done via `#include "libavutil/log2_tab.c"`.
 #
-libul{swscale}: libswscale/c{log2_tab}
+libul{swscale}: libswscale/c{half2float \
+                             log2_tab}
+
+# The macros to be extracted from config.h as buildfile variables.
+#
+config_macros = ARCH_X86                \
+                CONFIG_SWSCALE_ALPHA    \
+                CONFIG_XMM_CLOBBER_TEST \
+                HAVE_MMX                \
+                HAVE_X86ASM
+
+# Note that we don't need to pass *.poptions because every macro imported from
+# config.h will have a literal value.
+#
+[rule_hint=c.predefs] buildfile{config}: $config_h
+{
+  c.predefs.poptions = false
+  c.predefs.macros = $config_macros
+}
+
+# Update and source config.build and adjust the imported variables.
+#
+if ($build.meta_operation == 'perform')
+{
+  update buildfile{config}
+  source $path(buildfile{config})
+
+  # Adjust the resulting values.
+  #
+  # Note: assume all macros in config_macros are boolean.
+  #
+  for m: $config_macros
+    $m = (!$null($($m)) && $($m) != 0) # Convert [null], 0, or 1 to boolean.
+}
+else
+{
+  for m: $config_macros
+    $m = false
+}
+
+libul{swscale}: buildfile{config} # Ensure it gets cleaned.
 
 # Conditionally-compiled source files
 #
+
+# X86
+#
+libul{swscale}: libswscale/x86/c{rgb2rgb        \
+                                 swscale        \
+                                 yuv2rgb}: include = $ARCH_X86
+
+libul{swscale}: libswscale/x86/c{hscale_fast_bilinear_simd}: \
+  include = ($ARCH_X86 && $HAVE_MMX)
+
+libul{swscale}: libswscale/x86/c{w64xmmtest}: \
+  include = ($ARCH_X86 && $CONFIG_XMM_CLOBBER_TEST)
+
+# X86 assembly sources
+#
+# There is no built-in rule to synthesize the libu{s,a} -> obj{s,a} -> asm{}
+# dependencies so we have to do it manually.
+#
+for n: input            \
+       output           \
+       scale            \
+       scale_avx2       \
+       rgb_2_rgb        \
+       yuv_2_rgb        \
+       yuv2yuvX
+{
+  # Dependencies of the shared and static libraries on their respecive object
+  # files.
+  #
+  libus{swscale}: libswscale/x86/objs{$(n).asm.so.o}: include = $HAVE_X86ASM
+  libua{swscale}: libswscale/x86/obja{$(n).asm.a.o}:  include = $HAVE_X86ASM
+
+  # Dependencies of the object files on the .asm source file.
+  #
+  libswscale/x86/objs{$(n).asm.so.o}: libswscale/x86/asm{$n} $config_asm
+  libswscale/x86/obja{$(n).asm.a.o}:  libswscale/x86/asm{$n} $config_asm
+}
+
+# @@ TODO Other CPU architectures (probably aarch64 next).
 
 # Windows Resources
 #
@@ -51,7 +160,16 @@ libul{swscale}: libswscale/c{log2_tab}
 
 # Libraries
 #
-libul{swscale}: $impl_libs $intf_libs
+# We have to also link to liba{avutil} under MSVC because for some reason the
+# libavutil function avpriv_emms_asm is reported by link.exe as an unresolved
+# external when swscale.dll is linked, despite it being listed in `dumpbin
+# -EXPORTS avutil.dll.lib`.
+#
+# Note that the static library must be linked first for this to work, and that
+# lib{avutil} still needs to be added as prerequisite.
+#
+libul{swscale}: $avutil_static: include = ($c.target.system == 'win32-msvc')
+libul{swscale}: $avutil
 
 # Unit tests
 #
@@ -61,12 +179,13 @@ exe{*.test...}:
   install = false
 }
 
-for t: libswscale/c{*.test... -utf8.test...}
+for t: libswscale/c{*.test...}
 {
   d = $directory($t)
   n = $name($t)
 
   ./: $d/exe{$n...}: $t $d/testscript
+
   $d/exe{$n...}: libul{swscale}: bin.whole = false
 }
 
@@ -76,48 +195,67 @@ libswscale/exe{swscale.test...}: test = false
 
 # Build options.
 #
-import [once] libconfig%buildfile{common-configs}
+c.poptions =+ "-I$out_base" "-I$src_base"       \
+              $common_poptions                  \
+              -DBUILDING_swscale
 
-out_pfx = [dir_path] $out_root/src/
-src_pfx = [dir_path] $src_root/src/
+obj{*}: c.coptions += $common_coptions
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_swscale
+# Disable "unreferenced local variable" MSVC warning which is emitted dozens
+# of times.
+#
+if ($c.class == 'msvc')
+  obj{*}: c.coptions += /wd4101
 
-obja{*}: c.poptions += -DCONFIG_STATIC
-objs{*}: c.poptions += -DCONFIG_SHARED
+# @@ TODO Revisit after CI. Quite a few are already in common-configs.build.
+#
+# switch ($c.id)
+# {
+#   case 'msvc'
+#     c.coptions += -wd4003 -wd4133 -wd4333
+# }
 
+objs{*}: c.poptions += $common_objs_poptions
+obja{*}: c.poptions += $common_obja_poptions
+
+# Add common_obja_poptions for the correct definition of CONFIG_SHARED (i.e.,
+# 0) otherwise we get a warning about it being undefined on Mingw-w64. (We
+# know the test executables are linked against the utility library which is
+# static so this is probably OK.)
+#
+obje{*.test}: c.poptions += $common_obja_poptions
+
+# Disable unused warnings for functions used only if CONFIG_SWSCALE_ALPHA is
+# true.
+#
+if (!$CONFIG_SWSCALE_ALPHA && $c.class == 'gcc')
+  libswscale/obj{output}: c.coptions += -Wno-unused-function
+
+# Disable MSVC warning "not enough arguments for function-like macro
+# invocation 'IS_BE'" on libswscale/input.c. The upstream code is
+# intentionally omitting the second argument.
+#
+if ($c.class == 'msvc')
+  libswscale/obj{input}: c.coptions += /wd4003
+
+lib{swscale}: c.loptions += $common_loptions
+
+# Export all symbols from the DLL if on Windows.
+#
 libs{swscale}: def{swscale}: include = ($c.target.system == 'win32-msvc')
 def{swscale}: libul{swscale}
 
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
+if $tgt_mingw
+  libs{swscale}: c.loptions += -Wl,--export-all-symbols
 
-# System libraries
-sys_libs =
-switch $c.target.class, $c.target.system
-{
-  case 'windows', 'win32-msvc'
-    sys_libs += bcrypt.lib
-  case 'windows', 'mingw32'
-    sys_libs += -lbcrypt
-}
-c.libs += $sys_libs
-
-switch ($c.id)
-{
-  case 'msvc'
-  {
-    c.coptions += -wd4003 -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
-    c.poptions += -DWIN32_LEAN_AND_MEAN -D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
-  }
-}
+libul{swscale}: c.libs += $common_libs
 
 # Export options.
 #
 lib{swscale}:
 {
-  c.export.poptions = "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs $sys_libs
+  c.export.poptions =+ "-I$out_base" "-I$src_base"
+  c.export.libs = $avutil
 }
 
 # For pre-releases use the complete version to make sure they cannot
@@ -129,10 +267,31 @@ if $version.pre_release
 else
   lib{swscale}: bin.lib.version = "-$version.major.$version.minor"
 
-# Install recreating subdirectories.
+# Installation.
 #
-h{*}:
-{
-  install         = include/
-  install.subdirs = true
-}
+pub_hdr = swscale       \
+          version       \
+          version_major
+
+# The private headers in libswscale/ are the complement of the public headers.
+#
+priv_hdr = libswscale/h{* -{$pub_hdr}}
+
+# Install all headers by default.
+#
+h{*}: install = include/libswscale/
+
+# Don't install private libavutil headers.
+#
+for h: libavutil/x86/h{**}
+  $h@./libavutil/x86/: install = false
+
+# Set private headers install location.
+#
+# These are included as `#include "libswscale/foo.h"` by all libraries.
+#
+for h: $priv_hdr
+  $h@./libswscale/: install = include/libswscale/private/libswscale/
+
+lib{swscale}:         c.pkgconfig.include = include/
+lib{swscale_private}: c.pkgconfig.include = include/libswscale/private/
