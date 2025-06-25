@@ -1,36 +1,48 @@
+import intf_libs = libavutil%lib{avutil}
 
-intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
 
-import config = libconfig%lib{config}
-impl_libs += $config
-import intf_libs += \
-  libavutil%lib{avutil}
+# A utility library is required by the bin.def rule and the unit test
+# executables.
+#
+./: lib{swscale}: libul{swscale}
 
-## Some targets references hidden/non-exported symbols and need to link statically.
-#  NOTE: To resolve correctly the static prerequisite must come first.
-import static = libavutil%liba{avutil}
-libul{swscale}: $static: include = ($c.target.system == 'win32-msvc')
+# Headers.
+#
+libul{swscale}: libswscale/h{**}
 
-lib{swscale}: libul{swscale}: $impl_libs $intf_libs
+# Included source files
+#
+libul{swscale}: libswscale/c{**_template}: include = adhoc
 
-# conditional source & assembly
-import [once] libconfig%buildfile{conditional-src}
-import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled-defines}
+# Compiled source files
+#
+libul{swscale}: libswscale/c{alphablend           \
+			     hscale               \
+			     hscale_fast_bilinear \
+			     gamma                \
+			     half2float           \
+			     input                \
+			     options              \
+			     output               \
+			     rgb2rgb              \
+			     slice                \
+			     swscale              \
+			     swscale_unscaled     \
+			     utils                \
+			     version              \
+			     yuv2rgb              \
+			     vscale}
 
-[rule_hint=c] \
-libul{swscale-meta}: $impl_libs $intf_libs
-libul{swscale}: enabled_source{swscale}: $config_defs json{files} h{**}:                          update = match
-libua{swscale}: enabled_asm{swscale-a}: $config_defs $config_asm json{files} libua{swscale-meta}: update = match
-libus{swscale}: enabled_asm{swscale-s}: $config_defs $config_asm json{files} libus{swscale-meta}: update = match
+# Note: This source file is a symlink to libavutil/log2_tab.c. Upstream this
+#       is done via `#include "libavutil/log2_tab.c"`.
+#
+libul{swscale}: libswscale/c{log2_tab}
 
-libs{swscale}: winres{swscale}: include = ($c.target.system == 'win32-msvc')
-winres{swscale}: libswscale/rc{swscaleres} libus{swscale-meta}
-
-# these c files are included, not built.
-libul{swscale}: adhoc_source{swscale}: include = adhoc
-adhoc_source{swscale}: libswscale/c{**_template}
+# @@ TODO Disabled for the time being but see note in libavutil/src/buildfile.
+#
+# libs{swscale}: winres{swscale}: include = ($c.target.system == 'win32-msvc')
+# winres{swscale}: libswscale/rc{swscaleres} libus{swscale-meta}
 
 # Build options.
 #
