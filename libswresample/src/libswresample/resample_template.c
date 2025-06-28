@@ -1,0 +1,1 @@
+../../../upstream/libswresample/resample_template.c
