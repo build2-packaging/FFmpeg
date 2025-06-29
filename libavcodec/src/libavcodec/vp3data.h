@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/vp3data.h

@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/aacps_tablegen_template.c

@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/vp9_mc_template.c

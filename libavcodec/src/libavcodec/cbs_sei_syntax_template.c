@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/cbs_sei_syntax_template.c

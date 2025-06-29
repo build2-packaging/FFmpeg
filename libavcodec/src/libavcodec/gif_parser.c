@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/gif_parser.c

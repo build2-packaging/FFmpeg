@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/mpegaudio_tablegen.h

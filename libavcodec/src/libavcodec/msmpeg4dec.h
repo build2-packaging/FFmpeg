@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/msmpeg4dec.h

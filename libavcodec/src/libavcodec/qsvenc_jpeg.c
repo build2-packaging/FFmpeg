@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/qsvenc_jpeg.c
