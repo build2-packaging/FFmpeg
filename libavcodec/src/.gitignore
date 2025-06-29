@@ -1,3 +1,7 @@
 # Generated DLL symbol-exporting file.
 #
-avcodec.def
+avutil.def
+
+# Unit test executables.
+#
+*.test
