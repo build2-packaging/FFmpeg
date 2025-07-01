@@ -38,11 +38,22 @@ libul{avcodec}: libavcodec/h{**}
 
 # Included source files
 #
-libul{avcodec}: libavcodec/c{**_template} libavcodec/h26x/c{*}: include = adhoc
+libul{avcodec}: libavcodec/c{**_template                \
+                             aacps                      \
+                             aacpsdata                  \
+                             scpr3}                     \
+                libavcodec/x86/c{h264_cabac}            \
+                libavcodec/x86/file{*_template.asm}     \
+                libavcodec/h26x/c{*}: include = adhoc
 
 # Included generated source files.
 #
 libul{avcodec}: libavcodec/c{bsf_list codec_list parser_list}: include = adhoc
+
+# Private libavutil headers and included .asm source files.
+#
+libul{avcodec}: libavutil/x86/h{*}
+libul{avcodec}: libavutil/x86/file{*.asm}: include = adhoc
 
 # Private avformat and avfilter headers.
 #
@@ -2217,7 +2228,7 @@ libul{avcodec}: libavcodec/c{videotoolbox_vp9}: include = $CONFIG_VP9_VIDEOTOOLB
 libul{avcodec}: libavcodec/c{videotoolboxenc}: include = ($CONFIG_H264_VIDEOTOOLBOX_ENCODER || $CONFIG_HEVC_VIDEOTOOLBOX_ENCODER || $CONFIG_PRORES_VIDEOTOOLBOX_ENCODER)
 libul{avcodec}: libavcodec/c{videotoolbox}: include = ($CONFIG_H263_VIDEOTOOLBOX_HWACCEL || $CONFIG_H264_VIDEOTOOLBOX_HWACCEL || $CONFIG_MPEG1_VIDEOTOOLBOX_HWACCEL || $CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL || $CONFIG_MPEG4_VIDEOTOOLBOX_HWACCEL || $CONFIG_VIDEOTOOLBOX)
 libul{avcodec}: libavcodec/c{vima}: include = $CONFIG_ADPCM_VIMA_DECODER
-libul{avcodec}: libavcodec/c{vivid aom_film_grain}: include = $CONFIG_HEVC_SEI
+libul{avcodec}: libavcodec/c{aom_film_grain}: include = $CONFIG_HEVC_SEI
 libul{avcodec}: libavcodec/c{vmdaudio}: include = $CONFIG_VMDAUDIO_DECODER
 libul{avcodec}: libavcodec/c{vmdvideo}: include = $CONFIG_VMDVIDEO_DECODER
 libul{avcodec}: libavcodec/c{vmixdec}: include = $CONFIG_VMIX_DECODER
@@ -2442,10 +2453,10 @@ libul{avcodec}: libavcodec/x86/c{v210enc_init}:      include = ($ARCH_X86 && $CO
 libul{avcodec}: libavcodec/x86/c{vorbisdsp_init}:    include = ($ARCH_X86 && $CONFIG_VORBIS_DECODER)
 libul{avcodec}: libavcodec/x86/c{vp6dsp_init}:       include = ($ARCH_X86 && $CONFIG_VP6_DECODER)
 libul{avcodec}: libavcodec/x86/c{vp8dsp_init}:       include = ($ARCH_X86 && $CONFIG_WEBP_DECODER)
-libul{avcodec}: libavcodec/x86/c{x86/vp9dsp_init_10bpp}: include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
-libul{avcodec}: libavcodec/x86/c{x86/vp9dsp_init_12bpp}: include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
-libul{avcodec}: libavcodec/x86/c{x86/vp9dsp_init_16bpp}: include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
-libul{avcodec}: libavcodec/x86/c{x86/vp9dsp_init}:   include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp9dsp_init_10bpp}: include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp9dsp_init_12bpp}: include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp9dsp_init_16bpp}: include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp9dsp_init}:       include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
 libul{avcodec}: libavcodec/x86/c{xvididct_init}:     include = ($ARCH_X86 && $CONFIG_MPEG4_DECODER)
 
 # x86/vvc/Makefile
@@ -2568,7 +2579,7 @@ for p: ac3dsp@$CONFIG_AC3DSP                                                    
   n = $first($p)  # Source file name
   m = $second($p) # Check macro value
 
-  # Dependencies of the shared and static libraries on their respecive object
+  # Dependencies of the shared and static libraries on their respective object
   # files.
   #
   libus{avcodec}: libavcodec/x86/objs{$(n).asm.so.o}: \
@@ -2699,6 +2710,12 @@ for t: $tests
   $d/exe{$n...}: libul{avcodec}: bin.whole = false
   $d/exe{$n...}: c.libs += -lm
 }
+
+# Ensure test source files are distributed. (Because `./: exe{}: include =
+# false` doesn't work we need this to get them all distributed.)
+#
+lib{avcodec}: libavcodec/c{*.test...} \
+              libavcodec/include.test/c{x86/dct}: include = adhoc
 
 libavcodec/c{codec_list}: libavcodec/c{allcodecs}
 {{
