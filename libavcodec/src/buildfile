@@ -1,20 +1,23 @@
+import intf_libs = libswresample%lib{swresample}
 import impl_libs = libz%lib{z}
 
-import intf_libs +=             \
-  libavutil%lib{avutil}         \
-  libswscale%lib{swscale}       \
-  libswresample%lib{swresample}
+import! [metadata, rule_hint=c.link] avutil_priv   = libavutil%lib{avutil_private}
+import                               avutil_static = libavutil%liba{avutil}
 
-import config_h = libavutil%h{config}
-
-# The path to config.asm from libavutil.
+# The paths to config.h and config.asm from libavutil.
 #
+config_h_path   = $($avutil_priv: libavutil_private.config_h_path)
 config_asm_path = $($avutil_priv: libavutil_private.config_asm_path)
 
-# If avutil_private defines a path for config.asm then the libavutils package
-# is installed, in which case create a local file{} target from the exported
-# path; otherwise import the exported config.asm file{} target.
+# If avutil_private defines a path for config.{h,asm} then the libavutils
+# package is installed, in which case create local file{} targets from the
+# exported paths; otherwise import the exported config.{h,asm} file{} targets.
 #
+ifn $config_h_path
+  import! config_h = libavutil%h{config}
+else
+  config_h = file{$config_h_path}
+
 ifn $config_asm_path
   import! config_asm = libavutil%file{config.asm}
 else
@@ -48,7 +51,9 @@ libul{avcodec}: libavcodec/c{**_template                \
 
 # Included generated source files.
 #
-libul{avcodec}: libavcodec/c{bsf_list codec_list parser_list}: include = adhoc
+libul{avcodec}: libavcodec/c{bsf_list   \
+                            codec_list  \
+                            parser_list}: include = adhoc
 
 # Private libavutil headers and included .asm source files.
 #
@@ -664,6 +669,7 @@ config_macros = ARCH_X86                                \
                 CONFIG_MEDIA100_DECODER                 \
                 CONFIG_MEDIA100_TO_MJPEGB_BSF           \
                 CONFIG_MEDIACODEC                       \
+                CONFIG_MEDIAFOUNDATION                  \
                 CONFIG_METASOUND_DECODER                \
                 CONFIG_ME_CMP                           \
                 CONFIG_MICRODVD_DECODER                 \
@@ -2650,72 +2656,59 @@ libavcodec/x86/obja{flac_dsp_gpl.asm.a.o}:  libavcodec/x86/asm{flac_dsp_gpl} $co
 # -EXPORTS avutil.dll.lib`.
 #
 # Note that the static library must be linked first for this to work, and that
-# libus{avcodec} still needs to add libus{avutil} as prerequisite because it
-# is the shared version that is exported.
+# lib{avutil} still needs to be added as prerequisite.
 #
-# libus{avcodec}: $avutil_static: include = ($c.target.system == 'win32-msvc')
-# libul{avcodec}: $avutil
-
+libul{avcodec}: $avutil_static: include = ($c.target.system == 'win32-msvc')
 libul{avcodec}: $intf_libs $impl_libs
 
 # Set up the upstream tests as unit tests.
 #
-exe{*_test}:
+exe{*.test}:
 {
   test = true
   install = false
 }
 
-tests = libavcodec/c{avcodec.test...            \
-                     avpacket.test...           \
-                     bitstream_be.test...       \
-                     bitstream_le.test...       \
-                     celp_math.test...          \
-                     codec_desc.test...         \
-                     htmlsubtitles.test...      \
-                     jpeg2000dwt.test...        \
-                     mathops.test...}
-
-# Include conditional tests in the list.
-#
-# Note: `./: exe{foo.test...}: include = false` does not work as one might
-#       expect.
-#
-for p: av1_levels@CONFIG_AV1_VAAPI_ENCODER      \
-       cabac@CONFIG_CABAC                       \
-       golomb@CONFIG_GOLOMB                     \
-       dct@CONFIG_IDCTDSP                       \
-       iirfilter@CONFIG_IIRFILTER               \
-       mjpegenc_huffman@CONFIG_MJPEG_ENCODER    \
-       motion@HAVE_MMX                          \
-       mpeg12framerate@CONFIG_MPEGVIDEO         \
-       h264_levels@CONFIG_H264_METADATA_BSF     \
-       h265_levels@CONFIG_HEVC_METADATA_BSF     \
-       rangecoder@CONFIG_RANGECODER             \
-       snowenc@CONFIG_SNOW_ENCODER
+for p: avcodec@true                             \
+       avpacket@true                            \
+       bitstream_be@true                        \
+       bitstream_le@true                        \
+       celp_math@true                           \
+       codec_desc@true                          \
+       htmlsubtitles@true                       \
+       jpeg2000dwt@true                         \
+       mathops@true                             \
+       av1_levels@$CONFIG_AV1_VAAPI_ENCODER     \
+       cabac@$CONFIG_CABAC                      \
+       golomb@$CONFIG_GOLOMB                    \
+       dct@$CONFIG_IDCTDSP                      \
+       iirfilter@$CONFIG_IIRFILTER              \
+       mjpegenc_huffman@$CONFIG_MJPEG_ENCODER   \
+       motion@$HAVE_MMX                         \
+       mpeg12framerate@$CONFIG_MPEGVIDEO        \
+       h264_levels@$CONFIG_H264_METADATA_BSF    \
+       h265_levels@$CONFIG_HEVC_METADATA_BSF    \
+       rangecoder@$CONFIG_RANGECODER            \
+       snowenc@$CONFIG_SNOW_ENCODER
 {
-  s = $first($p)  # Source
-  c = $second($p) # Check variable
+  n = $first($p)  # Source file name
+  i = $second($p) # Include value
 
-  if $($c)
-    tests += libavcodec/c{$(s).test...}
+  d = libavcodec
+  s = $d/c{$(n).test...}
+  t = $d/exe{$(n).test...}
+
+  if! $i
+    text 'skip test' $t
+
+  ./: $t: include = $i
+  $t: $s $d/c{dctref} $d/testscript
+  $t: libul{avcodec}: bin.whole = false
 }
 
-for t: $tests
-{
-  d = $directory($t)
-  n = $name($t)
-
-  ./: $d/exe{$n...}: $t libavcodec/c{dctref} $d/testscript
-  $d/exe{$n...}: libul{avcodec}: bin.whole = false
-  $d/exe{$n...}: c.libs += -lm
-}
-
-# Ensure test source files are distributed. (Because `./: exe{}: include =
-# false` doesn't work we need this to get them all distributed.)
+# Source files included by tests.
 #
-lib{avcodec}: libavcodec/c{*.test...} \
-              libavcodec/include.test/c{x86/dct}: include = adhoc
+libavcodec/exe{dct.test...}: libavcodec/include-test/x86/c{dct}: include = adhoc
 
 libavcodec/c{codec_list}: libavcodec/c{allcodecs}
 {{
@@ -2809,6 +2802,137 @@ libavcodec/c{bsf_list}: libavcodec/c{bitstream_filters} $config_defs
   echo "    NULL };" >> $f
 }}
 
+# generate xxx_tables headers
+#
+# @@ TODO I haven't tested this recipe. I see it's disabled in the upstream
+#    build by default and the configure option to enable it
+#    (--enable-hardcoded-tables) is in a section titled "Advanced options
+#    (experts only)" so I wonder whether it's worth it?
+#
+#    Also, these hardcoded tables are only used if CONFIG_HARDCODED_TABLES is
+#    defined to 1 so its value would need to be incorporated.
+#
+#    I would also recommend redoing this like version 74.2.x of the ICU
+#    package (https://github.com/build2-packaging/icu/commits; has not been
+#    merged into master yet but the latest is currently in the `endian`
+#    branch). I would add a package ffmpeg-tools (icu-tools) which contains
+#    the generator executables and make this package a build-time dependency
+#    (thus the generators would get compiled for the host). Then create a
+#    standalone h{} target for each _tables header, each with its own ad hoc
+#    recipe which runs the corresponding generator.
+#
+# <libavcodec/h{ \
+#   cbrt_tables                \
+#   cbrt_fixed_tables          \
+#   aacps_tables               \
+#   aacps_fixed_tables         \
+#   dv_tables                  \
+#   sinewin_tables             \
+#   sinewin_fixed_tables       \
+#   mpegaudio_tables           \
+#   mpegaudiodec_common_tables \
+#   motionpixels_tables        \
+#   pcm_tables                 \
+#   qdm2_tables                \
+# }>: libua{avcodec-meta} $config \
+#     libavcodec/c{                \
+#     aacps_tablegen               \
+#     aacps_fixed_tablegen         \
+#     cbrt_tablegen                \
+#     cbrt_fixed_tablegen          \
+#     dv_tablegen                  \
+#     motionpixels_tablegen        \
+#     mpegaudio_tablegen           \
+#     mpegaudiodec_common_tablegen \
+#     pcm_tablegen                 \
+#     qdm2_tablegen                \
+#     sinewin_tablegen             \
+#     sinewin_fixed_tablegen       \
+#   } \
+#   libavcodec/h{                  \
+#     aacps_tablegen               \
+#     aacps_fixed_tablegen         \
+#     cbrt_tablegen                \
+#     cbrt_tablegen                \
+#     dv_tablegen                  \
+#     motionpixels_tablegen        \
+#     mpegaudio_tablegen           \
+#     mpegaudiodec_common_tablegen \
+#     pcm_tablegen                 \
+#     qdm2_tablegen                \
+#     sinewin_tablegen             \
+#     sinewin_fixed_tablegen       \
+# }
+# {{
+#   lib_poptions = $c.lib_poptions(libua{avcodec-meta}, obja)
+#   lib_poptions += ($($config: libconfig.small) ? '-DCONFIG_SMALL=1' : '-DCONFIG_SMALL=0')
+#   depdb hash $lib_poptions
+
+#   srcs = [paths]
+#   hdrs = [paths]
+#   required_src = [paths]
+#   for i: $integer_sequence(2, $size($<))
+#   {
+#     s = $path($<[$i])
+#     if ($extension($s) == 'c')
+#     {
+#       srcs += [paths] $s
+#       if ($path.leaf($s) == 'dv_tablegen.c')
+#       {
+#         # dvdata.c is required for dv_tablegen.c
+#         required_src += [paths] $src_base/libavcodec/dvdata.c
+#       }
+#     }
+#     elif ($extension($s) == 'h')
+#       hdrs += [paths] $s
+#   }
+
+#   diag gen $>
+
+#   if ($size($srcs) != $size($hdrs))
+#   {
+#     echo "There must be one xxx_tablegen.h per xxx_tablegen.c"
+#     exit 1
+#   }
+#   if ($size($srcs) != $size($>))
+#   {
+#     echo "There must be one xxx_tablegen.c per generated output header"
+#     exit 1
+#   }
+
+#   t = [dir_path] $path.posix_representation($out_base/tablegen)
+
+#   mkdir -p $t
+
+#   for i: $integer_sequence(0, $size($srcs))
+#   {
+#     c = [path] ($srcs[$i])
+#     h = [path] ($hdrs[$i])
+#     o = [path] $path($>[$i])
+#     exe = [path] $path.posix_string("$t/$leaf($c).exe")
+
+#     sys_libs = [strings]
+#     if ($c.id == 'msvc')
+#       args = [strings] -nologo "-Fe$exe"
+#     else
+#     {
+#       args = [strings] -Wno-pointer-sign "-o$exe"
+
+#       if ($build.host.class != 'windows')
+#         sys_libs += [strings] -lm
+#     }
+
+#     # build for host
+#     env -c "$t" -- $effect($c.path) $c.mode                             \
+#                    -D_USE_MATH_DEFINES $c.poptions $lib_poptions        \
+#                    ($args) $required_src $c $sys_libs 2>! &$t/**
+
+#     # generate header
+#     $exe >$o
+#   }
+#   }
+# }}
+
 # Build options.
 #
 # Add $src_base/libavcodec for inclusions like `#include "bsf.h"` from
@@ -2820,6 +2944,24 @@ c.poptions =+ "-I$out_base" "-I$src_base"       \
               -DBUILDING_avcodec
 
 obj{*}: c.coptions += $common_coptions
+
+# Disable MSVC warnings that are emitted dozens of times.
+#
+if ($c.class == 'msvc')
+  obj{*}: c.coptions += /wd4090 \
+                        /wd4101 \
+                        /wd4113 \
+                        /wd4114 \
+                        /wd4267 \
+                        /wd4334
+
+# @@ TODO Revisit after CI.
+#
+# switch ($c.id)
+# {
+#   case 'msvc'
+#     c.coptions += -wd4333
+# }
 
 objs{*}: c.poptions += $common_objs_poptions
 obja{*}: c.poptions += $common_obja_poptions
@@ -2836,7 +2978,7 @@ obje{*.test}: c.poptions += $common_obja_poptions
 libavcodec/obj{dct.test...              \
                bitstream_le.test...     \
                bitstream_be.test...}:   \
-  c.poptions =+ "-I$src_base/libavcodec/include.test"
+  c.poptions =+ "-I$src_base/libavcodec/include-test"
 
 if ($c.class == 'gcc')
   libavcodec/obj{jrevdct}: c.coptions += -Wno-array-parameter
@@ -2852,51 +2994,37 @@ if $tgt_mingw
   libs{avcodec}: c.loptions += -Wl,--export-all-symbols
 
 # System libraries
+#
 sys_libs =
-switch $c.target.class, $c.target.system
+if $windows
 {
-  case 'windows', 'win32-msvc'
-    sys_libs += bcrypt.lib      \
-                gdi32.lib       \
-                mfuuid.lib      \
-                ole32.lib       \
-                oleaut32.lib    \
-                psapi.lib       \
-                secur32.lib     \
-                shell32.lib     \
-                shlwapi.lib     \
-                strmiids.lib    \
-                user32.lib      \
-                uuid.lib        \
-                vfw32.lib       \
-                ws2_32.lib
-  case 'windows', 'mingw32'
-    sys_libs += -lbcrypt
-  # default
-  #   sys_libs += -lm
+  if $tgt_mingw
+  {
+    if $CONFIG_MEDIAFOUNDATION
+      sys_libs += -lmfuuid -lole32 -lstrmiids
+    if $CONFIG_DXVA2
+      sys_libs += -luser32 # Note: -lole32 is added by build2
+  }
+  else
+  {
+    if $CONFIG_MEDIAFOUNDATION
+      sys_libs += mfuuid.lib ole32.lib strmiids.lib
+    if $CONFIG_DXVA2
+      sys_libs += user32.lib # Note: ole32.lib is added by build2
+  }
 }
 
-libul{avcodec}: c.libs += $common_libs $sys_libs
+if! $windows
+  sys_libs += -pthread
 
-# @@ TODO Revisit after CI. Quite a few are already in common-configs.build.
-#
-# switch ($c.id)
-# {
-#   case 'msvc'
-#     c.coptions += -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
-# }
+libul{avcodec}: c.libs += $common_libs $sys_libs
 
 # Export options.
 #
 lib{avcodec}:
 {
   c.export.poptions = "-I$out_base" "-I$src_base"
-
-  # @@ TMP Let's hold off on exporting any system libraries until it's clear
-  #    which ones we have to export. Upstream doesn't appear to be concerned
-  #    about these sorts of things at all.
-  #
-  c.export.libs = $intf_libs # $sys_libs
+  c.export.libs = $intf_libs
 }
 
 # For pre-releases use the complete version to make sure they cannot
@@ -2942,6 +3070,11 @@ priv_hdr = libavcodec/h{* -{$pub_hdr}}
 # Install all headers by default.
 #
 h{*}: install = include/libavcodec/
+
+# Don't install private libavutil headers.
+#
+for h: libavutil/x86/h{**}
+  $h@./libavutil/x86/: install = false
 
 # Set private headers install location.
 #

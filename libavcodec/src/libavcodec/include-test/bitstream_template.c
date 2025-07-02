@@ -1,0 +1,1 @@
+../../../../upstream/libavcodec/tests/bitstream_template.c
