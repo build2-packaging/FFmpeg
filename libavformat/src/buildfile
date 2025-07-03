@@ -1261,28 +1261,40 @@ libul{avformat}: $intf_libs $impl_libs
 
 # Set up the upstream tests as unit tests.
 #
-# exe{*.test}:
-# {
-#   test = true
-#   install = false
-# }
+exe{*.test}:
+{
+  test = true
+  install = false
+}
 
-# for p: avformat@true
-# {
-#   n = $first($p)  # Source file name
-#   i = $second($p) # Include value
+# @@ TODO Figure out what seek needs as input.
+#
+# @@ TODO Figure out why movenc fails (on my Linux dev machine, at least).
+#
+for p: fifo_muxer@($CONFIG_NETWORK && $CONFIG_FIFO_MUXER)       \
+       imf@$CONFIG_IMF_DEMUXER                                  \
+       movenc@(false && $CONFIG_MOV_MUXER)                      \
+       noproxy@$CONFIG_NETWORK                                  \
+       rtmpdh@$CONFIG_FFRTMPCRYPT_PROTOCOL                      \
+       seek@false                                               \
+       seek_utils@true                                          \
+       srtp@$CONFIG_SRTP                                        \
+       url@true
+{
+  n = $first($p)  # Source file name
+  i = $second($p) # Include value
 
-#   d = libavformat
-#   s = $d/c{$(n).test...}
-#   t = $d/exe{$(n).test...}
+  d = libavformat
+  s = $d/c{$(n).test...}
+  t = $d/exe{$(n).test...}
 
-#   if! $i
-#     text 'skip test' $t
+  if! $i
+    text 'skip test' $t
 
-#   ./: $t: include = $i
-#   $t: $s $d/c{dctref} $d/testscript
-#   $t: libul{avformat}: bin.whole = false
-# }
+  ./: $t: include = $i
+  $t: $s $d/testscript
+  $t: libul{avformat}: bin.whole = false
+}
 
 libavformat/c{protocol_list}: libavformat/c{protocols}
 {{
