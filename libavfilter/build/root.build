@@ -8,6 +8,8 @@ using c
 using c.as-cpp
 using c.predefs
 
+using c.objc
+
 h{*}: extension = h
 c{*}: extension = c
 
