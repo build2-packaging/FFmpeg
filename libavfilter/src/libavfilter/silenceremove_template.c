@@ -1,0 +1,1 @@
+../../../upstream/libavfilter/silenceremove_template.c
