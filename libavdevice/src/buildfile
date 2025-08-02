@@ -176,6 +176,31 @@ libul{avdevice}: libavdevice/c{xv}: include = $CONFIG_XV_OUTDEV
 #
 libul{avdevice}: $intf_libs $impl_libs
 
+# Set up the upstream tests as unit tests.
+#
+exe{*.test}:
+{
+  test = true
+  install = false
+}
+
+for p: timefilter@$CONFIG_JACK_INDEV
+{
+  n = $first($p)  # Source file name
+  i = $second($p) # Include value
+
+  d = libavdevice
+  s = $d/c{$(n).test...}
+  t = $d/exe{$(n).test...}
+
+  if! $i
+    text 'skip test' $t
+
+  ./: $t: include = $i
+  $t: $s $d/testscript
+  $t: libul{avdevice}: bin.whole = false
+}
+
 libavdevice/c{outdev_list}: libavdevice/c{alldevices}
 {{
   s = $path($<[0])     # Source file.
