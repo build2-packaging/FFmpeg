@@ -1314,6 +1314,42 @@ for p: af_afir@$CONFIG_AFIR_FILTER                                      \
 
 libul{avfilter}: $intf_libs $impl_libs
 
+# Set up the upstream tests as unit tests.
+#
+exe{*.test}:
+{
+  test = true
+  install = false
+}
+
+# @@ TODO filtfmts needs to be run with a filter name. Read the enabled
+#    filters from filter_list.c and run filtfmts with each one.
+#
+for p: drawutils@true   \
+       filtfmts@false   \
+       integral@$CONFIG_NLMEANS_FILTER
+{
+  n = $first($p)  # Source file name
+  i = $second($p) # Include value
+
+  d = libavfilter
+  s = $d/c{$(n).test...}
+  t = $d/exe{$(n).test...}
+
+  if! $i
+    text 'skip test' $t
+
+  ./: $t: include = $i
+  $t: $s $d/testscript
+  $t: libul{avfilter}: bin.whole = false
+}
+
+# formats.test has a custom testscript.
+#
+./: libavfilter/exe{formats.test...}: libavfilter/c{formats.test...}    \
+                                      libavfilter/testscript{formats}
+libavfilter/exe{formats.test...}: libul{avfilter}: bin.whole = false
+
 libavfilter/c{filter_list}: libavfilter/c{allfilters}
 {{
   s = $path($<[0])     # Source file.

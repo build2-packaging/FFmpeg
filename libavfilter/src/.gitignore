@@ -1,3 +1,7 @@
 # Generated DLL symbol-exporting file.
 #
 avfilter.def
+
+# Unit test executables.
+#
+*.test
