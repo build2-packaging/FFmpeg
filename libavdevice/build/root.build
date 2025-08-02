@@ -7,9 +7,16 @@ c.std = 17
 using c
 using c.as-cpp
 using c.predefs
+using c.objc
 
 h{*}: extension = h
 c{*}: extension = c
+
+cxx.std = latest
+
+using cxx
+
+cxx{*}: extension = cpp
 
 # The test target for cross-testing (running tests under Wine, etc).
 #

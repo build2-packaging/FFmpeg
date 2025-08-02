@@ -1,144 +1,363 @@
+import intf_libs = libavformat%lib{avformat}
 
-intf_libs = # Interface dependencies.
-impl_libs = # Implementation dependencies.
+import! [metadata, rule_hint=c.link] avutil_priv = libavutil%lib{avutil_private}
 
-import config = libconfig%lib{config}
-impl_libs += $config
-import intf_libs += \
-  libavutil%lib{avutil} \
-  libavformat%lib{avformat}
+# The paths to config.h and config.asm from libavutil.
+#
+config_h_path   = $($avutil_priv: libavutil_private.config_h_path)
+config_asm_path = $($avutil_priv: libavutil_private.config_asm_path)
 
-cpu = [string] $c.target.cpu
-tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
-tgt_macos = [bool] ($c.target.system == 'darwin')
+# If avutil_private defines a path for config.{h,asm} then the libavutils
+# package is installed, in which case create local file{} targets from the
+# exported paths; otherwise import the exported config.{h,asm} file{} targets.
+#
+ifn $config_h_path
+  import! config_h = libavutil%h{config}
+else
+  config_h = file{$config_h_path}
 
-lib{avdevice}: libul{avdevice}: $impl_libs $intf_libs
+ifn $config_asm_path
+  import! config_asm = libavutil%file{config.asm}
+else
+  config_asm = file{$config_asm_path}
 
-# conditional source & assembly
-import [once] libconfig%buildfile{conditional-src}
-import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled-defines}
+# A utility library is required by the bin.def rule and the unit test
+# executables.
+#
+./: lib{avdevice}: libul{avdevice}
 
-[rule_hint=c] \
-libul{avdevice-meta}: $impl_libs $intf_libs
-libul{avdevice}: enabled_source{avdevice}: $config_defs json{files} h{**}:                           update = match
-libua{avdevice}: enabled_asm{avdevice-a}: $config_defs $config_asm json{files} libua{avdevice-meta}: update = match
-libus{avdevice}: enabled_asm{avdevice-s}: $config_defs $config_asm json{files} libus{avdevice-meta}: update = match
+# Headers.
+#
+libul{avdevice}: libavdevice/h{**}
 
-libs{avdevice}: winres{avdevice}: include = ($c.target.system == 'win32-msvc')
-winres{avdevice}: libavdevice/rc{avdeviceres} libus{avdevice-meta}
+# Included generated source files
+#
+libul{avdevice}: libavdevice/c{outdev_list indev_list}: include = adhoc
 
-# these c files are included, not built.
-libul{avdevice}: libavdevice/c{ \
-                  outdev_list \
-                  indev_list \
-                }: include = adhoc
+# Compiled source files
+#
+libul{avdevice}: libavdevice/c{alldevices       \
+                               avdevice         \
+                               utils            \
+                               version}
 
-libavdevice/c{outdev_list}: libavdevice/c{alldevices} $config_defs
+# The macros to be extracted from config.h as buildfile variables.
+#
+config_macros = CONFIG_ALSA_INDEV               \
+                CONFIG_ALSA_OUTDEV              \
+                CONFIG_ANDROID_CAMERA_INDEV     \
+                CONFIG_AUDIOTOOLBOX_OUTDEV      \
+                CONFIG_AVFOUNDATION_INDEV       \
+                CONFIG_BKTR_INDEV               \
+                CONFIG_CACA_OUTDEV              \
+                CONFIG_DECKLINK_INDEV           \
+                CONFIG_DECKLINK_OUTDEV          \
+                CONFIG_DSHOW_INDEV              \
+                CONFIG_FBDEV_INDEV              \
+                CONFIG_FBDEV_OUTDEV             \
+                CONFIG_GDIGRAB_INDEV            \
+                CONFIG_IEC61883_INDEV           \
+                CONFIG_JACK_INDEV               \
+                CONFIG_KMSGRAB_INDEV            \
+                CONFIG_LAVFI_INDEV              \
+                CONFIG_LIBCDIO_INDEV            \
+                CONFIG_LIBDC1394_INDEV          \
+                CONFIG_OPENAL_INDEV             \
+                CONFIG_OPENGL_OUTDEV            \
+                CONFIG_OSS_INDEV                \
+                CONFIG_OSS_OUTDEV               \
+                CONFIG_PULSE_INDEV              \
+                CONFIG_PULSE_OUTDEV             \
+                CONFIG_SDL2_OUTDEV              \
+                CONFIG_SNDIO_INDEV              \
+                CONFIG_SNDIO_OUTDEV             \
+                CONFIG_V4L2_INDEV               \
+                CONFIG_V4L2_OUTDEV              \
+                CONFIG_VFWCAP_INDEV             \
+                CONFIG_XCBGRAB_INDEV            \
+                CONFIG_XV_OUTDEV                \
+                HAVE_GNU_WINDRES		\
+		HAVE_LIBC_MSVCRT
+
+# Note that we don't need to pass *.poptions because every macro imported from
+# config.h will have a literal value.
+#
+[rule_hint=c.predefs] buildfile{config}: $config_h
+{
+  c.predefs.poptions = false
+  c.predefs.macros = $config_macros
+}
+
+# Update and source config.build and adjust the imported variables.
+#
+if ($build.meta_operation == 'perform')
+{
+  update buildfile{config}
+  source $path(buildfile{config})
+
+  # Adjust the resulting values.
+  #
+  # Note: assume all macros in config_macros are boolean.
+  #
+  for m: $config_macros
+    $m = (!$null($($m)) && $($m) != 0) # Convert [null], 0, or 1 to boolean.
+}
+else
+{
+  for m: $config_macros
+    $m = false
+}
+
+libul{avdevice}: buildfile{config} # Ensure it gets cleaned.
+
+# Conditionally-compiled source files
+#
+libul{avdevice}: libavdevice/c{alsa_dec}: include = $CONFIG_ALSA_INDEV
+libul{avdevice}: libavdevice/c{alsa_enc}: include = $CONFIG_ALSA_OUTDEV
+libul{avdevice}: libavdevice/c{alsa}: include = ($CONFIG_ALSA_INDEV || $CONFIG_ALSA_OUTDEV)
+libul{avdevice}: libavdevice/c{android_camera}: include = $CONFIG_ANDROID_CAMERA_INDEV
+libul{avdevice}: libavdevice/m{audiotoolbox}: include = ($tgt_macos && $CONFIG_AUDIOTOOLBOX_OUTDEV)
+libul{avdevice}: libavdevice/m{avfoundation}: include = ($tgt_macos && $CONFIG_AVFOUNDATION_INDEV)
+libul{avdevice}: libavdevice/c{bktr}: include = $CONFIG_BKTR_INDEV
+libul{avdevice}: libavdevice/c{caca}: include = $CONFIG_CACA_OUTDEV
+libul{avdevice}: libavdevice/c{ccfifo}: include = $CONFIG_DECKLINK_OUTDEV
+libul{avdevice}: libavdevice/cxx{decklink_common}: include = ($CONFIG_DECKLINK_INDEV || $CONFIG_DECKLINK_OUTDEV)
+libul{avdevice}: libavdevice/c{decklink_dec_c}: include = $CONFIG_DECKLINK_INDEV
+libul{avdevice}: libavdevice/cxx{decklink_dec}: include = $CONFIG_DECKLINK_INDEV
+libul{avdevice}: libavdevice/c{decklink_enc_c}: include = $CONFIG_DECKLINK_OUTDEV
+libul{avdevice}: libavdevice/cxx{decklink_enc}: include = $CONFIG_DECKLINK_OUTDEV
+libul{avdevice}: libavdevice/c{dshow_common}: include = $CONFIG_DSHOW_INDEV
+libul{avdevice}: libavdevice/c{dshow_crossbar}: include = $CONFIG_DSHOW_INDEV
+libul{avdevice}: libavdevice/c{dshow_enummediatypes}: include = $CONFIG_DSHOW_INDEV
+libul{avdevice}: libavdevice/c{dshow_enumpins}: include = $CONFIG_DSHOW_INDEV
+libul{avdevice}: libavdevice/c{dshow_filter}: include = $CONFIG_DSHOW_INDEV
+libul{avdevice}: libavdevice/c{dshow_pin}: include = $CONFIG_DSHOW_INDEV
+libul{avdevice}: libavdevice/c{dshow}: include = $CONFIG_DSHOW_INDEV
+libul{avdevice}: libavdevice/c{fbdev_common}: include = ($CONFIG_FBDEV_INDEV || $CONFIG_FBDEV_OUTDEV)
+libul{avdevice}: libavdevice/c{fbdev_dec}: include = $CONFIG_FBDEV_INDEV
+libul{avdevice}: libavdevice/c{fbdev_enc}: include = $CONFIG_FBDEV_OUTDEV
+libul{avdevice}: libavdevice/c{file_open}: include = $HAVE_LIBC_MSVCRT
+libul{avdevice}: libavdevice/c{gdigrab}: include = $CONFIG_GDIGRAB_INDEV
+libul{avdevice}: libavdevice/c{iec61883}: include = $CONFIG_IEC61883_INDEV
+libul{avdevice}: libavdevice/c{jack}: include = $CONFIG_JACK_INDEV
+libul{avdevice}: libavdevice/c{kmsgrab}: include = $CONFIG_KMSGRAB_INDEV
+libul{avdevice}: libavdevice/c{lavfi}: include = $CONFIG_LAVFI_INDEV
+libul{avdevice}: libavdevice/c{libcdio}: include = $CONFIG_LIBCDIO_INDEV
+libul{avdevice}: libavdevice/c{libdc1394}: include = $CONFIG_LIBDC1394_INDEV
+libul{avdevice}: libavdevice/c{openal-dec}: include = $CONFIG_OPENAL_INDEV
+libul{avdevice}: libavdevice/c{opengl_enc}: include = $CONFIG_OPENGL_OUTDEV
+libul{avdevice}: libavdevice/c{oss_dec}: include = $CONFIG_OSS_INDEV
+libul{avdevice}: libavdevice/c{oss_enc}: include = $CONFIG_OSS_OUTDEV
+libul{avdevice}: libavdevice/c{oss}: include = ($CONFIG_OSS_INDEV || $CONFIG_OSS_OUTDEV)
+libul{avdevice}: libavdevice/c{pulse_audio_common}: include = ($CONFIG_PULSE_INDEV || $CONFIG_PULSE_OUTDEV)
+libul{avdevice}: libavdevice/c{pulse_audio_dec}: include = $CONFIG_PULSE_INDEV
+libul{avdevice}: libavdevice/c{pulse_audio_enc}: include = $CONFIG_PULSE_OUTDEV
+libul{avdevice}: libavdevice/c{reverse}: include = $CONFIG_DECKLINK_INDEV
+libul{avdevice}: libavdevice/c{sdl2}: include = $CONFIG_SDL2_OUTDEV
+libul{avdevice}: libavdevice/c{sndio_dec}: include = $CONFIG_SNDIO_INDEV
+libul{avdevice}: libavdevice/c{sndio_enc}: include = $CONFIG_SNDIO_OUTDEV
+libul{avdevice}: libavdevice/c{sndio}: include = ($CONFIG_SNDIO_INDEV || $CONFIG_SNDIO_OUTDEV)
+libul{avdevice}: libavdevice/c{timefilter}: include = ($CONFIG_ALSA_INDEV || $CONFIG_JACK_INDEV || $CONFIG_PULSE_INDEV || $CONFIG_V4L2_INDEV)
+libul{avdevice}: libavdevice/c{v4l2-common}: include = ($CONFIG_V4L2_INDEV || $CONFIG_V4L2_OUTDEV)
+libul{avdevice}: libavdevice/c{v4l2enc}: include = $CONFIG_V4L2_OUTDEV
+libul{avdevice}: libavdevice/c{v4l2}: include = $CONFIG_V4L2_INDEV
+libul{avdevice}: libavdevice/c{vfwcap}: include = $CONFIG_VFWCAP_INDEV
+libul{avdevice}: libavdevice/c{xcbgrab}: include = $CONFIG_XCBGRAB_INDEV
+libul{avdevice}: libavdevice/c{xv}: include = $CONFIG_XV_OUTDEV
+
+# Windows Resources
+#
+# @@ TODO Disabled for the time being but see note in libavutil/src/buildfile.
+#
+# libs{avdevice}: winres{avdevice}: include = ($c.target.system == 'win32-msvc')
+# winres{avdevice}: libavdevice/rc{avdeviceres} libus{avdevice-meta}
+
+# Libraries
+#
+libul{avdevice}: $intf_libs $impl_libs
+
+libavdevice/c{outdev_list}: libavdevice/c{alldevices}
 {{
-  diag gen $>
-
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w defines [string_set]
 
-  sed -n -e 's/.*extern.* FFInputFormat\s+ff_(\S+)_demuxer;/\1_demuxer/p' $s | set -n func_list
-  if $empty($func_list)
+  # Lines of interest from alldevices.c have the format
+  #
+  #   extern const FFOutputFormat ff_<dname>_muxer;
+  #
+  # For example:
+  #
+  #   extern const FFOutputFormat ff_alsa_muxer;
+  #
+  # Afterwards each `all_funcs` element is of the form
+  #
+  #   ff_<dname>_muxer
+  #
+  # For example:
+  #
+  #   ff_alsa_muxer
+  #
+  sed -n -e 's/^ *extern.+FFOutputFormat\s+(ff_.+_muxer);/\1/p' $s | \
+    set -n all_funcs
+
+  # Compile the list of enabled device functions as determined by the
+  # corresponding CONFIG_ variables.
+  #
+  # Computed variable names can only be dereferenced in the depdb preamble
+  # (because their values must be tracked) so we have to store the
+  # CONFIG_<funcname> values before calling depdb. Hence the `funcs` variable.
+  #
+  funcs = [strings, null] # Enabled functions
+  for c: $all_funcs
   {
-    echo "No outdev functions found"
-    exit 1
+    dn = $regex.replace($c, 'ff_([a-z_]+)_muxer', '\1') # Device name
+
+    v = $string.ucase(CONFIG_$(dn)_OUTDEV)
+    if ($($v) == true) # @@ Doesn't work without the explicit `== true`.
+      funcs += $c
   }
-  echo 'static const FFInputFormat* const outdev_list[] = {' > $f
-  for c: $func_list
-  {
-    group = $string.ucase(CONFIG_$c)
-    if ($defines[$group])
-      echo "    &ff_$c," >> $path($>)
-  }
-  echo "    NULL };" >> $path($>)
+  depdb hash $funcs
+
+  diag gen $>
+
+  ife $all_funcs
+    exit "No output devices found"
+
+  echo 'static const FFOutputFormat* const outdev_list[] = {' > $f
+  for c: $funcs
+    echo "    &$c," >> $f
+  echo "    NULL };" >> $f
 }}
 
-libavdevice/c{indev_list}: libavdevice/c{alldevices} $config_defs
+libavdevice/c{indev_list}: libavdevice/c{alldevices}
 {{
-  diag gen $>
-
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w defines [string_set]
 
-  sed -n -e 's/.*extern.* FFOutputFormat\s+ff_(\S+)_muxer;/\1_muxer/p' $s | set -n func_list
-  if $empty($func_list)
+  # Lines of interest from alldevices.c have the format
+  #
+  #   extern const FFInputFormat ff_<dname>_demuxer;
+  #
+  # For example:
+  #
+  #   extern const FFInputFormat ff_alsa_demuxer;
+  #
+  # Afterwards each `all_funcs` element is of the form
+  #
+  #   ff_<dname>_demuxer
+  #
+  # For example:
+  #
+  #   ff_alsa_demuxer
+  #
+  sed -n -e 's/^ *extern.+FFInputFormat\s+(ff_.+_demuxer);/\1/p' $s | \
+    set -n all_funcs
+
+  # Compile the list of enabled device functions as determined by the
+  # corresponding CONFIG_ variables.
+  #
+  # Computed variable names can only be dereferenced in the depdb preamble
+  # (because their values must be tracked) so we have to store the
+  # CONFIG_<funcname> values before calling depdb. Hence the `funcs` variable.
+  #
+  funcs = [strings, null] # Enabled functions
+  for c: $all_funcs
   {
-    echo "No indev functions found"
-    exit 1
+    dn = $regex.replace($c, 'ff_([a-z_]+)_demuxer', '\1') # Device name
+
+    v = $string.ucase(CONFIG_$(dn)_INDEV)
+    if ($($v) == true) # @@ Doesn't work without the explicit `== true`.
+      funcs += $c
   }
-  echo 'static const FFOutputFormat* const indev_list[] = {' > $f
-  for c: $func_list
-  {
-    group = $string.ucase(CONFIG_$c)
-    if ($defines[$group])
-      echo "    &ff_$c," >> $path($>)
-  }
-  echo "    NULL };" >> $path($>)
+  depdb hash $funcs
+
+  diag gen $>
+
+  ife $all_funcs
+    exit "No input devices found"
+
+  echo 'static const FFInputFormat* const indev_list[] = {' > $f
+  for c: $funcs
+    echo "    &$c," >> $f
+  echo "    NULL };" >> $f
 }}
 
 # Build options.
 #
-import [once] libconfig%buildfile{common-configs}
+c.poptions =+ "-I$out_base" "-I$src_base"       \
+              $common_poptions                  \
+              -DBUILDING_avdevice
 
-out_pfx = [dir_path] $out_root/src/
-src_pfx = [dir_path] $src_root/src/
+obj{*}: c.coptions += $common_coptions
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libavdevice/" -DBUILDING_avdevice
+# @@ TODO Revisit after CI.
+#
+# switch ($c.id)
+# {
+#   case 'msvc'
+#     c.coptions += -wd4133 -wd4333
+# }
 
-obja{*}: c.poptions += -DCONFIG_STATIC
-objs{*}: c.poptions += -DCONFIG_SHARED
+objs{*}: c.poptions += $common_objs_poptions
+obja{*}: c.poptions += $common_obja_poptions
 
+# Add common_obja_poptions for the correct definition of CONFIG_SHARED (i.e.,
+# 0) otherwise we get a warning about it being undefined on Mingw-w64. (We
+# know the test executables are linked against the utility library which is
+# static so this is probably OK.)
+#
+# obje{*.test}: c.poptions += $common_obja_poptions
+
+lib{avdevice}: c.loptions += $common_loptions
+
+# Export all symbols from the DLL if on Windows.
+#
 libs{avdevice}: def{avdevice}: include = ($c.target.system == 'win32-msvc')
 def{avdevice}: libul{avdevice}
 
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
+if $tgt_mingw
+  libs{avdevice}: c.loptions += -Wl,--export-all-symbols
 
 # System libraries
+#
 sys_libs =
-switch $c.target.class, $c.target.system
+if $windows
 {
-  case 'windows', 'win32-msvc'
-    sys_libs += bcrypt.lib \
-                gdi32.lib \
-                mfuuid.lib \
-                ole32.lib \
-                oleaut32.lib \
-                psapi.lib \
-                secur32.lib \
-                shell32.lib \
-                shlwapi.lib \
-                strmiids.lib \
-                user32.lib \
-                uuid.lib \
-                vfw32.lib \
-                ws2_32.lib
-  case 'windows', 'mingw32'
-    sys_libs += -lbcrypt
-}
-c.libs += $sys_libs
-
-switch ($c.id)
-{
-  case 'msvc'
+  if $tgt_mingw
   {
-    c.coptions += -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
-    c.poptions += -DWIN32_LEAN_AND_MEAN -D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
+    if ($CONFIG_DECKLINK_INDEV || $CONFIG_DECKLINK_OUTDEV)
+      sys_libs += -lole32
+    if $CONFIG_VFWCAP_INDEV
+      sys_libs += -lvfw32
+    if ($CONFIG_DSHOW_INDEV || $CONFIG_DECKLINK_INDEV || $CONFIG_DECKLINK_OUTDEV)
+      sys_libs += -loleaut32
+    if ($CONFIG_GDIGRAB_INDEV)
+      sys_libs += -lgdi32
+  }
+  else
+  {
+    if $CONFIG_VFWCAP_INDEV
+      sys_libs += vfw32.lib
+    if ($CONFIG_DSHOW_INDEV || $CONFIG_DECKLINK_INDEV || $CONFIG_DECKLINK_OUTDEV)
+      sys_libs += oleaut32.lib
+    if ($CONFIG_GDIGRAB_INDEV)
+      sys_libs += gdi32.lib
   }
 }
+
+libul{avdevice}: c.libs += $common_libs $sys_libs
 
 # Export options.
 #
 lib{avdevice}:
 {
-  c.export.poptions = "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs $sys_libs
+  c.export.poptions = "-I$out_base" "-I$src_base"
+
+  # @@ TMP Let's hold off on exporting any system libraries until it's clear
+  #    which ones we have to export. Upstream doesn't appear to be concerned
+  #    about these sorts of things at all.
+  #
+  c.export.libs = $intf_libs #$sys_libs
 }
 
 # For pre-releases use the complete version to make sure they cannot
@@ -150,10 +369,18 @@ if $version.pre_release
 else
   lib{avdevice}: bin.lib.version = "-$version.major.$version.minor"
 
-# Install recreating subdirectories.
+# Installation.
 #
-h{*}:
-{
-  install         = include/
-  install.subdirs = true
-}
+# Don't install private headers because no other FFmpeg library depends on
+# avdevice. Some tools do but they include only public headers.
+#
+pub_hdr = avdevice      \
+          version       \
+          version_major
+
+h{*}: install = false
+
+for h: $pub_hdr
+  libavdevice/h{$h}@./libavdevice/: install = include/libavdevice/
+
+lib{avdevice}: c.pkgconfig.include = include/
