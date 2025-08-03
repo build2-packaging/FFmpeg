@@ -1,89 +1,61 @@
+import intf_libs = libavutil%lib{avutil}
 
-intf_libs = # Interface dependencies.
-impl_libs = # Implementation dependencies.
+# A utility library is required by the bin.def rule and the unit test
+# executables.
+#
+./: lib{postproc}: libul{postproc}
 
-import config = libconfig%lib{config}
-impl_libs += $config
-import intf_libs += \
-  libavutil%lib{avutil}
+# Headers.
+#
+libul{postproc}: libpostproc/h{*}
 
-cpu = [string] $c.target.cpu
-tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
-tgt_macos = [bool] ($c.target.system == 'darwin')
+# Included source files
+#
+libul{postproc}: libpostproc/c{postprocess_template}: include = adhoc
 
-lib{postproc}: libul{postproc}: $impl_libs $intf_libs
+# Compiled source files
+#
+libul{postproc}: libpostproc/c{postprocess      \
+                               version}
 
-# conditional source & assembly
-import [once] libconfig%buildfile{conditional-src}
-import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled-defines}
-
-[rule_hint=c] \
-libul{postproc-meta}: $impl_libs $intf_libs
-libul{postproc}: enabled_source{postproc}: $config_defs json{files} h{**}:                           update = match
-libua{postproc}: enabled_asm{postproc-a}: $config_defs $config_asm json{files} libua{postproc-meta}: update = match
-libus{postproc}: enabled_asm{postproc-s}: $config_defs $config_asm json{files} libus{postproc-meta}: update = match
-
-libs{postproc}: winres{postproc}: include = ($c.target.system == 'win32-msvc')
-winres{postproc}: libpostproc/rc{postprocres} libus{postproc-meta}
+# Libraries
+#
+libul{postproc}: $intf_libs
 
 # Build options.
 #
-import [once] libconfig%buildfile{common-configs}
+c.poptions =+ "-I$out_base" "-I$src_base"       \
+              $common_poptions                  \
+              -DBUILDING_postproc
 
-out_pfx = [dir_path] $out_root/src/
-src_pfx = [dir_path] $src_root/src/
+obj{*}: c.coptions += $common_coptions
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" "-I$src_pfx/libpostproc/" -DBUILDING_postproc
+objs{*}: c.poptions += $common_objs_poptions
+obja{*}: c.poptions += $common_obja_poptions
 
-obja{*}: c.poptions += -DCONFIG_STATIC
-objs{*}: c.poptions += -DCONFIG_SHARED
+lib{postproc}: c.loptions += $common_loptions
 
+# Export all symbols from the DLL if on Windows.
+#
 libs{postproc}: def{postproc}: include = ($c.target.system == 'win32-msvc')
 def{postproc}: libul{postproc}
 
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
+if $tgt_mingw
+  libs{postproc}: c.loptions += -Wl,--export-all-symbols
 
-# System libraries
-sys_libs =
-switch $c.target.class, $c.target.system
-{
-  case 'windows', 'win32-msvc'
-    sys_libs += bcrypt.lib \
-                gdi32.lib \
-                mfuuid.lib \
-                ole32.lib \
-                oleaut32.lib \
-                psapi.lib \
-                secur32.lib \
-                shell32.lib \
-                shlwapi.lib \
-                strmiids.lib \
-                user32.lib \
-                uuid.lib \
-                vfw32.lib \
-                ws2_32.lib
-  case 'windows', 'mingw32'
-    sys_libs += -lbcrypt
-}
-c.libs += $sys_libs
-
-switch ($c.id)
-{
-  case 'msvc'
-  {
-    c.coptions += -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
-    c.poptions += -DWIN32_LEAN_AND_MEAN -D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
-  }
-}
+libul{postproc}: c.libs += $common_libs
 
 # Export options.
 #
 lib{postproc}:
 {
-  c.export.poptions = "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs $sys_libs
+  c.export.poptions =+ "-I$out_base" "-I$src_base"
+
+  # @@ TMP Let's hold off on exporting any system libraries until it's clear
+  #    which ones we have to export. Upstream doesn't appear to be concerned
+  #    about these sorts of things at all.
+  #
+  c.export.libs = $intf_libs # $sys_libs
 }
 
 # For pre-releases use the complete version to make sure they cannot
@@ -95,10 +67,18 @@ if $version.pre_release
 else
   lib{postproc}: bin.lib.version = "-$version.major.$version.minor"
 
-# Install recreating subdirectories.
+# Installation.
 #
-h{*}:
-{
-  install         = include/
-  install.subdirs = true
-}
+# Don't install private headers because no other FFmpeg library depends on
+# postproc. Some tools do but they include only public headers.
+#
+pub_hdr = postprocess   \
+          version       \
+          version_major
+
+h{*}: install = false
+
+for h: $pub_hdr
+  libpostproc/h{$h}@./libpostproc/: install = include/libpostproc/
+
+lib{postproc}: c.pkgconfig.include = include/
