@@ -1,7 +1,4 @@
 : 1
-location: libconfig/
-
-:
 location: libavutil/
 
 :
