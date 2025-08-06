@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/hwaccel_internal.h

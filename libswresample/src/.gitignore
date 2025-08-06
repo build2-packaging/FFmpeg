@@ -1,3 +1,7 @@
 # Generated DLL symbol-exporting file.
 #
 swresample.def
+
+# Unit test executables.
+#
+*.test

@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/mpegaudioenc_template.c

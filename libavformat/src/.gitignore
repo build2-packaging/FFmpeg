@@ -1,3 +1,7 @@
 # Generated DLL symbol-exporting file.
 #
 avformat.def
+
+# Unit test executables.
+#
+*.test

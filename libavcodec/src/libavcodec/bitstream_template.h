@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/bitstream_template.h

@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/cbs_jpeg_syntax_template.c

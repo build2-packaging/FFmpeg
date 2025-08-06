@@ -1,0 +1,1 @@
+../../../upstream/libavdevice/dshow_pin.c

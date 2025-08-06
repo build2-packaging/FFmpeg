@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/cbs_av1_syntax_template.c

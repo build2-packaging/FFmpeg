@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/vaapi_encode.h

@@ -1,80 +1,215 @@
+import intf_libs = libswscale%lib{swscale}
 
-intf_libs = # Interface dependencies.
-impl_libs = # Implementation dependencies.
+import! [metadata, rule_hint=c.link] avutil_priv = libavutil%lib{avutil_private}
 
-import config = libconfig%lib{config}
-impl_libs += $config
-import intf_libs += \
-  libavutil%lib{avutil} \
-  libswscale%lib{swscale}
+# The paths to config.h and config.asm from libavutil.
+#
+config_h_path   = $($avutil_priv: libavutil_private.config_h_path)
+config_asm_path = $($avutil_priv: libavutil_private.config_asm_path)
 
-cpu = [string] $c.target.cpu
-tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
-tgt_macos = [bool] ($c.target.system == 'darwin')
+# If avutil_private defines a path for config.{h,asm} then the libavutils
+# package is installed, in which case create local file{} targets from the
+# exported paths; otherwise import the exported config.{h,asm} file{} targets.
+#
+ifn $config_h_path
+  import! config_h = libavutil%h{config}
+else
+  config_h = file{$config_h_path}
 
-lib{swresample}: libul{swresample}: $impl_libs $intf_libs
+ifn $config_asm_path
+  import! config_asm = libavutil%file{config.asm}
+else
+  config_asm = file{$config_asm_path}
 
-import [once] libconfig%buildfile{conditional-src}
-import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled-defines}
+# A utility library is required by the bin.def rule and the unit test
+# executables.
+#
+./: lib{swresample}: libul{swresample}
 
-[rule_hint=c] \
-libul{swresample-meta}: $impl_libs $intf_libs
-libul{swresample}: enabled_source{swresample}: $config_defs json{files} h{**}:                             update = match
-libua{swresample}: enabled_asm{swresample-a}: $config_defs $config_asm json{files} libua{swresample-meta}: update = match
-libus{swresample}: enabled_asm{swresample-s}: $config_defs $config_asm json{files} libus{swresample-meta}: update = match
+# Headers.
+#
+libul{swresample}: libswresample/h{**}
 
-libs{swresample}: winres{swresample}: include = ($c.target.system == 'win32-msvc')
-winres{swresample}: libswresample/rc{swresampleres} libus{swresample-meta}
+# This target exports the path to the private headers in the installed case
+# only. See lib{avutil_private} in libavutil/src/buildfile for more
+# information.
+#
+[rule_hint=c] lib{swresample_private}:
+./: lib{swresample_private}
 
-# these c files are included, not built.
-libul{swresample}: adhoc_source{swresample}: include = adhoc
-adhoc_source{swresample}: libswresample/c{**_template noise_shaping_data}
+# Included source files
+#
+libul{swresample}: \
+  libswresample/c{**_template noise_shaping_data}: include = adhoc
+
+# Private libavutil headers and included .asm source files.
+#
+libul{swresample}: libavutil/x86/h{*}
+libul{swresample}: libavutil/x86/file{*.asm}: include = adhoc
+
+# Compiled source files
+#
+libul{swresample}: libswresample/c{audioconvert         \
+                                   dither               \
+                                   options              \
+                                   rematrix             \
+                                   resample             \
+                                   resample_dsp         \
+                                   swresample           \
+                                   swresample_frame     \
+                                   version}
+
+# Note: The following source file is a symlink to libavutil/*.c. Upstream this
+#       is done via `#include "libavutil/log2_tab.c"`.
+#
+libul{swresample}: libswresample/c{log2_tab}
+
+# The macros to be extracted from config.h as buildfile variables.
+#
+config_macros = ARCH_X86                \
+                CONFIG_LIBSOXR          \
+                CONFIG_XMM_CLOBBER_TEST \
+                HAVE_X86ASM
+
+# Note that we don't need to pass *.poptions because every macro imported from
+# config.h will have a literal value.
+#
+[rule_hint=c.predefs] buildfile{config}: $config_h
+{
+  c.predefs.poptions = false
+  c.predefs.macros = $config_macros
+}
+
+# Update and source config.build and adjust the imported variables.
+#
+if ($build.meta_operation == 'perform')
+{
+  update buildfile{config}
+  source $path(buildfile{config})
+
+  # Adjust the resulting values.
+  #
+  # Note: assume all macros in config_macros are boolean.
+  #
+  for m: $config_macros
+    $m = (!$null($($m)) && $($m) != 0) # Convert [null], 0, or 1 to boolean.
+}
+else
+{
+  for m: $config_macros
+    $m = false
+}
+
+libul{swresample}: buildfile{config} # Ensure it gets cleaned.
+
+# Conditionally-compiled source files
+#
+
+# X86
+#
+libul{swresample}: libswresample/x86/c{audio_convert_init       \
+                                       rematrix_init            \
+                                       resample_init}: include = $ARCH_X86
+
+libul{swresample}: libswresample/x86/c{w64xmmtest}: \
+  include = ($ARCH_X86 && $CONFIG_XMM_CLOBBER_TEST)
+
+# X86 assembly sources
+#
+# There is no built-in rule to synthesize the libu{s,a} -> obj{s,a} -> asm{}
+# dependencies so we have to do it manually.
+#
+for n: audio_convert    \
+       rematrix         \
+       resample
+{
+  # Dependencies of the shared and static libraries on their respecive object
+  # files.
+  #
+  libus{swresample}: libswresample/x86/objs{$(n).asm.so.o}: include = $HAVE_X86ASM
+  libua{swresample}: libswresample/x86/obja{$(n).asm.a.o}:  include = $HAVE_X86ASM
+
+  # Dependencies of the object files on the .asm source file.
+  #
+  libswresample/x86/objs{$(n).asm.so.o}: libswresample/x86/asm{$n} $config_asm
+  libswresample/x86/obja{$(n).asm.a.o}:  libswresample/x86/asm{$n} $config_asm
+}
+
+# @@ TODO Other CPU architectures (probably aarch64 next).
+
+# Windows Resources
+#
+# @@ TODO Disabled for the time being but see note in libavutil/src/buildfile.
+#
+# libs{swresample}: winres{swresample}: include = ($c.target.system == 'win32-msvc')
+# winres{swresample}: libswresample/rc{swresampleres} libus{swresample-meta}
+
+# Libraries
+#
+libul{swresample}: $intf_libs
+
+# Unit tests
+#
+exe{*.test...}:
+{
+  test = true
+  install = false
+}
+
+for t: libswresample/c{*.test...}
+{
+  d = $directory($t)
+  n = $name($t)
+
+  ./: $d/exe{$n...}: $t $d/testscript
+
+  $d/exe{$n...}: libul{swresample}: bin.whole = false
+}
 
 # Build options.
 #
-import [once] libconfig%buildfile{common-configs}
+c.poptions =+ "-I$out_base" "-I$src_base"       \
+              $common_poptions                  \
+              -DBUILDING_swresample
 
-out_pfx = [dir_path] $out_root/src/
-src_pfx = [dir_path] $src_root/src/
+obj{*}: c.coptions += $common_coptions
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_swresample
+# @@ TODO Revisit after CI. Quite a few are already in common-configs.build.
+#
+# switch ($c.id)
+# {
+#   case 'msvc'
+#     c.coptions += -wd4003 -wd4133 -wd4333
+# }
 
-obja{*}: c.poptions += -DCONFIG_STATIC
-objs{*}: c.poptions += -DCONFIG_SHARED
+objs{*}: c.poptions += $common_objs_poptions
+obja{*}: c.poptions += $common_obja_poptions
 
+# Add common_obja_poptions for the correct definition of CONFIG_SHARED (i.e.,
+# 0) otherwise we get a warning about it being undefined on Mingw-w64. (We
+# know the test executables are linked against the utility library which is
+# static so this is probably OK.)
+#
+obje{*.test}: c.poptions += $common_obja_poptions
+
+lib{swresample}: c.loptions += $common_loptions
+
+# Export all symbols from the DLL if on Windows.
+#
 libs{swresample}: def{swresample}: include = ($c.target.system == 'win32-msvc')
 def{swresample}: libul{swresample}
 
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
+if $tgt_mingw
+  libs{swresample}: c.loptions += -Wl,--export-all-symbols
 
-# System libraries
-sys_libs =
-switch $c.target.class, $c.target.system
-{
-  case 'windows', 'win32-msvc'
-    sys_libs += bcrypt.lib
-  case 'windows', 'mingw32'
-    sys_libs += -lbcrypt
-}
-c.libs += $sys_libs
-
-switch ($c.id)
-{
-  case 'msvc'
-  {
-    c.coptions += -wd4003 -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
-    c.poptions += -DWIN32_LEAN_AND_MEAN -D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
-  }
-}
+libul{swresample}: c.libs += $common_libs
 
 # Export options.
 #
 lib{swresample}:
 {
-  c.export.poptions = "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs $sys_libs
+  c.export.poptions =+ "-I$out_base" "-I$src_base"
+  c.export.libs = $intf_libs
 }
 
 # For pre-releases use the complete version to make sure they cannot
@@ -86,10 +221,32 @@ if $version.pre_release
 else
   lib{swresample}: bin.lib.version = "-$version.major.$version.minor"
 
-# Install recreating subdirectories.
+# Installation.
 #
-h{*}:
-{
-  install         = include/
-  install.subdirs = true
-}
+pub_hdr = swresample    \
+          version       \
+          version_major
+
+# The private headers in libswresample/ are the complement of the public
+# headers.
+#
+priv_hdr = libswresample/h{* -{$pub_hdr}}
+
+# Install all headers by default.
+#
+h{*}: install = include/libswresample/
+
+# Don't install private libavutil headers.
+#
+for h: libavutil/x86/h{**}
+  $h@./libavutil/x86/: install = false
+
+# Set private headers install location.
+#
+# These are included as `#include "libswresample/foo.h"` by all libraries.
+#
+for h: $priv_hdr
+  $h@./libswresample/: install = include/libswresample/private/libswresample/
+
+lib{swresample}:         c.pkgconfig.include = include/
+lib{swresample_private}: c.pkgconfig.include = include/libswresample/private/

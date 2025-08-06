@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/atrac1data.h

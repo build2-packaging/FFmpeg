@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/cbs_vp8_syntax_template.c

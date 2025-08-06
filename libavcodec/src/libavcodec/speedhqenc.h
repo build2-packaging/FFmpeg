@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/speedhqenc.h

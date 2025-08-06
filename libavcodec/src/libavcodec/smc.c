@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/smc.c

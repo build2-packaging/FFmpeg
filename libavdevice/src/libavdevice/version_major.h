@@ -1,0 +1,1 @@
+../../../upstream/libavdevice/version_major.h

@@ -6,6 +6,7 @@ c.std = 17
 
 using c
 using c.as-cpp
+using c.predefs
 
 h{*}: extension = h
 c{*}: extension = c
@@ -13,3 +14,6 @@ c{*}: extension = c
 # The test target for cross-testing (running tests under Wine, etc).
 #
 test.target = $c.target
+
+if ($build.mode != 'skeleton')
+  source build/common-configs.build

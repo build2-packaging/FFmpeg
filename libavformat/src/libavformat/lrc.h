@@ -1,0 +1,1 @@
+../../../upstream/libavformat/lrc.h

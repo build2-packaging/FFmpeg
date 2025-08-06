@@ -1,0 +1,14 @@
+cat <<EOI >=hello_world;
+hello 🌍
+EOI
+$* hello_world >>~/EOO/
+68                  104        0x68         1     h
+65                  101        0x65         1     e
+6C                  108        0x6C         1     l
+6C                  108        0x6C         1     l
+6F                  111        0x6F         1     o
+20                  32         0x20         1      
+F09F8C8D            127757     0x1F30D      4     🌍
+/0D                  13         0xD          1     /*
+0A                  10         0xA          1     \n
+EOO

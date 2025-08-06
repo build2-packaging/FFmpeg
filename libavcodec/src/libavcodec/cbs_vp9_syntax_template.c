@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/cbs_vp9_syntax_template.c

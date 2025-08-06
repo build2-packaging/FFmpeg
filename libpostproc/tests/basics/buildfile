@@ -1,0 +1,3 @@
+import lib = libpostproc%lib{postproc}
+
+exe{driver}: c{driver} $lib

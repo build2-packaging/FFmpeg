@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/libspeexenc.c

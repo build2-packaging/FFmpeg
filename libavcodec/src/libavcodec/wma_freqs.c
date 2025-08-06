@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/wma_freqs.c

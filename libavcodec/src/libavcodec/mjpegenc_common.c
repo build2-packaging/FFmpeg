@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/mjpegenc_common.c

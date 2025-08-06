@@ -1,0 +1,1 @@
+../../../upstream/libavcodec/eac3enc.c

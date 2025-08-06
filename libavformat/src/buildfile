@@ -1,165 +1,1484 @@
+import intf_libs  = libavcodec%lib{avcodec}
+import impl_libs  = libz%lib{z}
 
-intf_libs = # Interface dependencies.
-impl_libs = # Implementation dependencies.
+import! [metadata, rule_hint=c.link] avutil_priv = libavutil%lib{avutil_private}
 
-import config = libconfig%lib{config}
-impl_libs += $config
+impl_libs += $avutil_priv
 
-import impl_libs += \
-  libz%lib{z}
-import intf_libs += \
-  libavutil%lib{avutil} \
-  libavcodec%lib{avcodec} \
-  libswscale%lib{swscale} \
-  libswresample%lib{swresample}
+# The path to config.h from libavutil.
+#
+config_h_path = $($avutil_priv: libavutil_private.config_h_path)
 
-cpu = [string] $c.target.cpu
-tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
-tgt_macos = [bool] ($c.target.system == 'darwin')
+# If avutil_private defines a path for config.h then the libavutils package is
+# installed, in which case create a local file{} target from the exported
+# path; otherwise import the exported config.h file{} target.
+#
+ifn $config_h_path
+  import! config_h = libavutil%h{config}
+else
+  config_h = file{$config_h_path}
 
-lib{avformat}: libul{avformat}: $impl_libs $intf_libs
+# A utility library is required by the bin.def rule and the unit test
+# executables.
+#
+./: lib{avformat}: libul{avformat}
 
-# conditional source & assembly
-import [once] libconfig%buildfile{conditional-src}
-import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled-defines}
+# Headers.
+#
+libul{avformat}: libavformat/h{**}
 
-[rule_hint=c] \
-libul{avformat-meta}: $impl_libs $intf_libs
-libul{avformat}: enabled_source{avformat}: $config_defs json{files} h{**}:                           update = match
-libua{avformat}: enabled_asm{avformat-a}: $config_defs $config_asm json{files} libua{avformat-meta}: update = match
-libus{avformat}: enabled_asm{avformat-s}: $config_defs $config_asm json{files} libus{avformat-meta}: update = match
+# This target exports the path to the private headers in the installed case
+# only. See lib{avutil_private} in libavutil/src/buildfile for more
+# information.
+#
+[rule_hint=c] lib{avformat_private}:
+./: lib{avformat_private}
 
-libs{avformat}: winres{avformat}: include = ($c.target.system == 'win32-msvc')
-winres{avformat}: libavformat/rc{avformatres} libus{avformat-meta}
+# Included source files
+#
+libul{avformat}: libavformat/c{**_template}: include = adhoc
 
-# these c files are included, not built.
-libul{avcodec}: adhoc_source{avcodec}: include = adhoc
-adhoc_source{avcodec}: libavformat/c{**_template}
+# Included generated source files.
+#
+libul{avformat}: libavformat/c{protocol_list    \
+                               demuxer_list     \
+                               muxer_list}: include = adhoc
 
-libul{avformat}: libavformat/c{ \
-                  protocol_list \
-                  demuxer_list \
-                  muxer_list \
-                }: include = adhoc
+# Compiled source files.
+#
+# Note: upstream mistakenly includes riff.o in this list.
+#
+libul{avformat}: libavformat/c{allformats       \
+                               avformat         \
+                               avio             \
+                               aviobuf          \
+                               bitstream        \
+                               demux            \
+                               demux_utils      \
+                               dump             \
+                               dv               \
+                               format           \
+                               id3v1            \
+                               id3v2            \
+                               isom_tags        \
+                               log2_tab         \
+                               metadata         \
+                               mux              \
+                               mux_utils        \
+                               options          \
+                               os_support       \
+                               protocols        \
+                               sdp              \
+                               seek             \
+                               to_upper4        \
+                               url              \
+                               utils            \
+                               version}
 
-libavformat/c{protocol_list}: libavformat/c{protocols} $config_defs
+# The macros to be extracted from config.h as buildfile variables.
+#
+config_macros = CONFIG_A64_MUXER                        \
+                CONFIG_AAC_DEMUXER                      \
+                CONFIG_AA_DEMUXER                       \
+                CONFIG_AAX_DEMUXER                      \
+                CONFIG_AC3_DEMUXER                      \
+                CONFIG_AC3_MUXER                        \
+                CONFIG_AC4_DEMUXER                      \
+                CONFIG_AC4_MUXER                        \
+                CONFIG_ACE_DEMUXER                      \
+                CONFIG_ACM_DEMUXER                      \
+                CONFIG_ACT_DEMUXER                      \
+                CONFIG_ADF_DEMUXER                      \
+                CONFIG_ADP_DEMUXER                      \
+                CONFIG_ADS_DEMUXER                      \
+                CONFIG_ADTS_MUXER                       \
+                CONFIG_ADX_DEMUXER                      \
+                CONFIG_ADX_MUXER                        \
+                CONFIG_AEA_DEMUXER                      \
+                CONFIG_AEA_MUXER                        \
+                CONFIG_AFC_DEMUXER                      \
+                CONFIG_AIFF_DEMUXER                     \
+                CONFIG_AIFF_MUXER                       \
+                CONFIG_AIX_DEMUXER                      \
+                CONFIG_ALP_DEMUXER                      \
+                CONFIG_ALP_MUXER                        \
+                CONFIG_AMR_DEMUXER                      \
+                CONFIG_AMR_MUXER                        \
+                CONFIG_AMRNB_DEMUXER                    \
+                CONFIG_AMRWB_DEMUXER                    \
+                CONFIG_AMV_MUXER                        \
+                CONFIG_ANDROID_CONTENT_PROTOCOL         \
+                CONFIG_ANM_DEMUXER                      \
+                CONFIG_APAC_DEMUXER                     \
+                CONFIG_APC_DEMUXER                      \
+                CONFIG_APE_DEMUXER                      \
+                CONFIG_APM_DEMUXER                      \
+                CONFIG_APM_MUXER                        \
+                CONFIG_APNG_DEMUXER                     \
+                CONFIG_APNG_MUXER                       \
+                CONFIG_APPLEHTTP_PROTOCOL               \
+                CONFIG_APTX_DEMUXER                     \
+                CONFIG_APTX_HD_DEMUXER                  \
+                CONFIG_APTX_HD_MUXER                    \
+                CONFIG_APTX_MUXER                       \
+                CONFIG_AQTITLE_DEMUXER                  \
+                CONFIG_ARGO_ASF_DEMUXER                 \
+                CONFIG_ARGO_ASF_MUXER                   \
+                CONFIG_ARGO_BRP_DEMUXER                 \
+                CONFIG_ARGO_CVG_DEMUXER                 \
+                CONFIG_ARGO_CVG_MUXER                   \
+                CONFIG_ASF_DEMUXER                      \
+                CONFIG_ASF_MUXER                        \
+                CONFIG_ASF_O_DEMUXER                    \
+                CONFIG_ASF_STREAM_MUXER                 \
+                CONFIG_ASS_DEMUXER                      \
+                CONFIG_ASS_MUXER                        \
+                CONFIG_AST_DEMUXER                      \
+                CONFIG_AST_MUXER                        \
+                CONFIG_ASYNC_PROTOCOL                   \
+                CONFIG_AU_DEMUXER                       \
+                CONFIG_AU_MUXER                         \
+                CONFIG_AV1_DEMUXER                      \
+                CONFIG_AVI_DEMUXER                      \
+                CONFIG_AVI_MUXER                        \
+                CONFIG_AVISYNTH_DEMUXER                 \
+                CONFIG_AVM2_MUXER                       \
+                CONFIG_AVR_DEMUXER                      \
+                CONFIG_AVS2_DEMUXER                     \
+                CONFIG_AVS2_MUXER                       \
+                CONFIG_AVS3_DEMUXER                     \
+                CONFIG_AVS3_MUXER                       \
+                CONFIG_AVS_DEMUXER                      \
+                CONFIG_BETHSOFTVID_DEMUXER              \
+                CONFIG_BFI_DEMUXER                      \
+                CONFIG_BFSTM_DEMUXER                    \
+                CONFIG_BINKA_DEMUXER                    \
+                CONFIG_BINK_DEMUXER                     \
+                CONFIG_BINTEXT_DEMUXER                  \
+                CONFIG_BIT_DEMUXER                      \
+                CONFIG_BIT_MUXER                        \
+                CONFIG_BITPACKED_DEMUXER                \
+                CONFIG_BLURAY_PROTOCOL                  \
+                CONFIG_BMV_DEMUXER                      \
+                CONFIG_BOA_DEMUXER                      \
+                CONFIG_BONK_DEMUXER                     \
+                CONFIG_BRSTM_DEMUXER                    \
+                CONFIG_C93_DEMUXER                      \
+                CONFIG_CACHE_PROTOCOL                   \
+                CONFIG_CAF_DEMUXER                      \
+                CONFIG_CAF_MUXER                        \
+                CONFIG_CAVSVIDEO_DEMUXER                \
+                CONFIG_CAVSVIDEO_MUXER                  \
+                CONFIG_CDG_DEMUXER                      \
+                CONFIG_CDXL_DEMUXER                     \
+                CONFIG_CHROMAPRINT_MUXER                \
+                CONFIG_CINE_DEMUXER                     \
+                CONFIG_CODEC2_DEMUXER                   \
+                CONFIG_CODEC2_MUXER                     \
+                CONFIG_CODEC2RAW_DEMUXER                \
+                CONFIG_CODEC2RAW_MUXER                  \
+                CONFIG_CONCAT_DEMUXER                   \
+                CONFIG_CONCATF_PROTOCOL                 \
+                CONFIG_CONCAT_PROTOCOL                  \
+                CONFIG_CRC_MUXER                        \
+                CONFIG_CRYPTO_PROTOCOL                  \
+                CONFIG_DASH_DEMUXER                     \
+                CONFIG_DASH_MUXER                       \
+                CONFIG_DATA_DEMUXER                     \
+                CONFIG_DATA_MUXER                       \
+                CONFIG_DATA_PROTOCOL                    \
+                CONFIG_DAUD_DEMUXER                     \
+                CONFIG_DAUD_MUXER                       \
+                CONFIG_DCSTR_DEMUXER                    \
+                CONFIG_DERF_DEMUXER                     \
+                CONFIG_DFA_DEMUXER                      \
+                CONFIG_DFPWM_DEMUXER                    \
+                CONFIG_DFPWM_MUXER                      \
+                CONFIG_DHAV_DEMUXER                     \
+                CONFIG_DIRAC_DEMUXER                    \
+                CONFIG_DIRAC_MUXER                      \
+                CONFIG_DNXHD_DEMUXER                    \
+                CONFIG_DNXHD_MUXER                      \
+                CONFIG_DSF_DEMUXER                      \
+                CONFIG_DSICIN_DEMUXER                   \
+                CONFIG_DSS_DEMUXER                      \
+                CONFIG_DTS_DEMUXER                      \
+                CONFIG_DTSHD_DEMUXER                    \
+                CONFIG_DTS_MUXER                        \
+                CONFIG_DVBSUB_DEMUXER                   \
+                CONFIG_DVBTXT_DEMUXER                   \
+                CONFIG_DVDVIDEO_DEMUXER                 \
+                CONFIG_DV_MUXER                         \
+                CONFIG_DXA_DEMUXER                      \
+                CONFIG_EAC3_DEMUXER                     \
+                CONFIG_EAC3_MUXER                       \
+                CONFIG_EA_CDATA_DEMUXER                 \
+                CONFIG_EA_DEMUXER                       \
+                CONFIG_EPAF_DEMUXER                     \
+                CONFIG_EVC_DEMUXER                      \
+                CONFIG_EVC_MUXER                        \
+                CONFIG_FD_PROTOCOL                      \
+                CONFIG_FFMETADATA_DEMUXER               \
+                CONFIG_FFMETADATA_MUXER                 \
+                CONFIG_FFRTMPCRYPT_PROTOCOL             \
+                CONFIG_FFRTMPHTTP_PROTOCOL              \
+                CONFIG_FIFO_MUXER                       \
+                CONFIG_FILE_PROTOCOL                    \
+                CONFIG_FILMSTRIP_DEMUXER                \
+                CONFIG_FILMSTRIP_MUXER                  \
+                CONFIG_FITS_DEMUXER                     \
+                CONFIG_FITS_MUXER                       \
+                CONFIG_FLAC_DEMUXER                     \
+                CONFIG_FLAC_MUXER                       \
+                CONFIG_FLIC_DEMUXER                     \
+                CONFIG_FLV_DEMUXER                      \
+                CONFIG_FLV_MUXER                        \
+                CONFIG_FOURXM_DEMUXER                   \
+                CONFIG_FRAMECRC_MUXER                   \
+                CONFIG_FRAMEHASH_MUXER                  \
+                CONFIG_FRAMEMD5_MUXER                   \
+                CONFIG_FRM_DEMUXER                      \
+                CONFIG_FSB_DEMUXER                      \
+                CONFIG_FTP_PROTOCOL                     \
+                CONFIG_FWSE_DEMUXER                     \
+                CONFIG_G722_DEMUXER                     \
+                CONFIG_G722_MUXER                       \
+                CONFIG_G723_1_DEMUXER                   \
+                CONFIG_G723_1_MUXER                     \
+                CONFIG_G726_DEMUXER                     \
+                CONFIG_G726LE_DEMUXER                   \
+                CONFIG_G726LE_MUXER                     \
+                CONFIG_G726_MUXER                       \
+                CONFIG_G729_DEMUXER                     \
+                CONFIG_GDV_DEMUXER                      \
+                CONFIG_GENH_DEMUXER                     \
+                CONFIG_GIF_DEMUXER                      \
+                CONFIG_GIF_MUXER                        \
+                CONFIG_GNUTLS                           \
+                CONFIG_GOPHER_PROTOCOL                  \
+                CONFIG_GOPHERS_PROTOCOL                 \
+                CONFIG_GSM_DEMUXER                      \
+                CONFIG_GSM_MUXER                        \
+                CONFIG_GXF_DEMUXER                      \
+                CONFIG_GXF_MUXER                        \
+                CONFIG_H261_DEMUXER                     \
+                CONFIG_H261_MUXER                       \
+                CONFIG_H263_DEMUXER                     \
+                CONFIG_H263_MUXER                       \
+                CONFIG_H264_DEMUXER                     \
+                CONFIG_H264_MUXER                       \
+                CONFIG_HASH_MUXER                       \
+                CONFIG_HCA_DEMUXER                      \
+                CONFIG_HCOM_DEMUXER                     \
+                CONFIG_HDS_MUXER                        \
+                CONFIG_HEVC_DEMUXER                     \
+                CONFIG_HEVC_MUXER                       \
+                CONFIG_HLS_DEMUXER                      \
+                CONFIG_HLS_MUXER                        \
+                CONFIG_HLS_PROTOCOL                     \
+                CONFIG_HNM_DEMUXER                      \
+                CONFIG_HTTP_PROTOCOL                    \
+                CONFIG_HTTPPROXY_PROTOCOL               \
+                CONFIG_HTTPS_PROTOCOL                   \
+                CONFIG_IAMFDEC                          \
+                CONFIG_IAMF_DEMUXER                     \
+                CONFIG_IAMFENC                          \
+                CONFIG_IAMF_MUXER                       \
+                CONFIG_ICECAST_PROTOCOL                 \
+                CONFIG_ICO_DEMUXER                      \
+                CONFIG_ICO_MUXER                        \
+                CONFIG_IDCIN_DEMUXER                    \
+                CONFIG_IDF_DEMUXER                      \
+                CONFIG_IFF_DEMUXER                      \
+                CONFIG_IFV_DEMUXER                      \
+                CONFIG_ILBC_DEMUXER                     \
+                CONFIG_ILBC_MUXER                       \
+                CONFIG_IMAGE2_ALIAS_PIX_DEMUXER         \
+                CONFIG_IMAGE2_BRENDER_PIX_DEMUXER       \
+                CONFIG_IMAGE2_DEMUXER                   \
+                CONFIG_IMAGE2_MUXER                     \
+                CONFIG_IMAGE2PIPE_DEMUXER               \
+                CONFIG_IMAGE2PIPE_MUXER                 \
+                CONFIG_IMAGE_BMP_PIPE_DEMUXER           \
+                CONFIG_IMAGE_CRI_PIPE_DEMUXER           \
+                CONFIG_IMAGE_DDS_PIPE_DEMUXER           \
+                CONFIG_IMAGE_DPX_PIPE_DEMUXER           \
+                CONFIG_IMAGE_EXR_PIPE_DEMUXER           \
+                CONFIG_IMAGE_GEM_PIPE_DEMUXER           \
+                CONFIG_IMAGE_GIF_PIPE_DEMUXER           \
+                CONFIG_IMAGE_HDR_PIPE_DEMUXER           \
+                CONFIG_IMAGE_J2K_PIPE_DEMUXER           \
+                CONFIG_IMAGE_JPEGLS_PIPE_DEMUXER        \
+                CONFIG_IMAGE_JPEG_PIPE_DEMUXER          \
+                CONFIG_IMAGE_JPEGXL_PIPE_DEMUXER        \
+                CONFIG_IMAGE_PAM_PIPE_DEMUXER           \
+                CONFIG_IMAGE_PBM_PIPE_DEMUXER           \
+                CONFIG_IMAGE_PCX_PIPE_DEMUXER           \
+                CONFIG_IMAGE_PFM_PIPE_DEMUXER           \
+                CONFIG_IMAGE_PGM_PIPE_DEMUXER           \
+                CONFIG_IMAGE_PGMYUV_PIPE_DEMUXER        \
+                CONFIG_IMAGE_PGX_PIPE_DEMUXER           \
+                CONFIG_IMAGE_PHM_PIPE_DEMUXER           \
+                CONFIG_IMAGE_PHOTOCD_PIPE_DEMUXER       \
+                CONFIG_IMAGE_PICTOR_PIPE_DEMUXER        \
+                CONFIG_IMAGE_PNG_PIPE_DEMUXER           \
+                CONFIG_IMAGE_PPM_PIPE_DEMUXER           \
+                CONFIG_IMAGE_PSD_PIPE_DEMUXER           \
+                CONFIG_IMAGE_QDRAW_PIPE_DEMUXER         \
+                CONFIG_IMAGE_QOI_PIPE_DEMUXER           \
+                CONFIG_IMAGE_SGI_PIPE_DEMUXER           \
+                CONFIG_IMAGE_SUNRAST_PIPE_DEMUXER       \
+                CONFIG_IMAGE_SVG_PIPE_DEMUXER           \
+                CONFIG_IMAGE_TIFF_PIPE_DEMUXER          \
+                CONFIG_IMAGE_WEBP_PIPE_DEMUXER          \
+                CONFIG_IMAGE_XBM_PIPE_DEMUXER           \
+                CONFIG_IMAGE_XPM_PIPE_DEMUXER           \
+                CONFIG_IMAGE_XWD_PIPE_DEMUXER           \
+                CONFIG_IMF_DEMUXER                      \
+                CONFIG_INGENIENT_DEMUXER                \
+                CONFIG_IPFS_GATEWAY_PROTOCOL            \
+                CONFIG_IPMOVIE_DEMUXER                  \
+                CONFIG_IPNS_GATEWAY_PROTOCOL            \
+                CONFIG_IPU_DEMUXER                      \
+                CONFIG_IRCAM_DEMUXER                    \
+                CONFIG_IRCAM_MUXER                      \
+                CONFIG_ISO_MEDIA                        \
+                CONFIG_ISS_DEMUXER                      \
+                CONFIG_IV8_DEMUXER                      \
+                CONFIG_IVF_DEMUXER                      \
+                CONFIG_IVF_MUXER                        \
+                CONFIG_IVR_DEMUXER                      \
+                CONFIG_JACOSUB_DEMUXER                  \
+                CONFIG_JACOSUB_MUXER                    \
+                CONFIG_JNI                              \
+                CONFIG_JPEGXL_ANIM_DEMUXER              \
+                CONFIG_JV_DEMUXER                       \
+                CONFIG_KUX_DEMUXER                      \
+                CONFIG_KVAG_DEMUXER                     \
+                CONFIG_KVAG_MUXER                       \
+                CONFIG_LAF_DEMUXER                      \
+                CONFIG_LATM_MUXER                       \
+                CONFIG_LIBAMQP_PROTOCOL                 \
+                CONFIG_LIBGME_DEMUXER                   \
+                CONFIG_LIBMODPLUG_DEMUXER               \
+                CONFIG_LIBOPENMPT_DEMUXER               \
+                CONFIG_LIBRIST_PROTOCOL                 \
+                CONFIG_LIBRTMPE_PROTOCOL                \
+                CONFIG_LIBRTMP_PROTOCOL                 \
+                CONFIG_LIBRTMPS_PROTOCOL                \
+                CONFIG_LIBRTMPTE_PROTOCOL               \
+                CONFIG_LIBRTMPT_PROTOCOL                \
+                CONFIG_LIBSMBCLIENT_PROTOCOL            \
+                CONFIG_LIBSRT_PROTOCOL                  \
+                CONFIG_LIBSSH_PROTOCOL                  \
+                CONFIG_LIBTLS                           \
+                CONFIG_LIBZMQ_PROTOCOL                  \
+                CONFIG_LIVE_FLV_DEMUXER                 \
+                CONFIG_LMLM4_DEMUXER                    \
+                CONFIG_LOAS_DEMUXER                     \
+                CONFIG_LRC_DEMUXER                      \
+                CONFIG_LRC_MUXER                        \
+                CONFIG_LUODAT_DEMUXER                   \
+                CONFIG_LVF_DEMUXER                      \
+                CONFIG_LXF_DEMUXER                      \
+                CONFIG_M4V_DEMUXER                      \
+                CONFIG_M4V_MUXER                        \
+                CONFIG_MATROSKA_DEMUXER                 \
+                CONFIG_MATROSKA_MUXER                   \
+                CONFIG_MBEDTLS                          \
+                CONFIG_MCA_DEMUXER                      \
+                CONFIG_MCC_DEMUXER                      \
+                CONFIG_MD5_MUXER                        \
+                CONFIG_MD5_PROTOCOL                     \
+                CONFIG_MGSTS_DEMUXER                    \
+                CONFIG_MICRODVD_DEMUXER                 \
+                CONFIG_MICRODVD_MUXER                   \
+                CONFIG_MJPEG_2000_DEMUXER               \
+                CONFIG_MJPEG_DEMUXER                    \
+                CONFIG_MJPEG_MUXER                      \
+                CONFIG_MKVTIMESTAMP_V2_MUXER            \
+                CONFIG_MLP_DEMUXER                      \
+                CONFIG_MLP_MUXER                        \
+                CONFIG_MLV_DEMUXER                      \
+                CONFIG_MM_DEMUXER                       \
+                CONFIG_MMF_DEMUXER                      \
+                CONFIG_MMF_MUXER                        \
+                CONFIG_MMSH_PROTOCOL                    \
+                CONFIG_MMST_PROTOCOL                    \
+                CONFIG_MODS_DEMUXER                     \
+                CONFIG_MOFLEX_DEMUXER                   \
+                CONFIG_MOV_DEMUXER                      \
+                CONFIG_MOV_MUXER                        \
+                CONFIG_MP2_MUXER                        \
+                CONFIG_MP3_DEMUXER                      \
+                CONFIG_MP3_MUXER                        \
+                CONFIG_MPC8_DEMUXER                     \
+                CONFIG_MPC_DEMUXER                      \
+                CONFIG_MPEG1SYSTEM_MUXER                \
+                CONFIG_MPEG1VCD_MUXER                   \
+                CONFIG_MPEG1VIDEO_MUXER                 \
+                CONFIG_MPEG2DVD_MUXER                   \
+                CONFIG_MPEG2SVCD_MUXER                  \
+                CONFIG_MPEG2VIDEO_MUXER                 \
+                CONFIG_MPEG2VOB_MUXER                   \
+                CONFIG_MPEGPS_DEMUXER                   \
+                CONFIG_MPEGTS_DEMUXER                   \
+                CONFIG_MPEGTS_MUXER                     \
+                CONFIG_MPEGVIDEO_DEMUXER                \
+                CONFIG_MPJPEG_DEMUXER                   \
+                CONFIG_MPJPEG_MUXER                     \
+                CONFIG_MPL2_DEMUXER                     \
+                CONFIG_MPSUB_DEMUXER                    \
+                CONFIG_MSF_DEMUXER                      \
+                CONFIG_MSNWC_TCP_DEMUXER                \
+                CONFIG_MSP_DEMUXER                      \
+                CONFIG_MTAF_DEMUXER                     \
+                CONFIG_MTV_DEMUXER                      \
+                CONFIG_MUSX_DEMUXER                     \
+                CONFIG_MV_DEMUXER                       \
+                CONFIG_MVI_DEMUXER                      \
+                CONFIG_MXF_DEMUXER                      \
+                CONFIG_MXF_MUXER                        \
+                CONFIG_MXG_DEMUXER                      \
+                CONFIG_NC_DEMUXER                       \
+                CONFIG_NETWORK                          \
+                CONFIG_NISTSPHERE_DEMUXER               \
+                CONFIG_NSP_DEMUXER                      \
+                CONFIG_NSV_DEMUXER                      \
+                CONFIG_NULL_MUXER                       \
+                CONFIG_NUT_DEMUXER                      \
+                CONFIG_NUT_MUXER                        \
+                CONFIG_NUV_DEMUXER                      \
+                CONFIG_OBU_DEMUXER                      \
+                CONFIG_OBU_MUXER                        \
+                CONFIG_OGA_MUXER                        \
+                CONFIG_OGG_DEMUXER                      \
+                CONFIG_OGG_MUXER                        \
+                CONFIG_OGV_MUXER                        \
+                CONFIG_OMA_DEMUXER                      \
+                CONFIG_OMA_MUXER                        \
+                CONFIG_OPENSSL                          \
+                CONFIG_OPUS_MUXER                       \
+                CONFIG_OSQ_DEMUXER                      \
+                CONFIG_PAF_DEMUXER                      \
+                CONFIG_PCM_ALAW_DEMUXER                 \
+                CONFIG_PCM_ALAW_MUXER                   \
+                CONFIG_PCM_F32BE_DEMUXER                \
+                CONFIG_PCM_F32BE_MUXER                  \
+                CONFIG_PCM_F32LE_DEMUXER                \
+                CONFIG_PCM_F32LE_MUXER                  \
+                CONFIG_PCM_F64BE_DEMUXER                \
+                CONFIG_PCM_F64BE_MUXER                  \
+                CONFIG_PCM_F64LE_DEMUXER                \
+                CONFIG_PCM_F64LE_MUXER                  \
+                CONFIG_PCM_MULAW_DEMUXER                \
+                CONFIG_PCM_MULAW_MUXER                  \
+                CONFIG_PCM_S16BE_DEMUXER                \
+                CONFIG_PCM_S16BE_MUXER                  \
+                CONFIG_PCM_S16LE_DEMUXER                \
+                CONFIG_PCM_S16LE_MUXER                  \
+                CONFIG_PCM_S24BE_DEMUXER                \
+                CONFIG_PCM_S24BE_MUXER                  \
+                CONFIG_PCM_S24LE_DEMUXER                \
+                CONFIG_PCM_S24LE_MUXER                  \
+                CONFIG_PCM_S32BE_DEMUXER                \
+                CONFIG_PCM_S32BE_MUXER                  \
+                CONFIG_PCM_S32LE_DEMUXER                \
+                CONFIG_PCM_S32LE_MUXER                  \
+                CONFIG_PCM_S8_DEMUXER                   \
+                CONFIG_PCM_S8_MUXER                     \
+                CONFIG_PCM_U16BE_DEMUXER                \
+                CONFIG_PCM_U16BE_MUXER                  \
+                CONFIG_PCM_U16LE_DEMUXER                \
+                CONFIG_PCM_U16LE_MUXER                  \
+                CONFIG_PCM_U24BE_DEMUXER                \
+                CONFIG_PCM_U24BE_MUXER                  \
+                CONFIG_PCM_U24LE_DEMUXER                \
+                CONFIG_PCM_U24LE_MUXER                  \
+                CONFIG_PCM_U32BE_DEMUXER                \
+                CONFIG_PCM_U32BE_MUXER                  \
+                CONFIG_PCM_U32LE_DEMUXER                \
+                CONFIG_PCM_U32LE_MUXER                  \
+                CONFIG_PCM_U8_DEMUXER                   \
+                CONFIG_PCM_U8_MUXER                     \
+                CONFIG_PCM_VIDC_DEMUXER                 \
+                CONFIG_PCM_VIDC_MUXER                   \
+                CONFIG_PDV_DEMUXER                      \
+                CONFIG_PIPE_PROTOCOL                    \
+                CONFIG_PJS_DEMUXER                      \
+                CONFIG_PMP_DEMUXER                      \
+                CONFIG_PP_BNK_DEMUXER                   \
+                CONFIG_PROMPEG_PROTOCOL                 \
+                CONFIG_PVA_DEMUXER                      \
+                CONFIG_PVF_DEMUXER                      \
+                CONFIG_QCP_DEMUXER                      \
+                CONFIG_QOA_DEMUXER                      \
+                CONFIG_R3D_DEMUXER                      \
+                CONFIG_RAWVIDEO_DEMUXER                 \
+                CONFIG_RAWVIDEO_MUXER                   \
+                CONFIG_RCWT_MUXER                       \
+                CONFIG_REALTEXT_DEMUXER                 \
+                CONFIG_REDSPARK_DEMUXER                 \
+                CONFIG_RIFFDEC                          \
+                CONFIG_RIFFENC                          \
+                CONFIG_RKA_DEMUXER                      \
+                CONFIG_RL2_DEMUXER                      \
+                CONFIG_RM_DEMUXER                       \
+                CONFIG_RM_MUXER                         \
+                CONFIG_ROQ_DEMUXER                      \
+                CONFIG_ROQ_MUXER                        \
+                CONFIG_RPL_DEMUXER                      \
+                CONFIG_RSD_DEMUXER                      \
+                CONFIG_RSO_DEMUXER                      \
+                CONFIG_RSO_MUXER                        \
+                CONFIG_RTMPE_PROTOCOL                   \
+                CONFIG_RTMP_PROTOCOL                    \
+                CONFIG_RTMPS_PROTOCOL                   \
+                CONFIG_RTMPTE_PROTOCOL                  \
+                CONFIG_RTMPT_PROTOCOL                   \
+                CONFIG_RTMPTS_PROTOCOL                  \
+                CONFIG_RTPDEC                           \
+                CONFIG_RTPENC_CHAIN                     \
+                CONFIG_RTP_MPEGTS_MUXER                 \
+                CONFIG_RTP_MUXER                        \
+                CONFIG_RTP_PROTOCOL                     \
+                CONFIG_RTSP_DEMUXER                     \
+                CONFIG_RTSP_MUXER                       \
+                CONFIG_S337M_DEMUXER                    \
+                CONFIG_SAMI_DEMUXER                     \
+                CONFIG_SAP_DEMUXER                      \
+                CONFIG_SAP_MUXER                        \
+                CONFIG_SBC_DEMUXER                      \
+                CONFIG_SBC_MUXER                        \
+                CONFIG_SBG_DEMUXER                      \
+                CONFIG_SCC_DEMUXER                      \
+                CONFIG_SCC_MUXER                        \
+                CONFIG_SCD_DEMUXER                      \
+                CONFIG_SCHANNEL                         \
+                CONFIG_SCTP_PROTOCOL                    \
+                CONFIG_SDNS_DEMUXER                     \
+                CONFIG_SDP_DEMUXER                      \
+                CONFIG_SDR2_DEMUXER                     \
+                CONFIG_SDS_DEMUXER                      \
+                CONFIG_SDX_DEMUXER                      \
+                CONFIG_SECURETRANSPORT                  \
+                CONFIG_SEGAFILM_DEMUXER                 \
+                CONFIG_SEGAFILM_MUXER                   \
+                CONFIG_SEGMENT_MUXER                    \
+                CONFIG_SER_DEMUXER                      \
+                CONFIG_SGA_DEMUXER                      \
+                CONFIG_SHORTEN_DEMUXER                  \
+                CONFIG_SIFF_DEMUXER                     \
+                CONFIG_SIMBIOSIS_IMX_DEMUXER            \
+                CONFIG_SLN_DEMUXER                      \
+                CONFIG_SMACKER_DEMUXER                  \
+                CONFIG_SMJPEG_DEMUXER                   \
+                CONFIG_SMJPEG_MUXER                     \
+                CONFIG_SMOOTHSTREAMING_MUXER            \
+                CONFIG_SMUSH_DEMUXER                    \
+                CONFIG_SOL_DEMUXER                      \
+                CONFIG_SOX_DEMUXER                      \
+                CONFIG_SOX_MUXER                        \
+                CONFIG_SPDIF_DEMUXER                    \
+                CONFIG_SPDIF_MUXER                      \
+                CONFIG_SPEEX_MUXER                      \
+                CONFIG_SRT_DEMUXER                      \
+                CONFIG_SRT_MUXER                        \
+                CONFIG_SRTP                             \
+                CONFIG_SRTP_PROTOCOL                    \
+                CONFIG_STL_DEMUXER                      \
+                CONFIG_STR_DEMUXER                      \
+                CONFIG_STREAMHASH_MUXER                 \
+                CONFIG_STREAM_SEGMENT_MUXER             \
+                CONFIG_SUBFILE_PROTOCOL                 \
+                CONFIG_SUBVIEWER1_DEMUXER               \
+                CONFIG_SUBVIEWER_DEMUXER                \
+                CONFIG_SUP_DEMUXER                      \
+                CONFIG_SUP_MUXER                        \
+                CONFIG_SVAG_DEMUXER                     \
+                CONFIG_SVS_DEMUXER                      \
+                CONFIG_SWF_DEMUXER                      \
+                CONFIG_SWF_MUXER                        \
+                CONFIG_TAK_DEMUXER                      \
+                CONFIG_TCP_PROTOCOL                     \
+                CONFIG_TEDCAPTIONS_DEMUXER              \
+                CONFIG_TEE_MUXER                        \
+                CONFIG_TEE_PROTOCOL                     \
+                CONFIG_THP_DEMUXER                      \
+                CONFIG_THREEDOSTR_DEMUXER               \
+                CONFIG_TIERTEXSEQ_DEMUXER               \
+                CONFIG_TLS_PROTOCOL                     \
+                CONFIG_TMV_DEMUXER                      \
+                CONFIG_TRUEHD_DEMUXER                   \
+                CONFIG_TRUEHD_MUXER                     \
+                CONFIG_TTA_DEMUXER                      \
+                CONFIG_TTA_MUXER                        \
+                CONFIG_TTML_MUXER                       \
+                CONFIG_TTY_DEMUXER                      \
+                CONFIG_TXD_DEMUXER                      \
+                CONFIG_TY_DEMUXER                       \
+                CONFIG_UDPLITE_PROTOCOL                 \
+                CONFIG_UDP_PROTOCOL                     \
+                CONFIG_UNCODEDFRAMECRC_MUXER            \
+                CONFIG_UNIX_PROTOCOL                    \
+                CONFIG_USM_DEMUXER                      \
+                CONFIG_V210_DEMUXER                     \
+                CONFIG_V210X_DEMUXER                    \
+                CONFIG_VAG_DEMUXER                      \
+                CONFIG_VAPOURSYNTH_DEMUXER              \
+                CONFIG_VC1_DEMUXER                      \
+                CONFIG_VC1_MUXER                        \
+                CONFIG_VC1T_DEMUXER                     \
+                CONFIG_VC1T_MUXER                       \
+                CONFIG_VIVIDAS_DEMUXER                  \
+                CONFIG_VIVO_DEMUXER			\
+		CONFIG_VMD_DEMUXER			\
+		CONFIG_VOBSUB_DEMUXER			\
+		CONFIG_VOC_DEMUXER			\
+		CONFIG_VOC_MUXER			\
+		CONFIG_VPK_DEMUXER			\
+		CONFIG_VPLAYER_DEMUXER			\
+		CONFIG_VQF_DEMUXER			\
+		CONFIG_VVC_DEMUXER			\
+		CONFIG_VVC_MUXER			\
+		CONFIG_W64_DEMUXER			\
+		CONFIG_W64_MUXER			\
+		CONFIG_WADY_DEMUXER			\
+		CONFIG_WAVARC_DEMUXER			\
+		CONFIG_WAV_DEMUXER			\
+		CONFIG_WAV_MUXER			\
+		CONFIG_WC3_DEMUXER			\
+		CONFIG_WEBM_CHUNK_MUXER			\
+		CONFIG_WEBM_DASH_MANIFEST_MUXER		\
+		CONFIG_WEBM_MUXER			\
+		CONFIG_WEBP_MUXER			\
+		CONFIG_WEBVTT_DEMUXER			\
+		CONFIG_WEBVTT_MUXER			\
+		CONFIG_WSAUD_DEMUXER			\
+		CONFIG_WSAUD_MUXER			\
+		CONFIG_WSD_DEMUXER			\
+		CONFIG_WSVQA_DEMUXER			\
+		CONFIG_WTV_DEMUXER			\
+		CONFIG_WTV_MUXER			\
+		CONFIG_WV_DEMUXER			\
+		CONFIG_WVE_DEMUXER			\
+		CONFIG_WV_MUXER				\
+		CONFIG_XA_DEMUXER			\
+		CONFIG_XBIN_DEMUXER			\
+		CONFIG_XMD_DEMUXER			\
+		CONFIG_XMV_DEMUXER			\
+		CONFIG_XVAG_DEMUXER			\
+		CONFIG_XWMA_DEMUXER			\
+		CONFIG_YOP_DEMUXER			\
+		CONFIG_YUV4MPEGPIPE_DEMUXER		\
+		CONFIG_YUV4MPEGPIPE_MUXER		\
+		HAVE_GNU_WINDRES			\
+		HAVE_LIBC_MSVCRT
+
+# Note that we don't need to pass *.poptions because every macro imported from
+# config.h will have a literal value.
+#
+[rule_hint=c.predefs] buildfile{config}: $config_h
+{
+  c.predefs.poptions = false
+  c.predefs.macros = $config_macros
+}
+
+# Update and source config.build and adjust the imported variables.
+#
+if ($build.meta_operation == 'perform')
+{
+  update buildfile{config}
+  source $path(buildfile{config})
+
+  # Adjust the resulting values.
+  #
+  # Note: assume all macros in config_macros are boolean.
+  #
+  for m: $config_macros
+    $m = (!$null($($m)) && $($m) != 0) # Convert [null], 0, or 1 to boolean.
+}
+else
+{
+  for m: $config_macros
+    $m = false
+}
+
+libul{avformat}: buildfile{config} # Ensure it gets cleaned.
+
+# Conditionally-compiled source files
+#
+libul{avformat}: libavformat/c{3dostr}: include = $CONFIG_THREEDOSTR_DEMUXER
+libul{avformat}: libavformat/c{4xm}: include = $CONFIG_FOURXM_DEMUXER
+libul{avformat}: libavformat/c{a64}: include = $CONFIG_A64_MUXER
+libul{avformat}: libavformat/c{aacdec}: include = $CONFIG_AAC_DEMUXER
+libul{avformat}: libavformat/c{aadec}: include = $CONFIG_AA_DEMUXER
+libul{avformat}: libavformat/c{aaxdec}: include = $CONFIG_AAX_DEMUXER
+libul{avformat}: libavformat/c{ac3_channel_layout_tab}: include = ($CONFIG_HLS_DEMUXER || $CONFIG_MOV_DEMUXER)
+libul{avformat}: libavformat/c{ac3dec}: include = ($CONFIG_EAC3_DEMUXER || $CONFIG_AC3_DEMUXER)
+libul{avformat}: libavformat/c{ac4dec}: include = $CONFIG_AC4_DEMUXER
+libul{avformat}: libavformat/c{ac4enc}: include = $CONFIG_AC4_MUXER
+libul{avformat}: libavformat/c{acedec}: include = $CONFIG_ACE_DEMUXER
+libul{avformat}: libavformat/c{acm}: include = $CONFIG_ACM_DEMUXER
+libul{avformat}: libavformat/c{act}: include = $CONFIG_ACT_DEMUXER
+libul{avformat}: libavformat/c{adp}: include = $CONFIG_ADP_DEMUXER
+libul{avformat}: libavformat/c{ads}: include = $CONFIG_ADS_DEMUXER
+libul{avformat}: libavformat/c{adtsenc}: include = $CONFIG_ADTS_MUXER
+libul{avformat}: libavformat/c{adxdec}: include = $CONFIG_ADX_DEMUXER
+libul{avformat}: libavformat/c{aeadec}: include = $CONFIG_AEA_DEMUXER
+libul{avformat}: libavformat/c{aeaenc}: include = $CONFIG_AEA_MUXER
+libul{avformat}: libavformat/c{afc}: include = $CONFIG_AFC_DEMUXER
+libul{avformat}: libavformat/c{aiffdec}: include = $CONFIG_AIFF_DEMUXER
+libul{avformat}: libavformat/c{aiffenc}: include = $CONFIG_AIFF_MUXER
+libul{avformat}: libavformat/c{aiff}: include = ($CONFIG_AIFF_DEMUXER || $CONFIG_AIFF_MUXER)
+libul{avformat}: libavformat/c{aixdec}: include = $CONFIG_AIX_DEMUXER
+libul{avformat}: libavformat/c{alp}: include = ($CONFIG_ALP_DEMUXER || $CONFIG_ALP_MUXER)
+libul{avformat}: libavformat/c{amr}: include = ($CONFIG_AMRNB_DEMUXER || $CONFIG_AMRWB_DEMUXER || $CONFIG_AMR_DEMUXER || $CONFIG_AMR_MUXER)
+libul{avformat}: libavformat/c{amvenc}: include = $CONFIG_AMV_MUXER
+libul{avformat}: libavformat/c{anm}: include = $CONFIG_ANM_DEMUXER
+libul{avformat}: libavformat/c{apac}: include = $CONFIG_APAC_DEMUXER
+libul{avformat}: libavformat/c{apc}: include = $CONFIG_APC_DEMUXER
+libul{avformat}: libavformat/c{apetag}: include = ($CONFIG_ADTS_MUXER || $CONFIG_AAC_DEMUXER || $CONFIG_APE_DEMUXER || $CONFIG_MPC8_DEMUXER || $CONFIG_MPC_DEMUXER || $CONFIG_RKA_DEMUXER || $CONFIG_TAK_DEMUXER || $CONFIG_TTA_DEMUXER || $CONFIG_TTA_MUXER || $CONFIG_WV_DEMUXER || $CONFIG_WV_MUXER)
+libul{avformat}: libavformat/c{ape}: include = $CONFIG_APE_DEMUXER
+libul{avformat}: libavformat/c{apm}: include = ($CONFIG_APM_DEMUXER || $CONFIG_APM_MUXER)
+libul{avformat}: libavformat/c{apngdec}: include = $CONFIG_APNG_DEMUXER
+libul{avformat}: libavformat/c{apngenc}: include = $CONFIG_APNG_MUXER
+libul{avformat}: libavformat/c{aptxdec}: include = ($CONFIG_APTX_DEMUXER || $CONFIG_APTX_HD_DEMUXER)
+libul{avformat}: libavformat/c{aqtitledec}: include = $CONFIG_AQTITLE_DEMUXER
+libul{avformat}: libavformat/c{argo_asf}: include = ($CONFIG_ARGO_ASF_DEMUXER || $CONFIG_ARGO_ASF_MUXER || $CONFIG_ARGO_BRP_DEMUXER)
+libul{avformat}: libavformat/c{argo_brp}: include = $CONFIG_ARGO_BRP_DEMUXER
+libul{avformat}: libavformat/c{argo_cvg}: include = ($CONFIG_ARGO_CVG_DEMUXER || $CONFIG_ARGO_CVG_MUXER)
+libul{avformat}: libavformat/c{asf_tags}: include = ($CONFIG_ASF_DEMUXER || $CONFIG_ASF_O_DEMUXER || $CONFIG_MMSH_PROTOCOL || $CONFIG_MMST_PROTOCOL)
+libul{avformat}: libavformat/c{asfcrypt}: include = ($CONFIG_ASF_DEMUXER || $CONFIG_ASF_O_DEMUXER)
+libul{avformat}: libavformat/c{asfdec_f}: include = $CONFIG_ASF_DEMUXER
+libul{avformat}: libavformat/c{asfdec_o}: include = $CONFIG_ASF_O_DEMUXER
+libul{avformat}: libavformat/c{asfenc}: include = $CONFIG_ASF_MUXER
+libul{avformat}: libavformat/c{asf}: include = ($CONFIG_ASF_DEMUXER || $CONFIG_ASF_MUXER || $CONFIG_ASF_O_DEMUXER || $CONFIG_WTV_DEMUXER || $CONFIG_WTV_MUXER)
+libul{avformat}: libavformat/c{assdec}: include = $CONFIG_ASS_DEMUXER
+libul{avformat}: libavformat/c{assenc}: include = $CONFIG_ASS_MUXER
+libul{avformat}: libavformat/c{astdec}: include = $CONFIG_AST_DEMUXER
+libul{avformat}: libavformat/c{astenc}: include = $CONFIG_AST_MUXER
+libul{avformat}: libavformat/c{ast}: include = ($CONFIG_AST_DEMUXER || $CONFIG_AST_MUXER)
+libul{avformat}: libavformat/c{async}: include = $CONFIG_ASYNC_PROTOCOL
+libul{avformat}: libavformat/c{au}: include = ($CONFIG_AU_DEMUXER || $CONFIG_AU_MUXER)
+libul{avformat}: libavformat/c{av1dec}: include = ($CONFIG_AV1_DEMUXER || $CONFIG_OBU_DEMUXER)
+libul{avformat}: libavformat/c{av1}: include = ($CONFIG_FLV_MUXER || $CONFIG_MATROSKA_MUXER || $CONFIG_MOV_MUXER || $CONFIG_WEBM_MUXER)
+libul{avformat}: libavformat/c{avc}: include = ($CONFIG_FLV_MUXER || $CONFIG_HLS_MUXER || $CONFIG_MATROSKA_MUXER || $CONFIG_MOV_MUXER || $CONFIG_MXF_MUXER || $CONFIG_RTP_MUXER)
+libul{avformat}: libavformat/c{avidec}: include = $CONFIG_AVI_DEMUXER
+libul{avformat}: libavformat/c{avienc}: include = $CONFIG_AVI_MUXER
+libul{avformat}: libavformat/c{avisynth}: include = $CONFIG_AVISYNTH_DEMUXER
+libul{avformat}: libavformat/c{avlanguage}: include = ($CONFIG_ASF_DEMUXER || $CONFIG_ASF_MUXER || $CONFIG_ASF_O_DEMUXER || $CONFIG_AVI_MUXER || $CONFIG_MATROSKA_MUXER || $CONFIG_MXF_DEMUXER || $CONFIG_WEBM_MUXER)
+libul{avformat}: libavformat/c{avr}: include = $CONFIG_AVR_DEMUXER
+libul{avformat}: libavformat/c{avs2dec}: include = $CONFIG_AVS2_DEMUXER
+libul{avformat}: libavformat/c{avs3dec}: include = $CONFIG_AVS3_DEMUXER
+libul{avformat}: libavformat/c{avs}: include = $CONFIG_AVS_DEMUXER
+libul{avformat}: libavformat/c{bethsoftvid}: include = $CONFIG_BETHSOFTVID_DEMUXER
+libul{avformat}: libavformat/c{bfi}: include = $CONFIG_BFI_DEMUXER
+libul{avformat}: libavformat/c{binka}: include = $CONFIG_BINKA_DEMUXER
+libul{avformat}: libavformat/c{bink}: include = $CONFIG_BINK_DEMUXER
+libul{avformat}: libavformat/c{bintext}: include = ($CONFIG_ADF_DEMUXER || $CONFIG_BINTEXT_DEMUXER || $CONFIG_IDF_DEMUXER || $CONFIG_XBIN_DEMUXER)
+libul{avformat}: libavformat/c{bit}: include = ($CONFIG_BIT_DEMUXER || $CONFIG_BIT_MUXER)
+libul{avformat}: libavformat/c{bluray}: include = $CONFIG_BLURAY_PROTOCOL
+libul{avformat}: libavformat/c{bmv}: include = $CONFIG_BMV_DEMUXER
+libul{avformat}: libavformat/c{boadec}: include = $CONFIG_BOA_DEMUXER
+libul{avformat}: libavformat/c{bonk}: include = $CONFIG_BONK_DEMUXER
+libul{avformat}: libavformat/c{brstm}: include = ($CONFIG_BFSTM_DEMUXER || $CONFIG_BRSTM_DEMUXER)
+libul{avformat}: libavformat/c{c93}: include = $CONFIG_C93_DEMUXER
+libul{avformat}: libavformat/c{cache}: include = $CONFIG_CACHE_PROTOCOL
+libul{avformat}: libavformat/c{cafdec}: include = $CONFIG_CAF_DEMUXER
+libul{avformat}: libavformat/c{cafenc}: include = $CONFIG_CAF_MUXER
+libul{avformat}: libavformat/c{caf}: include = ($CONFIG_CAF_DEMUXER || $CONFIG_CAF_MUXER)
+libul{avformat}: libavformat/c{cavsvideodec}: include = $CONFIG_CAVSVIDEO_DEMUXER
+libul{avformat}: libavformat/c{cdg}: include = $CONFIG_CDG_DEMUXER
+libul{avformat}: libavformat/c{cdxl}: include = $CONFIG_CDXL_DEMUXER
+libul{avformat}: libavformat/c{chromaprint}: include = $CONFIG_CHROMAPRINT_MUXER
+libul{avformat}: libavformat/c{cinedec}: include = $CONFIG_CINE_DEMUXER
+libul{avformat}: libavformat/c{codec2}: include = ($CONFIG_CODEC2RAW_DEMUXER || $CONFIG_CODEC2_DEMUXER || $CONFIG_CODEC2_MUXER)
+libul{avformat}: libavformat/c{concatdec}: include = $CONFIG_CONCAT_DEMUXER
+libul{avformat}: libavformat/c{concat}: include = ($CONFIG_CONCATF_PROTOCOL || $CONFIG_CONCAT_PROTOCOL)
+libul{avformat}: libavformat/c{crcenc}: include = $CONFIG_CRC_MUXER
+libul{avformat}: libavformat/c{crypto}: include = $CONFIG_CRYPTO_PROTOCOL
+libul{avformat}: libavformat/c{dashdec}: include = $CONFIG_DASH_DEMUXER
+libul{avformat}: libavformat/c{dashenc}: include = $CONFIG_DASH_MUXER
+libul{avformat}: libavformat/c{dash}: include = ($CONFIG_DASH_DEMUXER || $CONFIG_DASH_MUXER)
+libul{avformat}: libavformat/c{data_uri}: include = $CONFIG_DATA_PROTOCOL
+libul{avformat}: libavformat/c{dauddec}: include = $CONFIG_DAUD_DEMUXER
+libul{avformat}: libavformat/c{daudenc}: include = $CONFIG_DAUD_MUXER
+libul{avformat}: libavformat/c{dca_sample_rate_tab}: include = $CONFIG_SPDIF_MUXER
+libul{avformat}: libavformat/c{dcstr}: include = $CONFIG_DCSTR_DEMUXER
+libul{avformat}: libavformat/c{derf}: include = $CONFIG_DERF_DEMUXER
+libul{avformat}: libavformat/c{dfa}: include = $CONFIG_DFA_DEMUXER
+libul{avformat}: libavformat/c{dfpwmdec}: include = $CONFIG_DFPWM_DEMUXER
+libul{avformat}: libavformat/c{dhav}: include = $CONFIG_DHAV_DEMUXER
+libul{avformat}: libavformat/c{diracdec}: include = $CONFIG_DIRAC_DEMUXER
+libul{avformat}: libavformat/c{dnxhddec}: include = $CONFIG_DNXHD_DEMUXER
+libul{avformat}: libavformat/c{dovi_isom}: include = ($CONFIG_MATROSKA_DEMUXER || $CONFIG_MATROSKA_MUXER || $CONFIG_MOV_DEMUXER || $CONFIG_MOV_MUXER)
+libul{avformat}: libavformat/c{dsfdec}: include = $CONFIG_DSF_DEMUXER
+libul{avformat}: libavformat/c{dsicin}: include = $CONFIG_DSICIN_DEMUXER
+libul{avformat}: libavformat/c{dss}: include = $CONFIG_DSS_DEMUXER
+libul{avformat}: libavformat/c{dtsdec}: include = $CONFIG_DTS_DEMUXER
+libul{avformat}: libavformat/c{dtshddec}: include = $CONFIG_DTSHD_DEMUXER
+libul{avformat}: libavformat/c{dvbsub}: include = $CONFIG_DVBSUB_DEMUXER
+libul{avformat}: libavformat/c{dvbtxt}: include = $CONFIG_DVBTXT_DEMUXER
+libul{avformat}: libavformat/c{dvdclut}: include = $CONFIG_DVDVIDEO_DEMUXER
+libul{avformat}: libavformat/c{dvdvideodec}: include = $CONFIG_DVDVIDEO_DEMUXER
+libul{avformat}: libavformat/c{dvenc}: include = $CONFIG_DV_MUXER
+libul{avformat}: libavformat/c{dxa}: include = $CONFIG_DXA_DEMUXER
+libul{avformat}: libavformat/c{eacdata}: include = $CONFIG_EA_CDATA_DEMUXER
+libul{avformat}: libavformat/c{electronicarts}: include = $CONFIG_EA_DEMUXER
+libul{avformat}: libavformat/c{epafdec}: include = $CONFIG_EPAF_DEMUXER
+libul{avformat}: libavformat/c{evcdec}: include = $CONFIG_EVC_DEMUXER
+libul{avformat}: libavformat/c{evc}: include = $CONFIG_MOV_MUXER
+libul{avformat}: libavformat/c{ffjni}: include = $CONFIG_JNI
+libul{avformat}: libavformat/c{ffmetadec}: include = $CONFIG_FFMETADATA_DEMUXER
+libul{avformat}: libavformat/c{ffmetaenc}: include = $CONFIG_FFMETADATA_MUXER
+libul{avformat}: libavformat/c{fifo}: include = $CONFIG_FIFO_MUXER
+libul{avformat}: libavformat/c{file_open}: include = $HAVE_LIBC_MSVCRT
+libul{avformat}: libavformat/c{file}: include = ($CONFIG_ANDROID_CONTENT_PROTOCOL || $CONFIG_FD_PROTOCOL || $CONFIG_FILE_PROTOCOL || $CONFIG_PIPE_PROTOCOL)
+libul{avformat}: libavformat/c{filmstripdec}: include = $CONFIG_FILMSTRIP_DEMUXER
+libul{avformat}: libavformat/c{filmstripenc}: include = $CONFIG_FILMSTRIP_MUXER
+libul{avformat}: libavformat/c{fitsdec}: include = $CONFIG_FITS_DEMUXER
+libul{avformat}: libavformat/c{fitsenc}: include = $CONFIG_FITS_MUXER
+libul{avformat}: libavformat/c{flac_picture}: include = ($CONFIG_FLAC_DEMUXER || $CONFIG_MATROSKA_DEMUXER || $CONFIG_OGG_DEMUXER)
+libul{avformat}: libavformat/c{flacdec}: include = $CONFIG_FLAC_DEMUXER
+libul{avformat}: libavformat/c{flacenc_header}: include = ($CONFIG_FLAC_MUXER || $CONFIG_MATROSKA_MUXER)
+libul{avformat}: libavformat/c{flacenc}: include = $CONFIG_FLAC_MUXER
+libul{avformat}: libavformat/c{flic}: include = $CONFIG_FLIC_DEMUXER
+libul{avformat}: libavformat/c{flvdec}: include = ($CONFIG_FLV_DEMUXER || $CONFIG_KUX_DEMUXER || $CONFIG_LIVE_FLV_DEMUXER)
+libul{avformat}: libavformat/c{flvenc}: include = $CONFIG_FLV_MUXER
+libul{avformat}: libavformat/c{framecrcenc}: include = $CONFIG_FRAMECRC_MUXER
+libul{avformat}: libavformat/c{framehash}: include = ($CONFIG_FRAMECRC_MUXER || $CONFIG_FRAMEHASH_MUXER || $CONFIG_FRAMEMD5_MUXER || $CONFIG_UNCODEDFRAMECRC_MUXER)
+libul{avformat}: libavformat/c{frmdec}: include = $CONFIG_FRM_DEMUXER
+libul{avformat}: libavformat/c{fsb}: include = $CONFIG_FSB_DEMUXER
+libul{avformat}: libavformat/c{ftp}: include = $CONFIG_FTP_PROTOCOL
+libul{avformat}: libavformat/c{fwse}: include = $CONFIG_FWSE_DEMUXER
+libul{avformat}: libavformat/c{g722}: include = $CONFIG_G722_DEMUXER
+libul{avformat}: libavformat/c{g723_1}: include = $CONFIG_G723_1_DEMUXER
+libul{avformat}: libavformat/c{g726}: include = ($CONFIG_G726LE_DEMUXER || $CONFIG_G726_DEMUXER)
+libul{avformat}: libavformat/c{g729dec}: include = $CONFIG_G729_DEMUXER
+libul{avformat}: libavformat/c{gdv}: include = $CONFIG_GDV_DEMUXER
+libul{avformat}: libavformat/c{genh}: include = $CONFIG_GENH_DEMUXER
+libul{avformat}: libavformat/c{gifdec}: include = $CONFIG_GIF_DEMUXER
+libul{avformat}: libavformat/c{gif}: include = $CONFIG_GIF_MUXER
+libul{avformat}: libavformat/c{golomb_tab}: include = ($CONFIG_MXF_MUXER || $CONFIG_RTP_MUXER)
+libul{avformat}: libavformat/c{gopher}: include = ($CONFIG_GOPHERS_PROTOCOL || $CONFIG_GOPHER_PROTOCOL)
+libul{avformat}: libavformat/c{gsmdec}: include = $CONFIG_GSM_DEMUXER
+libul{avformat}: libavformat/c{gxfenc}: include = $CONFIG_GXF_MUXER
+libul{avformat}: libavformat/c{gxf}: include = $CONFIG_GXF_DEMUXER
+libul{avformat}: libavformat/c{h261dec}: include = $CONFIG_H261_DEMUXER
+libul{avformat}: libavformat/c{h263dec}: include = $CONFIG_H263_DEMUXER
+libul{avformat}: libavformat/c{h264dec}: include = $CONFIG_H264_DEMUXER
+libul{avformat}: libavformat/c{hashenc}: include = ($CONFIG_FRAMEHASH_MUXER || $CONFIG_FRAMEMD5_MUXER || $CONFIG_HASH_MUXER || $CONFIG_MD5_MUXER || $CONFIG_STREAMHASH_MUXER)
+libul{avformat}: libavformat/c{hca}: include = $CONFIG_HCA_DEMUXER
+libul{avformat}: libavformat/c{hcom}: include = $CONFIG_HCOM_DEMUXER
+libul{avformat}: libavformat/c{hdsenc}: include = $CONFIG_HDS_MUXER
+libul{avformat}: libavformat/c{hevcdec}: include = $CONFIG_HEVC_DEMUXER
+libul{avformat}: libavformat/c{hevc}: include = ($CONFIG_MATROSKA_MUXER || $CONFIG_FLV_MUXER || $CONFIG_MOV_MUXER || $CONFIG_RTP_MUXER)
+libul{avformat}: libavformat/c{hls_sample_encryption}: include = $CONFIG_HLS_DEMUXER
+libul{avformat}: libavformat/c{hlsenc}: include = $CONFIG_HLS_MUXER
+libul{avformat}: libavformat/c{hlsplaylist}: include = ($CONFIG_DASH_MUXER || $CONFIG_HLS_MUXER)
+libul{avformat}: libavformat/c{hlsproto}: include = ($CONFIG_APPLEHTTP_PROTOCOL || $CONFIG_HLS_PROTOCOL)
+libul{avformat}: libavformat/c{hls}: include = $CONFIG_HLS_DEMUXER
+libul{avformat}: libavformat/c{hnm}: include = $CONFIG_HNM_DEMUXER
+libul{avformat}: libavformat/c{httpauth}: include = ($CONFIG_HTTPPROXY_PROTOCOL || $CONFIG_HTTPS_PROTOCOL || $CONFIG_HTTP_PROTOCOL || $CONFIG_RTSP_DEMUXER || $CONFIG_RTSP_MUXER)
+libul{avformat}: libavformat/c{http}: include = ($CONFIG_HTTPPROXY_PROTOCOL || $CONFIG_HTTPS_PROTOCOL || $CONFIG_HTTP_PROTOCOL)
+libul{avformat}: libavformat/c{iamf_parse}: include = $CONFIG_IAMFDEC
+libul{avformat}: libavformat/c{iamf_reader}: include = $CONFIG_IAMFDEC
+libul{avformat}: libavformat/c{iamf_writer}: include = $CONFIG_IAMFENC
+libul{avformat}: libavformat/c{iamfdec}: include = $CONFIG_IAMF_DEMUXER
+libul{avformat}: libavformat/c{iamfenc}: include = $CONFIG_IAMF_MUXER
+libul{avformat}: libavformat/c{iamf}: include = ($CONFIG_IAMFDEC || $CONFIG_IAMFENC)
+libul{avformat}: libavformat/c{icecast}: include = $CONFIG_ICECAST_PROTOCOL
+libul{avformat}: libavformat/c{icodec}: include = $CONFIG_ICO_DEMUXER
+libul{avformat}: libavformat/c{icoenc}: include = $CONFIG_ICO_MUXER
+libul{avformat}: libavformat/c{id3v2enc}: include = ($CONFIG_ADTS_MUXER || $CONFIG_AIFF_MUXER || $CONFIG_MP3_MUXER || $CONFIG_OMA_MUXER)
+libul{avformat}: libavformat/c{idcin}: include = $CONFIG_IDCIN_DEMUXER
+libul{avformat}: libavformat/c{idroqdec}: include = $CONFIG_ROQ_DEMUXER
+libul{avformat}: libavformat/c{idroqenc}: include = $CONFIG_ROQ_MUXER
+libul{avformat}: libavformat/c{iff}: include = $CONFIG_IFF_DEMUXER
+libul{avformat}: libavformat/c{ifv}: include = $CONFIG_IFV_DEMUXER
+libul{avformat}: libavformat/c{ilbc}: include = ($CONFIG_ILBC_DEMUXER || $CONFIG_ILBC_MUXER)
+libul{avformat}: libavformat/c{imf_cpl}: include = $CONFIG_IMF_DEMUXER
+libul{avformat}: libavformat/c{imfdec}: include = $CONFIG_IMF_DEMUXER
+libul{avformat}: libavformat/c{img2_alias_pix}: include = $CONFIG_IMAGE2_ALIAS_PIX_DEMUXER
+libul{avformat}: libavformat/c{img2_brender_pix}: include = $CONFIG_IMAGE2_BRENDER_PIX_DEMUXER
+libul{avformat}: libavformat/c{img2dec}: include = ($CONFIG_IMAGE2PIPE_DEMUXER || $CONFIG_IMAGE2_DEMUXER || $CONFIG_IMAGE_BMP_PIPE_DEMUXER || $CONFIG_IMAGE_CRI_PIPE_DEMUXER || $CONFIG_IMAGE_DDS_PIPE_DEMUXER || $CONFIG_IMAGE_DPX_PIPE_DEMUXER || $CONFIG_IMAGE_EXR_PIPE_DEMUXER || $CONFIG_IMAGE_GEM_PIPE_DEMUXER || $CONFIG_IMAGE_GIF_PIPE_DEMUXER || $CONFIG_IMAGE_HDR_PIPE_DEMUXER || $CONFIG_IMAGE_J2K_PIPE_DEMUXER || $CONFIG_IMAGE_JPEGLS_PIPE_DEMUXER || $CONFIG_IMAGE_JPEGXL_PIPE_DEMUXER || $CONFIG_IMAGE_JPEG_PIPE_DEMUXER || $CONFIG_IMAGE_PAM_PIPE_DEMUXER || $CONFIG_IMAGE_PBM_PIPE_DEMUXER || $CONFIG_IMAGE_PCX_PIPE_DEMUXER || $CONFIG_IMAGE_PFM_PIPE_DEMUXER || $CONFIG_IMAGE_PGMYUV_PIPE_DEMUXER || $CONFIG_IMAGE_PGM_PIPE_DEMUXER || $CONFIG_IMAGE_PGX_PIPE_DEMUXER || $CONFIG_IMAGE_PHM_PIPE_DEMUXER || $CONFIG_IMAGE_PHOTOCD_PIPE_DEMUXER || $CONFIG_IMAGE_PICTOR_PIPE_DEMUXER || $CONFIG_IMAGE_PNG_PIPE_DEMUXER || $CONFIG_IMAGE_PPM_PIPE_DEMUXER || $CONFIG_IMAGE_PSD_PIPE_DEMUXER || $CONFIG_IMAGE_QDRAW_PIPE_DEMUXER || $CONFIG_IMAGE_QOI_PIPE_DEMUXER || $CONFIG_IMAGE_SGI_PIPE_DEMUXER || $CONFIG_IMAGE_SUNRAST_PIPE_DEMUXER || $CONFIG_IMAGE_SVG_PIPE_DEMUXER || $CONFIG_IMAGE_TIFF_PIPE_DEMUXER || $CONFIG_IMAGE_WEBP_PIPE_DEMUXER || $CONFIG_IMAGE_XBM_PIPE_DEMUXER || $CONFIG_IMAGE_XPM_PIPE_DEMUXER || $CONFIG_IMAGE_XWD_PIPE_DEMUXER)
+libul{avformat}: libavformat/c{img2enc}: include = ($CONFIG_IMAGE2PIPE_MUXER || $CONFIG_IMAGE2_MUXER)
+libul{avformat}: libavformat/c{img2}: include = ($CONFIG_ADTS_MUXER || $CONFIG_AAC_DEMUXER || $CONFIG_APE_DEMUXER || $CONFIG_IMAGE2PIPE_DEMUXER || $CONFIG_IMAGE2PIPE_MUXER || $CONFIG_IMAGE2_DEMUXER || $CONFIG_IMAGE2_MUXER || $CONFIG_IMAGE_BMP_PIPE_DEMUXER || $CONFIG_IMAGE_CRI_PIPE_DEMUXER || $CONFIG_IMAGE_DDS_PIPE_DEMUXER || $CONFIG_IMAGE_DPX_PIPE_DEMUXER || $CONFIG_IMAGE_EXR_PIPE_DEMUXER || $CONFIG_IMAGE_GEM_PIPE_DEMUXER || $CONFIG_IMAGE_GIF_PIPE_DEMUXER || $CONFIG_IMAGE_HDR_PIPE_DEMUXER || $CONFIG_IMAGE_J2K_PIPE_DEMUXER || $CONFIG_IMAGE_JPEGLS_PIPE_DEMUXER || $CONFIG_IMAGE_JPEGXL_PIPE_DEMUXER || $CONFIG_IMAGE_JPEG_PIPE_DEMUXER || $CONFIG_IMAGE_PAM_PIPE_DEMUXER || $CONFIG_IMAGE_PBM_PIPE_DEMUXER || $CONFIG_IMAGE_PCX_PIPE_DEMUXER || $CONFIG_IMAGE_PFM_PIPE_DEMUXER || $CONFIG_IMAGE_PGMYUV_PIPE_DEMUXER || $CONFIG_IMAGE_PGM_PIPE_DEMUXER || $CONFIG_IMAGE_PGX_PIPE_DEMUXER || $CONFIG_IMAGE_PHM_PIPE_DEMUXER || $CONFIG_IMAGE_PHOTOCD_PIPE_DEMUXER || $CONFIG_IMAGE_PICTOR_PIPE_DEMUXER || $CONFIG_IMAGE_PNG_PIPE_DEMUXER || $CONFIG_IMAGE_PPM_PIPE_DEMUXER || $CONFIG_IMAGE_PSD_PIPE_DEMUXER || $CONFIG_IMAGE_QDRAW_PIPE_DEMUXER || $CONFIG_IMAGE_QOI_PIPE_DEMUXER || $CONFIG_IMAGE_SGI_PIPE_DEMUXER || $CONFIG_IMAGE_SUNRAST_PIPE_DEMUXER || $CONFIG_IMAGE_SVG_PIPE_DEMUXER || $CONFIG_IMAGE_TIFF_PIPE_DEMUXER || $CONFIG_IMAGE_WEBP_PIPE_DEMUXER || $CONFIG_IMAGE_XBM_PIPE_DEMUXER || $CONFIG_IMAGE_XPM_PIPE_DEMUXER || $CONFIG_IMAGE_XWD_PIPE_DEMUXER || $CONFIG_MPC8_DEMUXER || $CONFIG_MPC_DEMUXER || $CONFIG_RKA_DEMUXER || $CONFIG_TAK_DEMUXER || $CONFIG_TTA_DEMUXER || $CONFIG_TTA_MUXER || $CONFIG_WV_DEMUXER || $CONFIG_WV_MUXER)
+libul{avformat}: libavformat/c{imx}: include = $CONFIG_SIMBIOSIS_IMX_DEMUXER
+libul{avformat}: libavformat/c{ingenientdec}: include = $CONFIG_INGENIENT_DEMUXER
+libul{avformat}: libavformat/c{ipfsgateway}: include = ($CONFIG_IPFS_GATEWAY_PROTOCOL || $CONFIG_IPNS_GATEWAY_PROTOCOL)
+libul{avformat}: libavformat/c{ipmovie}: include = $CONFIG_IPMOVIE_DEMUXER
+libul{avformat}: libavformat/c{ipudec}: include = $CONFIG_IPU_DEMUXER
+libul{avformat}: libavformat/c{ip}: include = ($CONFIG_RTP_PROTOCOL || $CONFIG_UDPLITE_PROTOCOL || $CONFIG_UDP_PROTOCOL)
+libul{avformat}: libavformat/c{ircamdec}: include = $CONFIG_IRCAM_DEMUXER
+libul{avformat}: libavformat/c{ircamenc}: include = $CONFIG_IRCAM_MUXER
+libul{avformat}: libavformat/c{ircam}: include = ($CONFIG_IRCAM_DEMUXER || $CONFIG_IRCAM_MUXER)
+libul{avformat}: libavformat/c{isom}: include = $CONFIG_ISO_MEDIA
+libul{avformat}: libavformat/c{iss}: include = $CONFIG_ISS_DEMUXER
+libul{avformat}: libavformat/c{iv8}: include = $CONFIG_IV8_DEMUXER
+libul{avformat}: libavformat/c{ivfdec}: include = $CONFIG_IVF_DEMUXER
+libul{avformat}: libavformat/c{ivfenc}: include = $CONFIG_IVF_MUXER
+libul{avformat}: libavformat/c{jacosubdec}: include = $CONFIG_JACOSUB_DEMUXER
+libul{avformat}: libavformat/c{jacosubenc}: include = $CONFIG_JACOSUB_MUXER
+libul{avformat}: libavformat/c{jpegtables}: include = ($CONFIG_RTPDEC || $CONFIG_RTP_MUXER)
+libul{avformat}: libavformat/c{jpegxl_anim_dec}: include = $CONFIG_JPEGXL_ANIM_DEMUXER
+libul{avformat}: libavformat/c{jpegxl_parse}: include = ($CONFIG_IMAGE_JPEGXL_PIPE_DEMUXER || $CONFIG_JPEGXL_ANIM_DEMUXER)
+libul{avformat}: libavformat/c{jvdec}: include = $CONFIG_JV_DEMUXER
+libul{avformat}: libavformat/c{kvag}: include = ($CONFIG_KVAG_DEMUXER || $CONFIG_KVAG_MUXER)
+libul{avformat}: libavformat/c{lafdec}: include = $CONFIG_LAF_DEMUXER
+libul{avformat}: libavformat/c{latmenc}: include = $CONFIG_LATM_MUXER
+libul{avformat}: libavformat/c{libamqp}: include = $CONFIG_LIBAMQP_PROTOCOL
+libul{avformat}: libavformat/c{libgme}: include = $CONFIG_LIBGME_DEMUXER
+libul{avformat}: libavformat/c{libmodplug}: include = $CONFIG_LIBMODPLUG_DEMUXER
+libul{avformat}: libavformat/c{libopenmpt}: include = $CONFIG_LIBOPENMPT_DEMUXER
+libul{avformat}: libavformat/c{librist}: include = $CONFIG_LIBRIST_PROTOCOL
+libul{avformat}: libavformat/c{librtmp}: include = ($CONFIG_LIBRTMPE_PROTOCOL || $CONFIG_LIBRTMPS_PROTOCOL || $CONFIG_LIBRTMPTE_PROTOCOL || $CONFIG_LIBRTMPT_PROTOCOL || $CONFIG_LIBRTMP_PROTOCOL)
+libul{avformat}: libavformat/c{libsmbclient}: include = $CONFIG_LIBSMBCLIENT_PROTOCOL
+libul{avformat}: libavformat/c{libsrt}: include = $CONFIG_LIBSRT_PROTOCOL
+libul{avformat}: libavformat/c{libssh}: include = $CONFIG_LIBSSH_PROTOCOL
+libul{avformat}: libavformat/c{libzmq}: include = $CONFIG_LIBZMQ_PROTOCOL
+libul{avformat}: libavformat/c{lmlm4}: include = $CONFIG_LMLM4_DEMUXER
+libul{avformat}: libavformat/c{loasdec}: include = $CONFIG_LOAS_DEMUXER
+libul{avformat}: libavformat/c{lrcdec}: include = $CONFIG_LRC_DEMUXER
+libul{avformat}: libavformat/c{lrcenc}: include = $CONFIG_LRC_MUXER
+libul{avformat}: libavformat/c{lrc}: include = ($CONFIG_LRC_DEMUXER || $CONFIG_LRC_MUXER)
+libul{avformat}: libavformat/c{luodatdec}: include = $CONFIG_LUODAT_DEMUXER
+libul{avformat}: libavformat/c{lvfdec}: include = $CONFIG_LVF_DEMUXER
+libul{avformat}: libavformat/c{lxfdec}: include = $CONFIG_LXF_DEMUXER
+libul{avformat}: libavformat/c{m4vdec}: include = $CONFIG_M4V_DEMUXER
+libul{avformat}: libavformat/c{matroskadec}: include = $CONFIG_MATROSKA_DEMUXER
+libul{avformat}: libavformat/c{matroskaenc}: include = ($CONFIG_MATROSKA_MUXER || $CONFIG_WEBM_MUXER)
+libul{avformat}: libavformat/c{matroska}: include = ($CONFIG_MATROSKA_DEMUXER || $CONFIG_MATROSKA_MUXER || $CONFIG_WEBM_MUXER)
+libul{avformat}: libavformat/c{mca}: include = $CONFIG_MCA_DEMUXER
+libul{avformat}: libavformat/c{mccdec}: include = $CONFIG_MCC_DEMUXER
+libul{avformat}: libavformat/c{md5proto}: include = $CONFIG_MD5_PROTOCOL
+libul{avformat}: libavformat/c{mgsts}: include = $CONFIG_MGSTS_DEMUXER
+libul{avformat}: libavformat/c{microdvddec}: include = $CONFIG_MICRODVD_DEMUXER
+libul{avformat}: libavformat/c{microdvdenc}: include = $CONFIG_MICRODVD_MUXER
+libul{avformat}: libavformat/c{mj2kdec}: include = $CONFIG_MJPEG_2000_DEMUXER
+libul{avformat}: libavformat/c{mkvtimestamp_v2}: include = $CONFIG_MKVTIMESTAMP_V2_MUXER
+libul{avformat}: libavformat/c{mlpdec}: include = ($CONFIG_MLP_DEMUXER || $CONFIG_TRUEHD_DEMUXER)
+libul{avformat}: libavformat/c{mlvdec}: include = $CONFIG_MLV_DEMUXER
+libul{avformat}: libavformat/c{mmf}: include = ($CONFIG_MMF_DEMUXER || $CONFIG_MMF_MUXER)
+libul{avformat}: libavformat/c{mmsh}: include = $CONFIG_MMSH_PROTOCOL
+libul{avformat}: libavformat/c{mmst}: include = $CONFIG_MMST_PROTOCOL
+libul{avformat}: libavformat/c{mms}: include = ($CONFIG_MMSH_PROTOCOL || $CONFIG_MMST_PROTOCOL)
+libul{avformat}: libavformat/c{mm}: include = $CONFIG_MM_DEMUXER
+libul{avformat}: libavformat/c{mods}: include = $CONFIG_MODS_DEMUXER
+libul{avformat}: libavformat/c{moflex}: include = $CONFIG_MOFLEX_DEMUXER
+libul{avformat}: libavformat/c{mov_chan}: include = ($CONFIG_AIFF_DEMUXER || $CONFIG_CAF_DEMUXER || $CONFIG_MOV_DEMUXER || $CONFIG_MOV_MUXER)
+libul{avformat}: libavformat/c{mov_esds}: include = ($CONFIG_CAF_DEMUXER || $CONFIG_MOV_DEMUXER)
+libul{avformat}: libavformat/c{movenc_ttml}: include = $CONFIG_MOV_MUXER
+libul{avformat}: libavformat/c{movenccenc}: include = $CONFIG_MOV_MUXER
+libul{avformat}: libavformat/c{movenchint}: include = $CONFIG_MOV_MUXER
+libul{avformat}: libavformat/c{movenc}: include = $CONFIG_MOV_MUXER
+libul{avformat}: libavformat/c{mov}: include = $CONFIG_MOV_DEMUXER
+libul{avformat}: libavformat/c{mp3dec}: include = $CONFIG_MP3_DEMUXER
+libul{avformat}: libavformat/c{mp3enc}: include = $CONFIG_MP3_MUXER
+libul{avformat}: libavformat/c{mpc8}: include = $CONFIG_MPC8_DEMUXER
+libul{avformat}: libavformat/c{mpc}: include = ($CONFIG_MPC_DEMUXER || $CONFIG_MPEG1SYSTEM_MUXER || $CONFIG_MPEG1VCD_MUXER || $CONFIG_MPEG2DVD_MUXER || $CONFIG_MPEG2SVCD_MUXER || $CONFIG_MPEG2VOB_MUXER)
+libul{avformat}: libavformat/c{mpegenc}: include = ($CONFIG_MPEG1SYSTEM_MUXER || $CONFIG_MPEG1VCD_MUXER || $CONFIG_MPEG2DVD_MUXER || $CONFIG_MPEG2SVCD_MUXER)
+libul{avformat}: libavformat/c{mpeg4audio_sample_rates}: include = ($CONFIG_FLV_MUXER || $CONFIG_MATROSKA_DEMUXER || $CONFIG_RTP_MUXER)
+libul{avformat}: libavformat/c{mpegaudiotabs}: include = ($CONFIG_ISO_MEDIA || $CONFIG_MP3_MUXER || $CONFIG_NUT_MUXER)
+libul{avformat}: libavformat/c{mpegtsenc}: include = ($CONFIG_AVI_MUXER || $CONFIG_MPEGTS_MUXER)
+libul{avformat}: libavformat/c{mpegts}: include = $CONFIG_MPEGTS_DEMUXER
+libul{avformat}: libavformat/c{mpegvideodec}: include = $CONFIG_MPEGVIDEO_DEMUXER
+libul{avformat}: libavformat/c{mpeg}: include = $CONFIG_MPEGPS_DEMUXER
+libul{avformat}: libavformat/c{mpjpegdec}: include = $CONFIG_MPJPEG_DEMUXER
+libul{avformat}: libavformat/c{mpjpeg}: include = $CONFIG_MPJPEG_MUXER
+libul{avformat}: libavformat/c{mpl2dec}: include = $CONFIG_MPL2_DEMUXER
+libul{avformat}: libavformat/c{mpsubdec}: include = $CONFIG_MPSUB_DEMUXER
+libul{avformat}: libavformat/c{msf}: include = $CONFIG_MSF_DEMUXER
+libul{avformat}: libavformat/c{msnwc_tcp}: include = $CONFIG_MSNWC_TCP_DEMUXER
+libul{avformat}: libavformat/c{mspdec}: include = $CONFIG_MSP_DEMUXER
+libul{avformat}: libavformat/c{mtaf}: include = $CONFIG_MTAF_DEMUXER
+libul{avformat}: libavformat/c{mtv}: include = $CONFIG_MTV_DEMUXER
+libul{avformat}: libavformat/c{musx}: include = $CONFIG_MUSX_DEMUXER
+libul{avformat}: libavformat/c{mvdec}: include = $CONFIG_MV_DEMUXER
+libul{avformat}: libavformat/c{mvi}: include = $CONFIG_MVI_DEMUXER
+libul{avformat}: libavformat/c{mxfdec}: include = $CONFIG_MXF_DEMUXER
+libul{avformat}: libavformat/c{mxfenc}: include = $CONFIG_MXF_MUXER
+libul{avformat}: libavformat/c{mxf}: include = ($CONFIG_MXF_DEMUXER || $CONFIG_MXF_MUXER)
+libul{avformat}: libavformat/c{mxg}: include = $CONFIG_MXG_DEMUXER
+libul{avformat}: libavformat/c{ncdec}: include = $CONFIG_NC_DEMUXER
+libul{avformat}: libavformat/c{network}: include = $CONFIG_NETWORK
+libul{avformat}: libavformat/c{nistspheredec}: include = $CONFIG_NISTSPHERE_DEMUXER
+libul{avformat}: libavformat/c{nspdec}: include = $CONFIG_NSP_DEMUXER
+libul{avformat}: libavformat/c{nsvdec}: include = $CONFIG_NSV_DEMUXER
+libul{avformat}: libavformat/c{nullenc}: include = $CONFIG_NULL_MUXER
+libul{avformat}: libavformat/c{nutdec}: include = $CONFIG_NUT_DEMUXER
+libul{avformat}: libavformat/c{nutenc}: include = $CONFIG_NUT_MUXER
+libul{avformat}: libavformat/c{nut}: include = ($CONFIG_NUT_DEMUXER || $CONFIG_NUT_MUXER)
+libul{avformat}: libavformat/c{nuv}: include = $CONFIG_NUV_DEMUXER
+libul{avformat}: libavformat/c{oggdec}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{oggenc}: include = ($CONFIG_OGA_MUXER || $CONFIG_OGG_MUXER || $CONFIG_OGV_MUXER || $CONFIG_OPUS_MUXER || $CONFIG_SPEEX_MUXER)
+libul{avformat}: libavformat/c{oggparsecelt}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{oggparsedirac}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{oggparseflac}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{oggparseogm}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{oggparseopus}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{oggparseskeleton}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{oggparsespeex}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{oggparsetheora}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{oggparsevorbis}: include = ($CONFIG_FLAC_DEMUXER || $CONFIG_MATROSKA_DEMUXER || $CONFIG_OGG_DEMUXER)
+libul{avformat}: libavformat/c{oggparsevp8}: include = $CONFIG_OGG_DEMUXER
+libul{avformat}: libavformat/c{omadec}: include = $CONFIG_OMA_DEMUXER
+libul{avformat}: libavformat/c{omaenc}: include = $CONFIG_OMA_MUXER
+libul{avformat}: libavformat/c{oma}: include = ($CONFIG_OMA_DEMUXER || $CONFIG_OMA_MUXER)
+libul{avformat}: libavformat/c{osq}: include = $CONFIG_OSQ_DEMUXER
+libul{avformat}: libavformat/c{paf}: include = $CONFIG_PAF_DEMUXER
+libul{avformat}: libavformat/c{pcmdec}: include = ($CONFIG_PCM_ALAW_DEMUXER || $CONFIG_PCM_F32BE_DEMUXER || $CONFIG_PCM_F32LE_DEMUXER || $CONFIG_PCM_F64BE_DEMUXER || $CONFIG_PCM_F64LE_DEMUXER || $CONFIG_PCM_MULAW_DEMUXER || $CONFIG_PCM_S16BE_DEMUXER || $CONFIG_PCM_S16LE_DEMUXER || $CONFIG_PCM_S24BE_DEMUXER || $CONFIG_PCM_S24LE_DEMUXER || $CONFIG_PCM_S32BE_DEMUXER || $CONFIG_PCM_S32LE_DEMUXER || $CONFIG_PCM_S8_DEMUXER || $CONFIG_PCM_U16BE_DEMUXER || $CONFIG_PCM_U16LE_DEMUXER || $CONFIG_PCM_U24BE_DEMUXER || $CONFIG_PCM_U24LE_DEMUXER || $CONFIG_PCM_U32BE_DEMUXER || $CONFIG_PCM_U32LE_DEMUXER || $CONFIG_PCM_U8_DEMUXER || $CONFIG_PCM_VIDC_DEMUXER || $CONFIG_SLN_DEMUXER || $CONFIG_PCM_ALAW_MUXER || $CONFIG_PCM_F32BE_MUXER || $CONFIG_PCM_F32LE_MUXER || $CONFIG_PCM_F64BE_MUXER || $CONFIG_PCM_F64LE_MUXER || $CONFIG_PCM_MULAW_MUXER || $CONFIG_PCM_S16BE_MUXER || $CONFIG_PCM_S16LE_MUXER || $CONFIG_PCM_S24BE_MUXER || $CONFIG_PCM_S24LE_MUXER || $CONFIG_PCM_S32BE_MUXER || $CONFIG_PCM_S32LE_MUXER || $CONFIG_PCM_S8_MUXER || $CONFIG_PCM_U16BE_MUXER || $CONFIG_PCM_U16LE_MUXER || $CONFIG_PCM_U24BE_MUXER || $CONFIG_PCM_U24LE_MUXER || $CONFIG_PCM_U32BE_MUXER || $CONFIG_PCM_U32LE_MUXER || $CONFIG_PCM_U8_MUXER || $CONFIG_PCM_VIDC_MUXER)
+libul{avformat}: libavformat/c{pcm}: include = ($CONFIG_AEA_DEMUXER || $CONFIG_AIFF_DEMUXER || $CONFIG_AU_DEMUXER || $CONFIG_AVR_DEMUXER || $CONFIG_CODEC2RAW_DEMUXER || $CONFIG_CODEC2_DEMUXER || $CONFIG_DERF_DEMUXER || $CONFIG_DFPWM_DEMUXER || $CONFIG_EPAF_DEMUXER || $CONFIG_FWSE_DEMUXER || $CONFIG_HCOM_DEMUXER || $CONFIG_IRCAM_DEMUXER || $CONFIG_NISTSPHERE_DEMUXER || $CONFIG_NSP_DEMUXER || $CONFIG_OMA_DEMUXER || $CONFIG_PCM_ALAW_DEMUXER || $CONFIG_PCM_F32BE_DEMUXER || $CONFIG_PCM_F32LE_DEMUXER || $CONFIG_PCM_F64BE_DEMUXER || $CONFIG_PCM_F64LE_DEMUXER || $CONFIG_PCM_MULAW_DEMUXER || $CONFIG_PCM_S16BE_DEMUXER || $CONFIG_PCM_S16LE_DEMUXER || $CONFIG_PCM_S24BE_DEMUXER || $CONFIG_PCM_S24LE_DEMUXER || $CONFIG_PCM_S32BE_DEMUXER || $CONFIG_PCM_S32LE_DEMUXER || $CONFIG_PCM_S8_DEMUXER || $CONFIG_PCM_U16BE_DEMUXER || $CONFIG_PCM_U16LE_DEMUXER || $CONFIG_PCM_U24BE_DEMUXER || $CONFIG_PCM_U24LE_DEMUXER || $CONFIG_PCM_U32BE_DEMUXER || $CONFIG_PCM_U32LE_DEMUXER || $CONFIG_PCM_U8_DEMUXER || $CONFIG_PCM_VIDC_DEMUXER || $CONFIG_PVF_DEMUXER || $CONFIG_RSO_DEMUXER || $CONFIG_SDX_DEMUXER || $CONFIG_SLN_DEMUXER || $CONFIG_SOL_DEMUXER || $CONFIG_SOX_DEMUXER || $CONFIG_W64_DEMUXER || $CONFIG_WADY_DEMUXER || $CONFIG_WAV_DEMUXER || $CONFIG_WVE_DEMUXER || $CONFIG_XMD_DEMUXER)
+libul{avformat}: libavformat/c{pdvdec}: include = $CONFIG_PDV_DEMUXER
+libul{avformat}: libavformat/c{pjsdec}: include = $CONFIG_PJS_DEMUXER
+libul{avformat}: libavformat/c{pmpdec}: include = $CONFIG_PMP_DEMUXER
+libul{avformat}: libavformat/c{pp_bnk}: include = $CONFIG_PP_BNK_DEMUXER
+libul{avformat}: libavformat/c{prompeg}: include = $CONFIG_PROMPEG_PROTOCOL
+libul{avformat}: libavformat/c{psxstr}: include = $CONFIG_STR_DEMUXER
+libul{avformat}: libavformat/c{pva}: include = $CONFIG_PVA_DEMUXER
+libul{avformat}: libavformat/c{pvfdec}: include = $CONFIG_PVF_DEMUXER
+libul{avformat}: libavformat/c{qcp}: include = $CONFIG_QCP_DEMUXER
+libul{avformat}: libavformat/c{qoadec}: include = $CONFIG_QOA_DEMUXER
+libul{avformat}: libavformat/c{qtpalette}: include = ($CONFIG_MATROSKA_DEMUXER || $CONFIG_MOV_DEMUXER)
+libul{avformat}: libavformat/c{r3d}: include = $CONFIG_R3D_DEMUXER
+libul{avformat}: libavformat/c{rangecoder_dec}: include = $CONFIG_MXF_MUXER
+libul{avformat}: libavformat/c{rawdec}: include = ($CONFIG_AAC_DEMUXER || $CONFIG_AC3_DEMUXER || $CONFIG_ACM_DEMUXER || $CONFIG_AMRNB_DEMUXER || $CONFIG_AMRWB_DEMUXER || $CONFIG_AMR_DEMUXER || $CONFIG_APAC_DEMUXER || $CONFIG_AVS2_DEMUXER || $CONFIG_AVS3_DEMUXER || $CONFIG_BONK_DEMUXER || $CONFIG_CAVSVIDEO_DEMUXER || $CONFIG_DATA_DEMUXER || $CONFIG_DIRAC_DEMUXER || $CONFIG_DNXHD_DEMUXER || $CONFIG_DTS_DEMUXER || $CONFIG_DVBSUB_DEMUXER || $CONFIG_DVBTXT_DEMUXER || $CONFIG_EAC3_DEMUXER || $CONFIG_EVC_DEMUXER || $CONFIG_FLAC_DEMUXER || $CONFIG_G722_DEMUXER || $CONFIG_H261_DEMUXER || $CONFIG_H263_DEMUXER || $CONFIG_H264_DEMUXER || $CONFIG_HEVC_DEMUXER || $CONFIG_INGENIENT_DEMUXER || $CONFIG_IPU_DEMUXER || $CONFIG_LOAS_DEMUXER || $CONFIG_M4V_DEMUXER || $CONFIG_MJPEG_2000_DEMUXER || $CONFIG_MJPEG_DEMUXER || $CONFIG_MLP_DEMUXER || $CONFIG_MPEGVIDEO_DEMUXER || $CONFIG_OSQ_DEMUXER || $CONFIG_SBC_DEMUXER || $CONFIG_SHORTEN_DEMUXER || $CONFIG_TAK_DEMUXER || $CONFIG_TRUEHD_DEMUXER || $CONFIG_VC1_DEMUXER || $CONFIG_VVC_DEMUXER || $CONFIG_WSD_DEMUXER)
+libul{avformat}: libavformat/c{rawenc}: include = ($CONFIG_A64_MUXER || $CONFIG_AC3_MUXER || $CONFIG_ADX_MUXER || $CONFIG_AEA_MUXER || $CONFIG_ALP_MUXER || $CONFIG_AMR_MUXER || $CONFIG_APM_MUXER || $CONFIG_APTX_HD_MUXER || $CONFIG_APTX_MUXER || $CONFIG_AU_MUXER || $CONFIG_AVS2_MUXER || $CONFIG_AVS3_MUXER || $CONFIG_CAVSVIDEO_MUXER || $CONFIG_CODEC2RAW_MUXER || $CONFIG_CODEC2_MUXER || $CONFIG_DATA_MUXER || $CONFIG_DFPWM_MUXER || $CONFIG_DIRAC_MUXER || $CONFIG_DNXHD_MUXER || $CONFIG_DTS_MUXER || $CONFIG_EAC3_MUXER || $CONFIG_EVC_MUXER || $CONFIG_FILMSTRIP_MUXER || $CONFIG_G722_MUXER || $CONFIG_G723_1_MUXER || $CONFIG_G726LE_MUXER || $CONFIG_G726_MUXER || $CONFIG_GSM_MUXER || $CONFIG_H261_MUXER || $CONFIG_H263_MUXER || $CONFIG_H264_MUXER || $CONFIG_HEVC_MUXER || $CONFIG_ILBC_MUXER || $CONFIG_IRCAM_MUXER || $CONFIG_JACOSUB_MUXER || $CONFIG_KVAG_MUXER || $CONFIG_LATM_MUXER || $CONFIG_M4V_MUXER || $CONFIG_MJPEG_MUXER || $CONFIG_MLP_MUXER || $CONFIG_MMF_MUXER || $CONFIG_MP2_MUXER || $CONFIG_MP3_MUXER || $CONFIG_MPEG1VIDEO_MUXER || $CONFIG_MPEG2VIDEO_MUXER || $CONFIG_OBU_MUXER || $CONFIG_OMA_MUXER || $CONFIG_PCM_ALAW_MUXER || $CONFIG_PCM_F32BE_MUXER || $CONFIG_PCM_F32LE_MUXER || $CONFIG_PCM_F64BE_MUXER || $CONFIG_PCM_F64LE_MUXER || $CONFIG_PCM_MULAW_MUXER || $CONFIG_PCM_S16BE_MUXER || $CONFIG_PCM_S16LE_MUXER || $CONFIG_PCM_S24BE_MUXER || $CONFIG_PCM_S24LE_MUXER || $CONFIG_PCM_S32BE_MUXER || $CONFIG_PCM_S32LE_MUXER || $CONFIG_PCM_S8_MUXER || $CONFIG_PCM_U16BE_MUXER || $CONFIG_PCM_U16LE_MUXER || $CONFIG_PCM_U24BE_MUXER || $CONFIG_PCM_U24LE_MUXER || $CONFIG_PCM_U32BE_MUXER || $CONFIG_PCM_U32LE_MUXER || $CONFIG_PCM_U8_MUXER || $CONFIG_PCM_VIDC_MUXER || $CONFIG_RAWVIDEO_MUXER || $CONFIG_ROQ_MUXER || $CONFIG_RSO_MUXER || $CONFIG_SBC_MUXER || $CONFIG_SOX_MUXER || $CONFIG_TRUEHD_MUXER || $CONFIG_VC1_MUXER || $CONFIG_VVC_MUXER)
+libul{avformat}: libavformat/c{rawutils}: include = ($CONFIG_AVI_MUXER || $CONFIG_MOV_MUXER)
+libul{avformat}: libavformat/c{rawvideodec}: include = ($CONFIG_BITPACKED_DEMUXER || $CONFIG_RAWVIDEO_DEMUXER || $CONFIG_V210X_DEMUXER || $CONFIG_V210_DEMUXER)
+libul{avformat}: libavformat/c{rcwtenc}: include = $CONFIG_RCWT_MUXER
+libul{avformat}: libavformat/c{rdt}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{realtextdec}: include = $CONFIG_REALTEXT_DEMUXER
+libul{avformat}: libavformat/c{redspark}: include = $CONFIG_REDSPARK_DEMUXER
+libul{avformat}: libavformat/c{replaygain}: include = ($CONFIG_AIFF_DEMUXER || $CONFIG_FLAC_DEMUXER || $CONFIG_MATROSKA_DEMUXER || $CONFIG_MOV_DEMUXER || $CONFIG_MP3_DEMUXER || $CONFIG_OGG_DEMUXER)
+libul{avformat}: libavformat/c{riffdec}: include = ($CONFIG_MLV_DEMUXER || $CONFIG_RIFFDEC)
+libul{avformat}: libavformat/c{riffenc}: include = $CONFIG_RIFFENC
+libul{avformat}: libavformat/c{riff}: include = $CONFIG_CAF_MUXER
+libul{avformat}: libavformat/c{rka}: include = $CONFIG_RKA_DEMUXER
+libul{avformat}: libavformat/c{rl2}: include = $CONFIG_RL2_DEMUXER
+libul{avformat}: libavformat/c{rmdec}: include = ($CONFIG_IVR_DEMUXER || $CONFIG_RM_DEMUXER)
+libul{avformat}: libavformat/c{rmenc}: include = $CONFIG_RM_MUXER
+libul{avformat}: libavformat/c{rmsipr}: include = ($CONFIG_IVR_DEMUXER || $CONFIG_MATROSKA_DEMUXER || $CONFIG_RM_DEMUXER)
+libul{avformat}: libavformat/c{rm}: include = ($CONFIG_IVR_DEMUXER || $CONFIG_RM_DEMUXER || $CONFIG_RM_DEMUXER || $CONFIG_RM_MUXER)
+libul{avformat}: libavformat/c{rpl}: include = $CONFIG_RPL_DEMUXER
+libul{avformat}: libavformat/c{rsd}: include = $CONFIG_RSD_DEMUXER
+libul{avformat}: libavformat/c{rsodec}: include = $CONFIG_RSO_DEMUXER
+libul{avformat}: libavformat/c{rsoenc}: include = $CONFIG_RSO_MUXER
+libul{avformat}: libavformat/c{rso}: include = ($CONFIG_RSO_DEMUXER || $CONFIG_RSO_MUXER)
+libul{avformat}: libavformat/c{rtmpcrypt}: include = $CONFIG_FFRTMPCRYPT_PROTOCOL
+libul{avformat}: libavformat/c{rtmpdh}: include = $CONFIG_FFRTMPCRYPT_PROTOCOL
+libul{avformat}: libavformat/c{rtmpdigest}: include = ($CONFIG_FFRTMPCRYPT_PROTOCOL || $CONFIG_RTMPE_PROTOCOL || $CONFIG_RTMPS_PROTOCOL || $CONFIG_RTMPTE_PROTOCOL || $CONFIG_RTMPTS_PROTOCOL || $CONFIG_RTMPT_PROTOCOL || $CONFIG_RTMP_PROTOCOL)
+libul{avformat}: libavformat/c{rtmphttp}: include = $CONFIG_FFRTMPHTTP_PROTOCOL
+libul{avformat}: libavformat/c{rtmppkt}: include = ($CONFIG_RTMPE_PROTOCOL || $CONFIG_RTMPS_PROTOCOL || $CONFIG_RTMPTE_PROTOCOL || $CONFIG_RTMPTS_PROTOCOL || $CONFIG_RTMPT_PROTOCOL || $CONFIG_RTMP_PROTOCOL)
+libul{avformat}: libavformat/c{rtmpproto}: include = ($CONFIG_RTMPE_PROTOCOL || $CONFIG_RTMPS_PROTOCOL || $CONFIG_RTMPTE_PROTOCOL || $CONFIG_RTMPTS_PROTOCOL || $CONFIG_RTMPT_PROTOCOL || $CONFIG_RTMP_PROTOCOL)
+libul{avformat}: libavformat/c{rtpdec_ac3}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_amr}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_asf}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_dv}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_g726}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_h261}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_h263_rfc2190}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_h263}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_h264}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_hevc}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_ilbc}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_jpeg}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_latm}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_mpa_robust}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_mpeg12}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_mpeg4}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_mpegts}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_qcelp}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_qdm2}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_qt}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_rfc4175}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_svq3}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_vc2hq}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_vp8}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_vp9}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec_xiph}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpdec}: include = $CONFIG_RTPDEC
+libul{avformat}: libavformat/c{rtpenc_aac}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_amr}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_chain}: include = $CONFIG_RTPENC_CHAIN
+libul{avformat}: libavformat/c{rtpenc_h261}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_h263_rfc2190}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_h263}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_h264_hevc}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_jpeg}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_latm}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_mpegts}: include = $CONFIG_RTP_MPEGTS_MUXER
+libul{avformat}: libavformat/c{rtpenc_mpv}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_rfc4175}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_vc2hq}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_vp8}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_vp9}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc_xiph}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpenc}: include = $CONFIG_RTP_MUXER
+libul{avformat}: libavformat/c{rtpproto}: include = $CONFIG_RTP_PROTOCOL
+libul{avformat}: libavformat/c{rtp}: include = ($CONFIG_MOV_MUXER || $CONFIG_RTPDEC || $CONFIG_RTPENC_CHAIN || $CONFIG_RTP_MUXER)
+libul{avformat}: libavformat/c{rtspdec}: include = $CONFIG_RTSP_DEMUXER
+libul{avformat}: libavformat/c{rtspenc}: include = $CONFIG_RTSP_MUXER
+libul{avformat}: libavformat/c{rtsp}: include = ($CONFIG_RTSP_DEMUXER || $CONFIG_RTSP_MUXER || $CONFIG_SDP_DEMUXER)
+libul{avformat}: libavformat/c{s337m}: include = $CONFIG_S337M_DEMUXER
+libul{avformat}: libavformat/c{samidec}: include = $CONFIG_SAMI_DEMUXER
+libul{avformat}: libavformat/c{sapdec}: include = $CONFIG_SAP_DEMUXER
+libul{avformat}: libavformat/c{sapenc}: include = $CONFIG_SAP_MUXER
+libul{avformat}: libavformat/c{sauce}: include = ($CONFIG_ADF_DEMUXER || $CONFIG_BINTEXT_DEMUXER || $CONFIG_IDF_DEMUXER || $CONFIG_TTY_DEMUXER || $CONFIG_XBIN_DEMUXER)
+libul{avformat}: libavformat/c{sbcdec}: include = $CONFIG_SBC_DEMUXER
+libul{avformat}: libavformat/c{sbgdec}: include = $CONFIG_SBG_DEMUXER
+libul{avformat}: libavformat/c{sccdec}: include = $CONFIG_SCC_DEMUXER
+libul{avformat}: libavformat/c{sccenc}: include = $CONFIG_SCC_MUXER
+libul{avformat}: libavformat/c{scd}: include = $CONFIG_SCD_DEMUXER
+libul{avformat}: libavformat/c{sctp}: include = $CONFIG_SCTP_PROTOCOL
+libul{avformat}: libavformat/c{sdns}: include = $CONFIG_SDNS_DEMUXER
+libul{avformat}: libavformat/c{sdr2}: include = $CONFIG_SDR2_DEMUXER
+libul{avformat}: libavformat/c{sdsdec}: include = $CONFIG_SDS_DEMUXER
+libul{avformat}: libavformat/c{sdxdec}: include = $CONFIG_SDX_DEMUXER
+libul{avformat}: libavformat/c{segafilmenc}: include = $CONFIG_SEGAFILM_MUXER
+libul{avformat}: libavformat/c{segafilm}: include = $CONFIG_SEGAFILM_DEMUXER
+libul{avformat}: libavformat/c{segment}: include = ($CONFIG_SEGMENT_MUXER || $CONFIG_STREAM_SEGMENT_MUXER)
+libul{avformat}: libavformat/c{serdec}: include = $CONFIG_SER_DEMUXER
+libul{avformat}: libavformat/c{sga}: include = $CONFIG_SGA_DEMUXER
+libul{avformat}: libavformat/c{shortendec}: include = $CONFIG_SHORTEN_DEMUXER
+libul{avformat}: libavformat/c{sierravmd}: include = $CONFIG_VMD_DEMUXER
+libul{avformat}: libavformat/c{siff}: include = $CONFIG_SIFF_DEMUXER
+libul{avformat}: libavformat/c{smacker}: include = $CONFIG_SMACKER_DEMUXER
+libul{avformat}: libavformat/c{smjpegdec}: include = $CONFIG_SMJPEG_DEMUXER
+libul{avformat}: libavformat/c{smjpegenc}: include = $CONFIG_SMJPEG_MUXER
+libul{avformat}: libavformat/c{smjpeg}: include = ($CONFIG_SMJPEG_DEMUXER || $CONFIG_SMJPEG_MUXER)
+libul{avformat}: libavformat/c{smoothstreamingenc}: include = $CONFIG_SMOOTHSTREAMING_MUXER
+libul{avformat}: libavformat/c{smush}: include = $CONFIG_SMUSH_DEMUXER
+libul{avformat}: libavformat/c{sol}: include = $CONFIG_SOL_DEMUXER
+libul{avformat}: libavformat/c{soxdec}: include = $CONFIG_SOX_DEMUXER
+libul{avformat}: libavformat/c{soxenc}: include = $CONFIG_SOX_MUXER
+libul{avformat}: libavformat/c{spdifdec}: include = $CONFIG_SPDIF_DEMUXER
+libul{avformat}: libavformat/c{spdifenc}: include = $CONFIG_SPDIF_MUXER
+libul{avformat}: libavformat/c{spdif}: include = ($CONFIG_S337M_DEMUXER || $CONFIG_SPDIF_DEMUXER || $CONFIG_SPDIF_MUXER)
+libul{avformat}: libavformat/c{srtdec}: include = $CONFIG_SRT_DEMUXER
+libul{avformat}: libavformat/c{srtenc}: include = $CONFIG_SRT_MUXER
+libul{avformat}: libavformat/c{srtpproto}: include = $CONFIG_SRTP_PROTOCOL
+libul{avformat}: libavformat/c{srtp}: include = ($CONFIG_SRTP || $CONFIG_SRTP_PROTOCOL)
+libul{avformat}: libavformat/c{stldec}: include = $CONFIG_STL_DEMUXER
+libul{avformat}: libavformat/c{subfile}: include = $CONFIG_SUBFILE_PROTOCOL
+libul{avformat}: libavformat/c{subtitles}: include = ($CONFIG_AQTITLE_DEMUXER || $CONFIG_ASS_DEMUXER || $CONFIG_JACOSUB_DEMUXER || $CONFIG_LRC_DEMUXER || $CONFIG_MCC_DEMUXER || $CONFIG_MICRODVD_DEMUXER || $CONFIG_MPL2_DEMUXER || $CONFIG_MPSUB_DEMUXER || $CONFIG_PJS_DEMUXER || $CONFIG_RCWT_MUXER || $CONFIG_REALTEXT_DEMUXER || $CONFIG_SAMI_DEMUXER || $CONFIG_SCC_DEMUXER || $CONFIG_SRT_DEMUXER || $CONFIG_STL_DEMUXER || $CONFIG_SUBVIEWER1_DEMUXER || $CONFIG_SUBVIEWER_DEMUXER || $CONFIG_TEDCAPTIONS_DEMUXER || $CONFIG_VOBSUB_DEMUXER || $CONFIG_VPLAYER_DEMUXER || $CONFIG_WEBVTT_DEMUXER || $CONFIG_MCC_DEMUXER)
+libul{avformat}: libavformat/c{subviewer1dec}: include = $CONFIG_SUBVIEWER1_DEMUXER
+libul{avformat}: libavformat/c{subviewerdec}: include = $CONFIG_SUBVIEWER_DEMUXER
+libul{avformat}: libavformat/c{supdec}: include = $CONFIG_SUP_DEMUXER
+libul{avformat}: libavformat/c{supenc}: include = $CONFIG_SUP_MUXER
+libul{avformat}: libavformat/c{svag}: include = $CONFIG_SVAG_DEMUXER
+libul{avformat}: libavformat/c{svs}: include = $CONFIG_SVS_DEMUXER
+libul{avformat}: libavformat/c{swfdec}: include = $CONFIG_SWF_DEMUXER
+libul{avformat}: libavformat/c{swfenc}: include = ($CONFIG_AVM2_MUXER || $CONFIG_SWF_MUXER)
+libul{avformat}: libavformat/c{swf}: include = ($CONFIG_AVM2_MUXER || $CONFIG_SWF_DEMUXER || $CONFIG_SWF_MUXER)
+libul{avformat}: libavformat/c{takdec}: include = $CONFIG_TAK_DEMUXER
+libul{avformat}: libavformat/c{tcp}: include = $CONFIG_TCP_PROTOCOL
+libul{avformat}: libavformat/c{tedcaptionsdec}: include = $CONFIG_TEDCAPTIONS_DEMUXER
+libul{avformat}: libavformat/c{tee_common}: include = ($CONFIG_TEE_MUXER || $CONFIG_TEE_PROTOCOL)
+libul{avformat}: libavformat/c{teeproto}: include = $CONFIG_TEE_PROTOCOL
+libul{avformat}: libavformat/c{tee}: include = $CONFIG_TEE_MUXER
+libul{avformat}: libavformat/c{thp}: include = $CONFIG_THP_DEMUXER
+libul{avformat}: libavformat/c{tiertexseq}: include = $CONFIG_TIERTEXSEQ_DEMUXER
+libul{avformat}: libavformat/c{tls_gnutls}: include = ($CONFIG_TLS_PROTOCOL && $CONFIG_GNUTLS)
+libul{avformat}: libavformat/c{tls_libtls}: include = ($CONFIG_TLS_PROTOCOL && $CONFIG_LIBTLS)
+libul{avformat}: libavformat/c{tls_mbedtls}: include = ($CONFIG_TLS_PROTOCOL && $CONFIG_MBEDTLS)
+libul{avformat}: libavformat/c{tls_openssl}: include = ($CONFIG_TLS_PROTOCOL && $CONFIG_OPENSSL)
+libul{avformat}: libavformat/c{tls_schannel}: include = ($CONFIG_TLS_PROTOCOL && $CONFIG_SCHANNEL)
+libul{avformat}: libavformat/c{tls_securetransport}: include = ($CONFIG_TLS_PROTOCOL && $CONFIG_SECURETRANSPORT)
+libul{avformat}: libavformat/c{tls}: include = $CONFIG_TLS_PROTOCOL
+libul{avformat}: libavformat/c{tmv}: include = $CONFIG_TMV_DEMUXER
+libul{avformat}: libavformat/c{ttaenc}: include = $CONFIG_TTA_MUXER
+libul{avformat}: libavformat/c{tta}: include = $CONFIG_TTA_DEMUXER
+libul{avformat}: libavformat/c{ttmlenc}: include = $CONFIG_TTML_MUXER
+libul{avformat}: libavformat/c{tty}: include = $CONFIG_TTY_DEMUXER
+libul{avformat}: libavformat/c{txd}: include = $CONFIG_TXD_DEMUXER
+libul{avformat}: libavformat/c{ty}: include = $CONFIG_TY_DEMUXER
+libul{avformat}: libavformat/c{udp}: include = ($CONFIG_UDPLITE_PROTOCOL || $CONFIG_UDP_PROTOCOL)
+libul{avformat}: libavformat/c{uncodedframecrcenc}: include = $CONFIG_UNCODEDFRAMECRC_MUXER
+libul{avformat}: libavformat/c{unix}: include = $CONFIG_UNIX_PROTOCOL
+libul{avformat}: libavformat/c{urldecode}: include = ($CONFIG_FTP_PROTOCOL || $CONFIG_HTTPPROXY_PROTOCOL || $CONFIG_HTTPS_PROTOCOL || $CONFIG_HTTP_PROTOCOL || $CONFIG_LIBAMQP_PROTOCOL || $CONFIG_LIBSRT_PROTOCOL || $CONFIG_RTSP_DEMUXER || $CONFIG_RTSP_MUXER)
+libul{avformat}: libavformat/c{usmdec}: include = $CONFIG_USM_DEMUXER
+libul{avformat}: libavformat/c{vag}: include = $CONFIG_VAG_DEMUXER
+libul{avformat}: libavformat/c{vapoursynth}: include = $CONFIG_VAPOURSYNTH_DEMUXER
+libul{avformat}: libavformat/c{vc1dec}: include = $CONFIG_VC1_DEMUXER
+libul{avformat}: libavformat/c{vc1testenc}: include = $CONFIG_VC1T_MUXER
+libul{avformat}: libavformat/c{vc1test}: include = $CONFIG_VC1T_DEMUXER
+libul{avformat}: libavformat/c{vividas}: include = $CONFIG_VIVIDAS_DEMUXER
+libul{avformat}: libavformat/c{vivo}: include = $CONFIG_VIVO_DEMUXER
+libul{avformat}: libavformat/c{voc_packet}: include = ($CONFIG_AVS_DEMUXER || $CONFIG_C93_DEMUXER || $CONFIG_VOC_DEMUXER)
+libul{avformat}: libavformat/c{vocdec}: include = $CONFIG_VOC_DEMUXER
+libul{avformat}: libavformat/c{vocenc}: include = $CONFIG_VOC_MUXER
+libul{avformat}: libavformat/c{voc}: include = ($CONFIG_AVS_DEMUXER || $CONFIG_C93_DEMUXER || $CONFIG_VOC_DEMUXER || $CONFIG_VOC_MUXER)
+libul{avformat}: libavformat/c{vorbiscomment}: include = ($CONFIG_FLAC_DEMUXER || $CONFIG_FLAC_MUXER || $CONFIG_MATROSKA_DEMUXER || $CONFIG_MATROSKA_MUXER || $CONFIG_OGA_MUXER || $CONFIG_OGG_DEMUXER || $CONFIG_OGG_MUXER || $CONFIG_OGV_MUXER || $CONFIG_OPUS_MUXER || $CONFIG_SPEEX_MUXER)
+libul{avformat}: libavformat/c{vpcc}: include = ($CONFIG_FLV_MUXER || $CONFIG_MOV_MUXER)
+libul{avformat}: libavformat/c{vpk}: include = $CONFIG_VPK_DEMUXER
+libul{avformat}: libavformat/c{vplayerdec}: include = $CONFIG_VPLAYER_DEMUXER
+libul{avformat}: libavformat/c{vqf}: include = $CONFIG_VQF_DEMUXER
+libul{avformat}: libavformat/c{vvcdec}: include = $CONFIG_VVC_DEMUXER
+libul{avformat}: libavformat/c{vvc}: include = ($CONFIG_MATROSKA_MUXER || $CONFIG_MOV_MUXER || $CONFIG_RTP_MUXER)
+libul{avformat}: libavformat/c{w64}: include = ($CONFIG_W64_DEMUXER || $CONFIG_W64_MUXER)
+libul{avformat}: libavformat/c{wady}: include = $CONFIG_WADY_DEMUXER
+libul{avformat}: libavformat/c{wavarc}: include = $CONFIG_WAVARC_DEMUXER
+libul{avformat}: libavformat/c{wavdec}: include = ($CONFIG_W64_DEMUXER || $CONFIG_WAV_DEMUXER)
+libul{avformat}: libavformat/c{wavenc}: include = ($CONFIG_W64_MUXER || $CONFIG_WAV_MUXER)
+libul{avformat}: libavformat/c{wc3movie}: include = $CONFIG_WC3_DEMUXER
+libul{avformat}: libavformat/c{webm_chunk}: include = $CONFIG_WEBM_CHUNK_MUXER
+libul{avformat}: libavformat/c{webmdashenc}: include = $CONFIG_WEBM_DASH_MANIFEST_MUXER
+libul{avformat}: libavformat/c{webpenc}: include = $CONFIG_WEBP_MUXER
+libul{avformat}: libavformat/c{webvttdec}: include = $CONFIG_WEBVTT_DEMUXER
+libul{avformat}: libavformat/c{webvttenc}: include = $CONFIG_WEBVTT_MUXER
+libul{avformat}: libavformat/c{westwood_audenc}: include = $CONFIG_WSAUD_MUXER
+libul{avformat}: libavformat/c{westwood_aud}: include = $CONFIG_WSAUD_DEMUXER
+libul{avformat}: libavformat/c{westwood_vqa}: include = $CONFIG_WSVQA_DEMUXER
+libul{avformat}: libavformat/c{wsddec}: include = $CONFIG_WSD_DEMUXER
+libul{avformat}: libavformat/c{wtv_common}: include = ($CONFIG_WTV_DEMUXER || $CONFIG_WTV_MUXER)
+libul{avformat}: libavformat/c{wtvdec}: include = $CONFIG_WTV_DEMUXER
+libul{avformat}: libavformat/c{wtvenc}: include = $CONFIG_WTV_MUXER
+libul{avformat}: libavformat/c{wvdec}: include = $CONFIG_WV_DEMUXER
+libul{avformat}: libavformat/c{wvedec}: include = $CONFIG_WVE_DEMUXER
+libul{avformat}: libavformat/c{wvenc}: include = $CONFIG_WV_MUXER
+libul{avformat}: libavformat/c{wv}: include = ($CONFIG_MATROSKA_MUXER || $CONFIG_WV_DEMUXER || $CONFIG_WV_MUXER)
+libul{avformat}: libavformat/c{xa}: include = $CONFIG_XA_DEMUXER
+libul{avformat}: libavformat/c{xmd}: include = $CONFIG_XMD_DEMUXER
+libul{avformat}: libavformat/c{xmv}: include = $CONFIG_XMV_DEMUXER
+libul{avformat}: libavformat/c{xvag}: include = $CONFIG_XVAG_DEMUXER
+libul{avformat}: libavformat/c{xwma}: include = $CONFIG_XWMA_DEMUXER
+libul{avformat}: libavformat/c{yop}: include = $CONFIG_YOP_DEMUXER
+libul{avformat}: libavformat/c{yuv4mpegdec}: include = $CONFIG_YUV4MPEGPIPE_DEMUXER
+libul{avformat}: libavformat/c{yuv4mpegenc}: include = $CONFIG_YUV4MPEGPIPE_MUXER
+
+# Windows Resources
+#
+# @@ TODO Disabled for the time being but see note in libavutil/src/buildfile.
+#
+# libs{avformat}: winres{avformat}: include = ($c.target.system == 'win32-msvc')
+# winres{avformat}: libavformat/rc{avformatres} libus{avformat-meta}
+
+# Libraries
+
+libul{avformat}: $intf_libs $impl_libs
+
+# Set up the upstream tests as unit tests.
+#
+exe{*.test}:
+{
+  test = true
+  install = false
+}
+
+# @@ TODO Figure out what seek needs as input.
+#
+# @@ TODO Figure out why movenc fails (on my Linux dev machine, at least).
+#
+for p: fifo_muxer@($CONFIG_NETWORK && $CONFIG_FIFO_MUXER)       \
+       imf@$CONFIG_IMF_DEMUXER                                  \
+       movenc@(false && $CONFIG_MOV_MUXER)                      \
+       noproxy@$CONFIG_NETWORK                                  \
+       rtmpdh@$CONFIG_FFRTMPCRYPT_PROTOCOL                      \
+       seek@false                                               \
+       seek_utils@true                                          \
+       srtp@$CONFIG_SRTP                                        \
+       url@true
+{
+  n = $first($p)  # Source file name
+  i = $second($p) # Include value
+
+  d = libavformat
+  s = $d/c{$(n).test...}
+  t = $d/exe{$(n).test...}
+
+  if! $i
+    text 'skip test' $t
+
+  ./: $t: include = $i
+  $t: $s $d/testscript
+  $t: libul{avformat}: bin.whole = false
+}
+
+libavformat/c{protocol_list}: libavformat/c{protocols}
 {{
-  diag gen $>
-
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w defines [string_set]
 
-  sed -n -e 's/.*extern.* URLProtocol\s+ff_(\S+)_protocol;/\1_protocol/p' $s | set -n func_list
-  if $empty($func_list)
-    echo "No protocol functions found"
-    exit 1
-  end
+  sed -n -e 's/.*extern.* URLProtocol\s+ff_(\S+)_protocol;/\1_protocol/p' $s | \
+    set -n all_funcs
+
+  # Compile the list of enabled protocol functions as determined by the
+  # corresponding CONFIG_ variables.
+  #
+  # Computed variable names can only be dereferenced in the depdb preamble
+  # (because their values must be tracked) so we have to store the
+  # CONFIG_<funcname> values before calling depdb. Hence the `funcs` variable.
+  #
+  funcs = [strings, null] # Enabled functions
+  for c: $all_funcs
+  {
+    v = $string.ucase(CONFIG_$c)
+    if ($($v) == true) # @@ Doesn't work without the explicit `== true`.
+      funcs += $c
+  }
+  depdb hash $funcs
+
+  diag gen $>
+
+  ife $all_funcs
+    exit "No protocol functions found"
+
   echo 'static const URLProtocol* const url_protocols[] = {' > $f
-  for c: $func_list
-    group = $string.ucase(CONFIG_$c)
-    if ($defines[$group])
-      echo "    &ff_$c," >> $path($>)
-    end
-  end
-  echo "    NULL };" >> $path($>)
+  for c: $funcs
+    echo "    &ff_$c," >> $f
+  echo "    NULL };" >> $f
 }}
 
-libavformat/c{demuxer_list}: libavformat/c{allformats} $config_defs
+libavformat/c{demuxer_list}: libavformat/c{allformats}
 {{
-  diag gen $>
-
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w defines [string_set]
 
-                # extern const FFInputFormat  ff_ac3_demuxer;
+  # extern const FFInputFormat  ff_ac3_demuxer;
+  sed -n -e 's/.*extern.* FFInputFormat\s+ff_(\S+)_demuxer;/\1_demuxer/p' $s | \
+    set -n all_funcs
 
-  sed -n -e 's/^\s*extern.*FFInputFormat\s+ff_(\S*)_demuxer;/\1_demuxer/p' $s | set -n func_list
-  if $empty($func_list)
-    echo "No demuxer functions found"
-    exit 1
-  end
+  funcs = [strings, null] # Enabled functions
+  for c: $all_funcs
+  {
+    v = $string.ucase(CONFIG_$c)
+    if ($($v) == true) # @@ Doesn't work without the explicit `== true`.
+      funcs += $c
+  }
+  depdb hash $funcs
+
+  diag gen $>
+
+  ife $all_funcs
+    exit "No demuxer functions found"
+
   echo 'static const FFInputFormat* const demuxer_list[] = {' > $f
-  for c: $func_list
-    group = $string.ucase(CONFIG_$c)
-    if ($defines[$group])
-      echo "    &ff_$c," >> $path($>)
-    end
-  end
-  echo "    NULL };" >> $path($>)
+  for c: $funcs
+    echo "    &ff_$c," >> $f
+  echo "    NULL };" >> $f
 }}
 
-libavformat/c{muxer_list}: libavformat/c{allformats} $config_defs
+libavformat/c{muxer_list}: libavformat/c{allformats}
 {{
-  diag gen $>
-
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w defines [string_set]
 
-  sed -n -e 's/^\s*extern.*FFOutputFormat\s+ff_(\S*)_muxer;/\1_muxer/p' $s | set -n func_list
-  if $empty($func_list)
-    echo "No muxer functions found"
-    exit 1
-  end
+  sed -n -e 's/.*extern.* FFOutputFormat\s+ff_(\S+)_muxer;/\1_muxer/p' $s | \
+    set -n all_funcs
+
+  funcs = [strings, null] # Enabled functions
+  for c: $all_funcs
+  {
+    v = $string.ucase(CONFIG_$c)
+    if ($($v) == true) # @@ Doesn't work without the explicit `== true`.
+      funcs += $c
+  }
+  depdb hash $funcs
+
+  diag gen $>
+
+  ife $all_funcs
+    exit "No muxer functions found"
+
   echo 'static const FFOutputFormat* const muxer_list[] = {' > $f
-  for c: $func_list
-    group = $string.ucase(CONFIG_$c)
-    if ($defines[$group])
-      echo "    &ff_$c," >> $path($>)
-    end
-  end
-  echo "    NULL };" >> $path($>)
+  for c: $funcs
+    echo "    &ff_$c," >> $f
+  echo "    NULL };" >> $f
 }}
 
 # Build options.
 #
-import [once] libconfig%buildfile{common-configs}
+c.poptions =+ "-I$out_base" "-I$src_base"       \
+              $common_poptions                  \
+              -DBUILDING_avformat
 
-out_pfx = [dir_path] $out_root/src/
-src_pfx = [dir_path] $src_root/src/
+obj{*}: c.coptions += $common_coptions
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avformat
+# Disable MSVC warnings that are emitted dozens of times.
+#
+if ($c.class == 'msvc')
+  obj{*}: c.coptions += /wd4267 \
+                        /wd4101
 
-obja{*}: c.poptions += -DCONFIG_STATIC
-objs{*}: c.poptions += -DCONFIG_SHARED
+# @@ TODO Revisit after CI. Quite a few are already in common-configs.build.
+#
+# switch ($c.id)
+# {
+#   case 'msvc'
+#     c.coptions += -wd4003 -wd4133 -wd4333
+# }
 
+objs{*}: c.poptions += $common_objs_poptions
+obja{*}: c.poptions += $common_obja_poptions
+
+# Add common_obja_poptions for the correct definition of CONFIG_SHARED (i.e.,
+# 0) otherwise we get a warning about it being undefined on Mingw-w64. (We
+# know the test executables are linked against the utility library which is
+# static so this is probably OK.)
+#
+obje{*.test}: c.poptions += $common_obja_poptions
+
+# Many unused functions in this file, each case of which determined by a
+# separate config option, so do the entire file to keep things simple.
+#
+if ($c.class == 'gcc')
+  libavformat/obj{img2dec}: c.coptions += -Wno-unused-function
+
+# Disable unused warnings for functions used only if certain config options
+# are enabled.
+#
+if (!$CONFIG_APTX_HD_DEMUXER && $c.class == 'gcc')
+  libavformat/obj{aptxdec}: c.coptions += -Wno-unused-function
+
+if (!$CONFIG_ASF_STREAM_MUXER && $c.class == 'gcc')
+  libavformat/obj{asfenc}: c.coptions += -Wno-unused-function
+
+lib{avformat}: c.loptions += $common_loptions
+
+# Export all symbols from the DLL if on Windows.
+#
 libs{avformat}: def{avformat}: include = ($c.target.system == 'win32-msvc')
 def{avformat}: libul{avformat}
 
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
+if $tgt_mingw
+  libs{avformat}: c.loptions += -Wl,--export-all-symbols
 
 # System libraries
+#
 sys_libs =
-switch $c.target.class, $c.target.system
+if $windows
 {
-  case 'windows', 'win32-msvc'
-    sys_libs += bcrypt.lib
-  case 'windows', 'mingw32'
-    sys_libs += -lbcrypt
-  case 'macos'
-    sys_libs += -lc
-}
-c.libs += $sys_libs
-
-switch ($c.id)
-{
-  case 'msvc'
+  if $tgt_mingw
   {
-    c.coptions += -wd4003 -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
-    c.poptions += -DWIN32_LEAN_AND_MEAN -D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
+    if $CONFIG_NETWORK
+      sys_libs += -lws2_32
+    if $CONFIG_SCHANNEL
+      sys_libs += -lsecur32
+  }
+  else
+  {
+    if $CONFIG_NETWORK
+      sys_libs += ws2_32.lib
+    if $CONFIG_SCHANNEL
+      sys_libs += secur32.lib
   }
 }
+
+libul{avformat}: c.libs += $common_libs $sys_libs
 
 # Export options.
 #
 lib{avformat}:
 {
-  c.export.poptions = "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs $sys_libs
+  c.export.poptions = "-I$out_base" "-I$src_base"
+
+  # @@ TMP Let's hold off on exporting any system libraries until it's clear
+  #    which ones we have to export. Upstream doesn't appear to be concerned
+  #    about these sorts of things at all.
+  #
+  c.export.libs = $intf_libs #$sys_libs
 }
 
 # For pre-releases use the complete version to make sure they cannot
@@ -171,10 +1490,27 @@ if $version.pre_release
 else
   lib{avformat}: bin.lib.version = "-$version.major.$version.minor"
 
-# Install recreating subdirectories.
+# Installation.
 #
-h{*}:
-{
-  install         = include/
-  install.subdirs = true
-}
+pub_hdr = avformat      \
+          avio          \
+          version       \
+          version_major
+
+# The private headers in libavformat/ are the complement of the public headers.
+#
+priv_hdr = libavformat/h{* -{$pub_hdr}}
+
+# Install all headers by default.
+#
+h{*}: install = include/libavformat/
+
+# Set private headers install location.
+#
+# These are included as `#include "libavformat/foo.h"` by all libraries.
+#
+for h: $priv_hdr
+  $h@./libavformat/: install = include/libavformat/private/libavformat/
+
+lib{avformat}:         c.pkgconfig.include = include/
+lib{avformat_private}: c.pkgconfig.include = include/libavformat/private/

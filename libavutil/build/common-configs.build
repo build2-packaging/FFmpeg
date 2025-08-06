@@ -1,0 +1,457 @@
+tgt_cpu = $c.target.cpu
+
+tgt_x86     = ($tgt_cpu == 'x86_64' || $tgt_cpu == 'i686')
+tgt_arm     = ($tgt_cpu == 'arm')
+tgt_aarch64 = ($tgt_cpu == 'aarch64')
+tgt_ppc     = ($regex.match($tgt_cpu, '^powerpc.*') || \
+               $regex.match($tgt_cpu, '^ppc64.*'))
+tgt_alpha   = $regex.match($tgt_cpu, '^alpha.*')
+tgt_mips    = ($regex.match($tgt_cpu, 'mipsel.*') || \
+               $regex.match($tgt_cpu, 'mips64el.*'))
+
+tgt_win32 = ($c.target.system == 'win32-msvc')
+tgt_mingw = ($c.target.system == 'mingw32')
+tgt_macos = ($c.target.system == 'darwin')
+
+# @@ TODO Add tgt_ prefix.
+#
+windows = ($c.target.class  == 'windows')
+linux   = ($c.target.class  == 'linux')
+
+# Preprocessor options to be set on all objects and all shared objects.
+#
+# HAVE_AV_CONFIG_H: Indicates that config.h is available for inclusion.
+#
+common_poptions=-DHAVE_AV_CONFIG_H
+
+common_objs_poptions=
+
+# Compiler options to be set on all object files.
+#
+common_coptions=
+
+# Linker options to be set on all executables and libraries.
+#
+common_loptions=
+
+# Libraries to be linked by all executables and libraries.
+#
+common_libs=
+
+is_libavutil = [bool] ($project == 'libavutil')
+
+if (!$is_libavutil)
+{
+  import! libavutil [metadata] = libavutil%lib{avutil}
+
+  disable_sse  = $($libavutil: libavutil.disable_sse)
+  disable_sse2 = $($libavutil: libavutil.disable_sse2)
+  disable_neon = $($libavutil: libavutil.disable_neon)
+  disable_rvv  = $($libavutil: libavutil.disable_rvv)
+}
+else
+{
+  disable_sse  = $config.libavutil.disable_sse
+  disable_sse2 = $config.libavutil.disable_sse2
+  disable_neon = $config.libavutil.disable_neon
+  disable_rvv  = $config.libavutil.disable_rvv
+}
+
+# FFmpeg requires at least -O1 to inline compile-time capable checks and
+# remove dead code, otherwise it'll try to link unbuilt symbols.
+#
+# Add -O1 if no optimization options are present or fail if optimization has
+# been disabled (-O0 or /Od).
+#
+if! $regex.find_match($cc.coptions $c.coptions, '[-\/]O[a-z0-9]')
+{
+  if $is_libavutil
+    text  "appending -O1 \(optimization required)"
+
+  c.coptions += "-O1"
+
+  # Windows' link.exe doesn't support /O.
+  #
+  if (!$windows || $tgt_mingw)
+    c.loptions += "-O1"
+}
+elif $regex.find_match($cc.coptions $c.coptions, '[-\/]O[0d]')
+  fail "optimization cannot be disabled: FFmpeg requires at least -O1"
+
+# Remove /RCT[1su] because it is incompatible with optimization turned on.
+#
+if ($c.id.class == 'msvc')
+{
+  regex = '[-\/]RTC\S+'
+
+  if ($regex.find_match($cc.coptions $c.coptions, $regex))
+  {
+    if $is_libavutil
+      warn "removing /RTC \(incompatible with optimizations)"
+    cc.coptions = $regex.filter_out_match($cc.coptions, $regex)
+    c.coptions = $regex.filter_out_match($c.coptions, $regex)
+  }
+}
+
+# default to highest level of SIMD that can be reasonably
+# guaranteed (if none has been specified)
+if(!$regex.find_search($c.coptions $cc.coptions, '[-\/]?(?:m|arch)'))
+{
+  flag_x86     = ($c.id != 'msvc' ? '-msse'                : '-arch:SSE')
+  flag_x86_64  = ($c.id != 'msvc' ? '-msse2'               : '-arch:AVX2')  # with 'SSE2' there are unresolved ext symbols to x86/vvc_init.c functions (MSVC only)
+  flag_aarch64 = ($c.id != 'msvc' ? '-march=armv8.1-a'     : '-arch:VFPv4')
+  flag_arm     = ($c.id != 'msvc' ? '-mfpu=neon'           : )
+  flag_rvv32   = ($c.id != 'msvc' ? '-march=rv32gc_zve32x' : )
+  flag_rvv64   = ($c.id != 'msvc' ? '-march=rv64gc_zve32x' : )
+
+  simd_flag =
+  if(($c.target.cpu == 'i686' || $c.target.cpu == 'i386') && !$disable_sse)
+    simd_flag = $flag_x86
+  elif($c.target.cpu == 'x86_64'  && !$disable_sse2)
+    simd_flag = $flag_x86_64
+  elif($c.target.cpu == 'arm'     && !$disable_neon)
+    simd_flag = $flag_arm
+  elif($c.target.cpu == 'aarch64' && !$disable_neon)
+    simd_flag = $flag_aarch64
+  elif($c.target.cpu == 'riscv32' && !$disable_rvv)
+    simd_flag = $flag_rvv32
+  elif($c.target.cpu == 'riscv64' && !$disable_rvv)
+    simd_flag = $flag_rvv64
+
+  if ($is_libavutil)
+    text "appending $simd_flag \(SIMD auto-detected)"
+  c.coptions += $simd_flag
+}
+
+# see upstream ./configure (but it's not very sensical)
+
+# Upstream defines these macros if on Windows or mingw, or if using the MSVC
+# CRT (which includes clang).
+#
+if $windows
+{
+  # @@ TODO Upstream defines -D_WIN32_WINNT=0x0600 on Windows and mingw (under
+  #    certain conditions) so consider added it.
+
+  common_poptions += -DWIN32_LEAN_AND_MEAN      \
+                     -D_USE_MATH_DEFINES        \
+                     -D_CRT_SECURE_NO_WARNINGS  \
+                     -D_CRT_NONSTDC_NO_WARNINGS
+
+  if ($c.target.system == 'mingw32')
+  {
+    common_poptions += -D__USE_MINGW_ANSI_STDIO=1 \
+                       -D_POSIX_C_SOURCE=200112 -D_XOPEN_SOURCE=600
+
+    # @@ TODO It looks like this macro might be a workaround for an old
+    #    problem on mingw so disable for now and revisit if we see failures on
+    #    CI.
+    #
+    # common_poptions += -U__STRICT_ANSI__
+  }
+}
+else
+{
+   common_poptions += -D_FILE_OFFSET_BITS=64    \
+                      -D_LARGEFILE_SOURCE
+
+  if ($c.target.class == 'linux')
+  {
+    common_poptions += -D_POSIX_C_SOURCE=200112 \
+                       -D_XOPEN_SOURCE=600
+
+  }
+
+  # @@ TODO Doesn't look like this is actually defined on the command-line
+  #    upstream. So disable for now and see what happens in CI.
+  #
+  # if ($c.target.class == 'macos')
+  #   common_poptions += -D_DARWIN_C_SOURCE
+}
+
+# Warning options
+
+if ($c.class == 'msvc')
+{
+  # @@ TODO This is only enabled upstream if C99 inline is not supported. But
+  #    do assume C99 inline is supported in MSVC (long story---see the NASM
+  #    review branch).
+  #
+  # common_poptions += -Dinline=__inline
+
+
+  # Disable all of the warnings upstream disables (globally).
+  #
+  common_coptions += /wd4018    \
+                     /wd4057    \
+                     /wd4100    \
+                     /wd4127    \
+                     /wd4146    \
+                     /wd4152    \
+                     /wd4204    \
+                     /wd4214    \
+                     /wd4244    \
+                     /wd4273    \
+                     /wd4305    \
+                     /wd4307    \
+                     /wd4324    \
+                     /wd4389    \
+                     /wd4554    \
+                     /wd4701    \
+                     /wd4703    \
+                     /wd4706    \
+                     /we4013
+}
+else
+{
+  if ($c.class == 'gcc')
+  {
+    # Warning options added upstream
+    common_coptions += -Wdeclaration-after-statement    \
+                       -Wdisabled-optimization          \
+                       -Wempty-body                     \
+                       -Wmissing-prototypes             \
+                       -Wno-bool-operation              \
+                       -Wno-char-subscripts             \
+                       -Wno-deprecated-declarations     \
+                       -Wno-format-zero-length          \
+                       -Wno-parentheses                 \
+                       -Wno-pointer-sign                \
+                       -Wno-switch                      \
+                       -Wno-unused-const-variable       \
+                       -Wno-unused-variable             \
+                       -Wpointer-arith                  \
+                       -Wredundant-decls                \
+                       -Wstrict-prototypes              \
+                       -Wtype-limits                    \
+                       -Wundef                          \
+                       -Wwrite-strings
+
+    # Warning options added downstream.
+    #
+    # -Wno-cast-qual: The upstream code intentionally triggers this all over
+    #                  the place (and they only enable it if extra warnings
+    #                  are enabled).
+    #
+    common_coptions += -Wno-cast-qual                   \
+                       -Wno-implicit-fallthrough        \
+                       -Wno-missing-field-initializers  \
+                       -Wno-sign-compare                \
+                       -Wno-unused-parameter
+  }
+
+  switch $c.id.type
+  {
+    case 'clang'
+    {
+      # Warning options added upstream
+      common_coptions += -Werror=implicit-function-declaration  \
+                         -Werror=missing-prototypes             \
+                         -Werror=return-type
+
+      # Warning options added downstream
+      common_coptions += -Wno-deprecated-pragma                         \
+                         -Wno-implicit-const-int-float-conversion       \
+                         -Wno-shift-op-parentheses
+    }
+    case 'gcc'
+    {
+      # Warning options added upstream
+      common_coptions += -Werror=format-security                \
+                         -Werror=implicit-function-declaration  \
+                         -Werror=missing-prototypes             \
+                         -Werror=return-type                    \
+                         -Werror=vla                            \
+                         -Wformat                               \
+                         -Wno-maybe-uninitialized
+
+      # Warning options added downstream.
+      #
+      # -Wno-calloc-transposed-args: Due to issue reported at
+      #                              https://trac.ffmpeg.org/ticket/11620.
+      #
+      common_coptions += -Wno-old-style-declaration     \
+                         -Wno-calloc-transposed-args    \
+                         -Wno-discarded-qualifiers
+    }
+  }
+
+  # Optimization options
+
+  if ($c.class == 'gcc')
+  {
+    # Options from the upstream build. Don't add -fomit-frame-pointer because
+    # upstream adds it only if optimizations are enabled but both gcc and
+    # clang enables it with O1 and up.
+    common_coptions += -fno-math-errno \
+                       -fno-signed-zeros
+  }
+
+  switch $c.id.type
+  {
+    case 'clang'
+      common_coptions += -mstack-alignment=16
+    case 'gcc'
+    {
+      # Optimization options from the upstream build
+      common_coptions += -fno-tree-vectorize
+
+      # Unsupported optimizations that when enabled cause runtime errors
+      # (observed with GCC when targeting Linux)
+      common_coptions += -fno-expensive-optimizations   \
+                         -fno-delete-null-pointer-checks
+    }
+  }
+}
+
+# Linker options and libraries
+
+if ($windows && $c.target.cpu == 'i686') # 32-bit Windows
+{
+  # Note that this is enabled by default on 64-bit targets.
+  #
+  common_loptions += /LARGEADDRESSAWARE
+}
+
+if ($c.target.class == 'macos')
+{
+  common_libs += -framework AudioToolbox        \
+                 -framework CoreAudio           \
+                 -framework CoreFoundation      \
+                 -framework CoreMedia           \
+                 -framework CoreVideo           \
+                 -framework VideoToolbox
+}
+elif ($c.target.class == 'linux' || $c.target.class == 'bsd')
+{
+  common_libs += -lm
+
+  common_loptions += -Wl,-Bsymbolic
+}
+
+# Note that PIC is always enabled (on shared and static objects). Although
+# it's unusual to compile static objects with PIC enabled the upstream code
+# apparently requires it. Without PIC you get all kinds of relocation-related
+# errors on Linux and Windows. E.g. "relocation R_X86_64_PC32 against symbol
+# FOO can not be used when making a shared object; recompile with -fPIC" and
+# "relocation truncated to fit: R_X86_64_PC32 against symbol FOO". But also
+# some less obvious ones.
+
+# The only PIC-sensitive code in the upstream source code is controlled by the
+# PIC and CONFIG_PIC macros. In the upstream build the CONFIG_PIC macro is
+# defined to 1 if PIC is enabled and 0 if not.
+#
+common_poptions += -DCONFIG_PIC=1 \
+                   -DPIC
+
+# CONFIG_SHARED (true if shared libraries are to be built) currently does
+# nothing other than causing two arrays (no functions) to be annotated with
+# dllimport. dllexport is not used anywhere. CONFIG_STATIC (true if static
+# libraries are to be built) is not referenced in any upstream code (only
+# build files).
+#
+# (For the sake of interest, https://www.ffmpeg.org/platform.html says the
+# following under Windows: "Note that due to the way MSVC and ICL handle DLL
+# imports and exports, you cannot compile static and shared libraries at the
+# same time, and enabling shared libraries will automatically disable the
+# static ones." Not sure what that really means but it might turn out to be
+# useful to know in future.)
+#
+common_objs_poptions += -DCONFIG_SHARED=1 -DCONFIG_STATIC=0
+common_obja_poptions += -DCONFIG_STATIC=1 -DCONFIG_SHARED=0
+
+if ($c.target.system != 'win32-msvc')
+  common_coptions += -fPIC
+
+define asm: file
+asm{*}: extension = asm
+
+if ($build.mode != 'skeleton')
+{
+  import! nasm = nasm%exe{nasm}
+
+  if $is_libavutil
+    import config_asm = file{config.asm}
+  else
+  {
+    import! [metadata, rule_hint=c.link] avutil_priv = libavutil%lib{avutil_private}
+
+    # The path to config.asm from libavutil.
+    #
+    config_asm_path = $($avutil_priv: libavutil_private.config_asm_path)
+
+    # If avutil_private defines a path for config.asm then the libavutils
+    # package is installed, in which case create a local file{} target from the
+    # exported path; otherwise import the exported config.asm file{} target.
+    #
+    ifn $config_asm_path
+      import! config_asm = libavutil%file{config.asm}
+    else
+      config_asm = file{$config_asm_path}
+  }
+
+  asm_format = [string_map]    \
+    'linux-gnu-x86_64'@elf64   \
+    'linux-gnu-i686'@elf32     \
+    'linux-musl-x86_64'@elf64  \
+    'linux-musl-i686'@elf32    \
+    'linux-gnu-elbrus'@elf64   \
+    'win32-msvc-x86_64'@win64  \
+    'win32-msvc-i686'@win32    \
+    'mingw32-x86_64'@win64     \
+    'mingw32-i686'@win32       \
+    'darwin-x86_64'@macho64    \
+    'darwin-i686'@macho32      \
+    'freebsd-x86_64'@elf64     \
+    'freebsd-i686'@elf32       \
+    'netbsd-x86_64'@elf64      \
+    'netbsd-i686'@elf32        \
+    'openbsd-x86_64'@elf64     \
+    'openbsd-i686'@elf32       \
+    'solaris-x86_64'@elf64     \
+    'solaris-i686'@elf32
+
+  # The NASM output format for the current target CPU.
+  #
+  nasm_ofmt = ($asm_format["$c.target.system-$c.target.cpu"])
+
+  # Rules to compile an .asm file into a shared or static object with NASM.
+  #
+  # Note that the shared and static rules are identical but we need separate
+  # shared and static object files to prevent clobbering.
+  #
+  # TODO Remember to update both rules.
+  #
+  objs{~'/(.*).asm.so/'}: asm{~'/\1/'} $nasm
+  {{
+    diag nasm ($<[0]) -> ($>[0])
+
+    # Cause the `_` prefix to be applied to external symbols on macOS.
+    #
+    defs=
+    if $tgt_macos
+      defs = -DPREFIX
+
+    $nasm -f $nasm_ofmt                                 \
+          $defs                                         \
+          "-P$path($config_asm)" "-I$src_root/src/"     \
+          -o $path($>[0]) $path($<[0])
+  }}
+
+  obja{~'/(.*).asm.a/'}: asm{~'/\1/'} $nasm
+  {{
+    diag nasm ($<[0]) -> ($>[0])
+
+    # Cause the `_` prefix to be applied to external symbols on macOS.
+    #
+    defs=
+    if $tgt_macos
+      defs = -DPREFIX
+
+    $nasm -f $nasm_ofmt                                 \
+          $defs                                         \
+          "-P$path($config_asm)" "-I$src_root/src/"     \
+          -o $path($>[0]) $path($<[0])
+  }}
+
+} # $build.mode != 'skeleton'

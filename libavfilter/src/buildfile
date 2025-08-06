@@ -1,110 +1,1469 @@
+import intf_libs = libavformat%lib{avformat}
 
-intf_libs = # Interface dependencies.
-impl_libs = # Implementation dependencies.
+import! [metadata, rule_hint=c.link] avutil_priv = libavutil%lib{avutil_private}
 
-import config = libconfig%lib{config}
-impl_libs += $config
-import intf_libs += \
-  libavutil%lib{avutil} \
-  libavcodec%lib{avcodec} \
-  libavformat%lib{avformat} \
-  libswscale%lib{swscale} \
-  libswresample%lib{swresample}
+impl_libs = $avutil_priv
 
-cpu = [string] $c.target.cpu
-tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
-tgt_macos = [bool] ($c.target.system == 'darwin')
+# The paths to config.h and config.asm from libavutil.
+#
+config_h_path   = $($avutil_priv: libavutil_private.config_h_path)
+config_asm_path = $($avutil_priv: libavutil_private.config_asm_path)
 
-lib{avfilter}: libul{avfilter}: $impl_libs $intf_libs
+# If avutil_private defines a path for config.{h,asm} then the libavutils
+# package is installed, in which case create local file{} targets from the
+# exported paths; otherwise import the exported config.{h,asm} file{} targets.
+#
+ifn $config_h_path
+  import! config_h = libavutil%h{config}
+else
+  config_h = file{$config_h_path}
 
-# conditional source & assembly
-import [once] libconfig%buildfile{conditional-src}
-import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled-defines}
+ifn $config_asm_path
+  import! config_asm = libavutil%file{config.asm}
+else
+  config_asm = file{$config_asm_path}
 
-[rule_hint=c] \
-libul{avfilter-meta}: $impl_libs $intf_libs
-libul{avfilter}: enabled_source{avfilter}: $config_defs json{files} h{**}:                           update = match
-libua{avfilter}: enabled_asm{avfilter-a}: $config_defs $config_asm json{files} libua{avfilter-meta}: update = match
-libus{avfilter}: enabled_asm{avfilter-s}: $config_defs $config_asm json{files} libus{avfilter-meta}: update = match
+# A utility library is required by the bin.def rule and the unit test
+# executables.
+#
+./: lib{avfilter}: libul{avfilter}
 
-libs{avfilter}: winres{avfilter}: include = ($c.target.system == 'win32-msvc')
-winres{avfilter}: libavfilter/rc{avfilterres} libus{avfilter-meta}
+# Headers.
+#
+libul{avfilter}: libavfilter/h{**}
 
-# these c files are included, not built.
-libul{avfilter}: adhoc_source{avfilter}: include = adhoc
-adhoc_source{avfilter}: libavfilter/c{**_template blend_modes}
+# This target exports the path to the private headers in the installed case
+# only. See lib{avutil_private} in libavutil/src/buildfile for more
+# information.
+#
+[rule_hint=c] lib{avfilter_private}:
+./: lib{avfilter_private}
 
-libul{avfilter}: libavfilter/c{ \
-                  filter_list \
-                }: include = adhoc
 
-libavfilter/c{filter_list}: libavfilter/c{allfilters} $config_defs
+# Included source files
+#
+libul{avfilter}: libavfilter/c{**_template blend_modes}: include = adhoc
+
+# Included generated source files.
+#
+libul{avfilter}: libavfilter/c{filter_list}: include = adhoc
+
+# Private libavutil headers and included .asm source files.
+#
+libul{avfilter}: libavutil/x86/h{*}
+libul{avfilter}: libavutil/x86/file{*.asm}: include = adhoc
+
+# Compiled source files.
+#
+libul{avfilter}: libavfilter/c{allfilters       \
+                               audio            \
+                               avfilter         \
+                               avfiltergraph    \
+                               buffersink       \
+                               buffersrc        \
+                               colorspace       \
+                               ccfifo           \
+                               drawutils        \
+                               formats          \
+                               framepool        \
+                               framequeue       \
+                               graphdump        \
+                               graphparser      \
+                               log2_tab         \
+                               version          \
+                               video}
+
+# The macros to be extracted from config.h as buildfile variables.
+#
+config_macros = ARCH_X86                                \
+                ARCH_X86_64                             \
+                CONFIG_A3DSCOPE_FILTER                  \
+                CONFIG_AAP_FILTER                       \
+                CONFIG_ABENCH_FILTER                    \
+                CONFIG_ABITSCOPE_FILTER                 \
+                CONFIG_ACOMPRESSOR_FILTER               \
+                CONFIG_ACONTRAST_FILTER                 \
+                CONFIG_ACOPY_FILTER                     \
+                CONFIG_ACROSSFADE_FILTER                \
+                CONFIG_ACROSSOVER_FILTER                \
+                CONFIG_ACRUSHER_FILTER                  \
+                CONFIG_ACUE_FILTER                      \
+                CONFIG_ADDROI_FILTER                    \
+                CONFIG_ADECLICK_FILTER                  \
+                CONFIG_ADECLIP_FILTER                   \
+                CONFIG_ADECORRELATE_FILTER              \
+                CONFIG_ADELAY_FILTER                    \
+                CONFIG_ADENORM_FILTER                   \
+                CONFIG_ADERIVATIVE_FILTER               \
+                CONFIG_ADRAWGRAPH_FILTER                \
+                CONFIG_ADRC_FILTER                      \
+                CONFIG_ADYNAMICEQUALIZER_FILTER         \
+                CONFIG_ADYNAMICSMOOTH_FILTER            \
+                CONFIG_AECHO_FILTER                     \
+                CONFIG_AEMPHASIS_FILTER                 \
+                CONFIG_AEVAL_FILTER                     \
+                CONFIG_AEVALSRC_FILTER                  \
+                CONFIG_AEXCITER_FILTER                  \
+                CONFIG_AFADE_FILTER                     \
+                CONFIG_AFDELAYSRC_FILTER                \
+                CONFIG_AFFTDN_FILTER                    \
+                CONFIG_AFFTFILT_FILTER                  \
+                CONFIG_AFIREQSRC_FILTER                 \
+                CONFIG_AFIR_FILTER                      \
+                CONFIG_AFIRSRC_FILTER                   \
+                CONFIG_AFORMAT_FILTER                   \
+                CONFIG_AFREQSHIFT_FILTER                \
+                CONFIG_AFWTDN_FILTER                    \
+                CONFIG_AGATE_FILTER                     \
+                CONFIG_AGRAPHMONITOR_FILTER             \
+                CONFIG_AHISTOGRAM_FILTER                \
+                CONFIG_AIIR_FILTER                      \
+                CONFIG_AINTEGRAL_FILTER                 \
+                CONFIG_AINTERLEAVE_FILTER               \
+                CONFIG_ALATENCY_FILTER                  \
+                CONFIG_ALIMITER_FILTER                  \
+                CONFIG_ALLPASS_FILTER                   \
+                CONFIG_ALLRGB_FILTER                    \
+                CONFIG_ALLYUV_FILTER                    \
+                CONFIG_ALOOP_FILTER                     \
+                CONFIG_ALPHAEXTRACT_FILTER              \
+                CONFIG_ALPHAMERGE_FILTER                \
+                CONFIG_AMERGE_FILTER                    \
+                CONFIG_AMETADATA_FILTER                 \
+                CONFIG_AMIX_FILTER                      \
+                CONFIG_AMOVIE_FILTER                    \
+                CONFIG_AMPLIFY_FILTER                   \
+                CONFIG_AMULTIPLY_FILTER                 \
+                CONFIG_ANEQUALIZER_FILTER               \
+                CONFIG_ANLMDN_FILTER                    \
+                CONFIG_ANLMF_FILTER                     \
+                CONFIG_ANLMS_FILTER                     \
+                CONFIG_ANOISESRC_FILTER                 \
+                CONFIG_ANULL_FILTER                     \
+                CONFIG_ANULLSINK_FILTER                 \
+                CONFIG_ANULLSRC_FILTER                  \
+                CONFIG_APAD_FILTER                      \
+                CONFIG_APERMS_FILTER                    \
+                CONFIG_APHASEMETER_FILTER               \
+                CONFIG_APHASER_FILTER                   \
+                CONFIG_APHASESHIFT_FILTER               \
+                CONFIG_APSNR_FILTER                     \
+                CONFIG_APSYCLIP_FILTER                  \
+                CONFIG_APULSATOR_FILTER                 \
+                CONFIG_AREALTIME_FILTER                 \
+                CONFIG_ARESAMPLE_FILTER                 \
+                CONFIG_AREVERSE_FILTER                  \
+                CONFIG_ARLS_FILTER                      \
+                CONFIG_ARNNDN_FILTER                    \
+                CONFIG_ASDR_FILTER                      \
+                CONFIG_ASEGMENT_FILTER                  \
+                CONFIG_ASELECT_FILTER                   \
+                CONFIG_ASENDCMD_FILTER                  \
+                CONFIG_ASETNSAMPLES_FILTER              \
+                CONFIG_ASETPTS_FILTER                   \
+                CONFIG_ASETRATE_FILTER                  \
+                CONFIG_ASETTB_FILTER                    \
+                CONFIG_ASHOWINFO_FILTER                 \
+                CONFIG_ASIDEDATA_FILTER                 \
+                CONFIG_ASISDR_FILTER                    \
+                CONFIG_ASOFTCLIP_FILTER                 \
+                CONFIG_ASPECTRALSTATS_FILTER            \
+                CONFIG_ASPLIT_FILTER                    \
+                CONFIG_ASR_FILTER                       \
+                CONFIG_ASS_FILTER                       \
+                CONFIG_ASTATS_FILTER                    \
+                CONFIG_ASTREAMSELECT_FILTER             \
+                CONFIG_ASUBBOOST_FILTER                 \
+                CONFIG_ASUBCUT_FILTER                   \
+                CONFIG_ASUPERCUT_FILTER                 \
+                CONFIG_ASUPERPASS_FILTER                \
+                CONFIG_ASUPERSTOP_FILTER                \
+                CONFIG_ATADENOISE_FILTER                \
+                CONFIG_ATEMPO_FILTER                    \
+                CONFIG_ATILT_FILTER                     \
+                CONFIG_ATRIM_FILTER                     \
+                CONFIG_AVECTORSCOPE_FILTER              \
+                CONFIG_AVGBLUR_FILTER                   \
+                CONFIG_AVGBLUR_OPENCL_FILTER            \
+                CONFIG_AVGBLUR_VULKAN_FILTER            \
+                CONFIG_AVSYNCTEST_FILTER                \
+                CONFIG_AXCORRELATE_FILTER               \
+                CONFIG_AZMQ_FILTER                      \
+                CONFIG_BACKGROUNDKEY_FILTER             \
+                CONFIG_BANDPASS_FILTER                  \
+                CONFIG_BANDREJECT_FILTER                \
+                CONFIG_BASS_FILTER                      \
+                CONFIG_BBOX_FILTER                      \
+                CONFIG_BENCH_FILTER                     \
+                CONFIG_BILATERAL_CUDA_FILTER            \
+                CONFIG_BILATERAL_FILTER                 \
+                CONFIG_BIQUAD_FILTER                    \
+                CONFIG_BITPLANENOISE_FILTER             \
+                CONFIG_BLACKDETECT_FILTER               \
+                CONFIG_BLACKFRAME_FILTER                \
+                CONFIG_BLEND_FILTER                     \
+                CONFIG_BLEND_VULKAN_FILTER              \
+                CONFIG_BLOCKDETECT_FILTER               \
+                CONFIG_BLURDETECT_FILTER                \
+                CONFIG_BM3D_FILTER                      \
+                CONFIG_BOXBLUR_FILTER                   \
+                CONFIG_BOXBLUR_OPENCL_FILTER            \
+                CONFIG_BS2B_FILTER                      \
+                CONFIG_BWDIF_CUDA_FILTER                \
+                CONFIG_BWDIF_FILTER                     \
+                CONFIG_BWDIF_VULKAN_FILTER              \
+                CONFIG_CAS_FILTER                       \
+                CONFIG_CCREPACK_FILTER                  \
+                CONFIG_CELLAUTO_FILTER                  \
+                CONFIG_CHANNELMAP_FILTER                \
+                CONFIG_CHANNELSPLIT_FILTER              \
+                CONFIG_CHORUS_FILTER                    \
+                CONFIG_CHROMABER_VULKAN_FILTER          \
+                CONFIG_CHROMAHOLD_FILTER                \
+                CONFIG_CHROMAKEY_CUDA_FILTER            \
+                CONFIG_CHROMAKEY_FILTER                 \
+                CONFIG_CHROMANR_FILTER                  \
+                CONFIG_CHROMASHIFT_FILTER               \
+                CONFIG_CIESCOPE_FILTER                  \
+                CONFIG_CODECVIEW_FILTER                 \
+                CONFIG_COLORBALANCE_FILTER              \
+                CONFIG_COLORCHANNELMIXER_FILTER         \
+                CONFIG_COLORCHART_FILTER                \
+                CONFIG_COLORCONTRAST_FILTER             \
+                CONFIG_COLORCORRECT_FILTER              \
+                CONFIG_COLOR_FILTER                     \
+                CONFIG_COLORHOLD_FILTER                 \
+                CONFIG_COLORIZE_FILTER                  \
+                CONFIG_COLORKEY_FILTER                  \
+                CONFIG_COLORKEY_OPENCL_FILTER           \
+                CONFIG_COLORLEVELS_FILTER               \
+                CONFIG_COLORMAP_FILTER                  \
+                CONFIG_COLORMATRIX_FILTER               \
+                CONFIG_COLORSPACE_CUDA_FILTER           \
+                CONFIG_COLORSPACE_FILTER                \
+                CONFIG_COLORSPECTRUM_FILTER             \
+                CONFIG_COLORTEMPERATURE_FILTER          \
+                CONFIG_COLOR_VULKAN_FILTER              \
+                CONFIG_COMPAND_FILTER                   \
+                CONFIG_COMPENSATIONDELAY_FILTER         \
+                CONFIG_CONCAT_FILTER                    \
+                CONFIG_CONVOLUTION_FILTER               \
+                CONFIG_CONVOLUTION_OPENCL_FILTER        \
+                CONFIG_CONVOLVE_FILTER                  \
+                CONFIG_COPY_FILTER                      \
+                CONFIG_COREIMAGE_FILTER                 \
+                CONFIG_COREIMAGESRC_FILTER              \
+                CONFIG_CORR_FILTER                      \
+                CONFIG_COVER_RECT_FILTER                \
+                CONFIG_CROPDETECT_FILTER                \
+                CONFIG_CROP_FILTER                      \
+                CONFIG_CROSSFEED_FILTER                 \
+                CONFIG_CRYSTALIZER_FILTER               \
+                CONFIG_CUE_FILTER                       \
+                CONFIG_CURVES_FILTER                    \
+                CONFIG_DATASCOPE_FILTER                 \
+                CONFIG_DBLUR_FILTER                     \
+                CONFIG_DCSHIFT_FILTER                   \
+                CONFIG_DCTDNOIZ_FILTER                  \
+                CONFIG_DDAGRAB_FILTER                   \
+                CONFIG_DEBAND_FILTER                    \
+                CONFIG_DEBLOCK_FILTER                   \
+                CONFIG_DECIMATE_FILTER                  \
+                CONFIG_DECONVOLVE_FILTER                \
+                CONFIG_DEDOT_FILTER                     \
+                CONFIG_DEESSER_FILTER                   \
+                CONFIG_DEFLATE_FILTER                   \
+                CONFIG_DEFLICKER_FILTER                 \
+                CONFIG_DEINTERLACE_QSV_FILTER           \
+                CONFIG_DEINTERLACE_VAAPI_FILTER         \
+                CONFIG_DEJUDDER_FILTER                  \
+                CONFIG_DELOGO_FILTER                    \
+                CONFIG_DENOISE_VAAPI_FILTER             \
+                CONFIG_DERAIN_FILTER                    \
+                CONFIG_DESHAKE_FILTER                   \
+                CONFIG_DESHAKE_OPENCL_FILTER            \
+                CONFIG_DESPILL_FILTER                   \
+                CONFIG_DETELECINE_FILTER                \
+                CONFIG_DIALOGUENHANCE_FILTER            \
+                CONFIG_DILATION_FILTER                  \
+                CONFIG_DILATION_OPENCL_FILTER           \
+                CONFIG_DISPLACE_FILTER                  \
+                CONFIG_DNN                              \
+                CONFIG_DNN_CLASSIFY_FILTER              \
+                CONFIG_DNN_DETECT_FILTER                \
+                CONFIG_DNN_PROCESSING_FILTER            \
+                CONFIG_DOUBLEWEAVE_FILTER               \
+                CONFIG_DRAWBOX_FILTER                   \
+                CONFIG_DRAWGRAPH_FILTER                 \
+                CONFIG_DRAWGRID_FILTER                  \
+                CONFIG_DRAWTEXT_FILTER                  \
+                CONFIG_DRMETER_FILTER                   \
+                CONFIG_DYNAUDNORM_FILTER                \
+                CONFIG_EARWAX_FILTER                    \
+                CONFIG_EBUR128_FILTER                   \
+                CONFIG_EDGEDETECT_FILTER                \
+                CONFIG_ELBG_FILTER                      \
+                CONFIG_ENTROPY_FILTER                   \
+                CONFIG_EPX_FILTER                       \
+                CONFIG_EQ_FILTER                        \
+                CONFIG_EQUALIZER_FILTER                 \
+                CONFIG_EROSION_FILTER                   \
+                CONFIG_EROSION_OPENCL_FILTER            \
+                CONFIG_ESTDIF_FILTER                    \
+                CONFIG_EXPOSURE_FILTER                  \
+                CONFIG_EXTRACTPLANES_FILTER             \
+                CONFIG_EXTRASTEREO_FILTER               \
+                CONFIG_FADE_FILTER                      \
+                CONFIG_FEEDBACK_FILTER                  \
+                CONFIG_FFTDNOIZ_FILTER                  \
+                CONFIG_FFTFILT_FILTER                   \
+                CONFIG_FIELD_FILTER                     \
+                CONFIG_FIELDHINT_FILTER                 \
+                CONFIG_FIELDMATCH_FILTER                \
+                CONFIG_FIELDORDER_FILTER                \
+                CONFIG_FILLBORDERS_FILTER               \
+                CONFIG_FIND_RECT_FILTER                 \
+                CONFIG_FIREQUALIZER_FILTER              \
+                CONFIG_FLANGER_FILTER                   \
+                CONFIG_FLITE_FILTER                     \
+                CONFIG_FLOODFILL_FILTER                 \
+                CONFIG_FORMAT_FILTER                    \
+                CONFIG_FPS_FILTER                       \
+                CONFIG_FRAMEPACK_FILTER                 \
+                CONFIG_FRAMERATE_FILTER                 \
+                CONFIG_FRAMESTEP_FILTER                 \
+                CONFIG_FREEZEDETECT_FILTER              \
+                CONFIG_FREEZEFRAMES_FILTER              \
+                CONFIG_FREI0R_FILTER                    \
+                CONFIG_FREI0R_SRC_FILTER                \
+                CONFIG_FSPP_FILTER                      \
+                CONFIG_FSYNC_FILTER                     \
+                CONFIG_GBLUR_FILTER                     \
+                CONFIG_GBLUR_VULKAN_FILTER              \
+                CONFIG_GEQ_FILTER                       \
+                CONFIG_GPL                              \
+                CONFIG_GRADFUN_FILTER                   \
+                CONFIG_GRADIENTS_FILTER                 \
+                CONFIG_GRAPHMONITOR_FILTER              \
+                CONFIG_GRAYWORLD_FILTER                 \
+                CONFIG_GREYEDGE_FILTER                  \
+                CONFIG_GUIDED_FILTER                    \
+                CONFIG_HAAS_FILTER                      \
+                CONFIG_HALDCLUT_FILTER                  \
+                CONFIG_HALDCLUTSRC_FILTER               \
+                CONFIG_HDCD_FILTER                      \
+                CONFIG_HEADPHONE_FILTER                 \
+                CONFIG_HFLIP_FILTER                     \
+                CONFIG_HFLIP_VULKAN_FILTER              \
+                CONFIG_HIGHPASS_FILTER                  \
+                CONFIG_HIGHSHELF_FILTER                 \
+                CONFIG_HILBERT_FILTER                   \
+                CONFIG_HISTEQ_FILTER                    \
+                CONFIG_HISTOGRAM_FILTER                 \
+                CONFIG_HQDN3D_FILTER                    \
+                CONFIG_HQX_FILTER                       \
+                CONFIG_HSTACK_FILTER                    \
+                CONFIG_HSTACK_QSV_FILTER                \
+                CONFIG_HSTACK_VAAPI_FILTER              \
+                CONFIG_HSVHOLD_FILTER                   \
+                CONFIG_HSVKEY_FILTER                    \
+                CONFIG_HUE_FILTER                       \
+                CONFIG_HUESATURATION_FILTER             \
+                CONFIG_HWDOWNLOAD_FILTER                \
+                CONFIG_HWMAP_FILTER                     \
+                CONFIG_HWUPLOAD_CUDA_FILTER             \
+                CONFIG_HWUPLOAD_FILTER                  \
+                CONFIG_HYSTERESIS_FILTER                \
+                CONFIG_ICCDETECT_FILTER                 \
+                CONFIG_ICCGEN_FILTER                    \
+                CONFIG_IDENTITY_FILTER                  \
+                CONFIG_IDET_FILTER                      \
+                CONFIG_IL_FILTER                        \
+                CONFIG_INFLATE_FILTER                   \
+                CONFIG_INTERLACE_FILTER                 \
+                CONFIG_INTERLEAVE_FILTER                \
+                CONFIG_JOIN_FILTER                      \
+                CONFIG_KERNDEINT_FILTER                 \
+                CONFIG_KIRSCH_FILTER                    \
+                CONFIG_LADSPA_FILTER                    \
+                CONFIG_LAGFUN_FILTER                    \
+                CONFIG_LATENCY_FILTER                   \
+                CONFIG_LENSCORRECTION_FILTER            \
+                CONFIG_LENSFUN_FILTER                   \
+                CONFIG_LIBGLSLANG                       \
+                CONFIG_LIBPLACEBO_FILTER                \
+                CONFIG_LIBSHADERC                       \
+                CONFIG_LIBVMAF_CUDA_FILTER              \
+                CONFIG_LIBVMAF_FILTER                   \
+                CONFIG_LIFE_FILTER                      \
+                CONFIG_LIMITDIFF_FILTER                 \
+                CONFIG_LIMITER_FILTER                   \
+                CONFIG_LOOP_FILTER                      \
+                CONFIG_LOUDNORM_FILTER                  \
+                CONFIG_LOWPASS_FILTER                   \
+                CONFIG_LOWSHELF_FILTER                  \
+                CONFIG_LUMAKEY_FILTER                   \
+                CONFIG_LUT1D_FILTER                     \
+                CONFIG_LUT2_FILTER                      \
+                CONFIG_LUT3D_FILTER                     \
+                CONFIG_LUT_FILTER                       \
+                CONFIG_LUTRGB_FILTER                    \
+                CONFIG_LUTYUV_FILTER                    \
+                CONFIG_LV2_FILTER                       \
+                CONFIG_MANDELBROT_FILTER                \
+                CONFIG_MASKEDCLAMP_FILTER               \
+                CONFIG_MASKEDMAX_FILTER                 \
+                CONFIG_MASKEDMERGE_FILTER               \
+                CONFIG_MASKEDMIN_FILTER                 \
+                CONFIG_MASKEDTHRESHOLD_FILTER           \
+                CONFIG_MASKFUN_FILTER                   \
+                CONFIG_MCDEINT_FILTER                   \
+                CONFIG_MCOMPAND_FILTER                  \
+                CONFIG_MEDIAN_FILTER                    \
+                CONFIG_MERGEPLANES_FILTER               \
+                CONFIG_MESTIMATE_FILTER                 \
+                CONFIG_METADATA_FILTER                  \
+                CONFIG_MIDEQUALIZER_FILTER              \
+                CONFIG_MINTERPOLATE_FILTER              \
+                CONFIG_MIX_FILTER                       \
+                CONFIG_MONOCHROME_FILTER                \
+                CONFIG_MORPHO_FILTER                    \
+                CONFIG_MOVIE_FILTER                     \
+                CONFIG_MPDECIMATE_FILTER                \
+                CONFIG_MPTESTSRC_FILTER                 \
+                CONFIG_MULTIPLY_FILTER                  \
+                CONFIG_NEGATE_FILTER                    \
+                CONFIG_NLMEANS_FILTER                   \
+                CONFIG_NLMEANS_OPENCL_FILTER            \
+                CONFIG_NLMEANS_VULKAN_FILTER            \
+                CONFIG_NNEDI_FILTER                     \
+                CONFIG_NOFORMAT_FILTER                  \
+                CONFIG_NOISE_FILTER                     \
+                CONFIG_NORMALIZE_FILTER                 \
+                CONFIG_NULL_FILTER                      \
+                CONFIG_NULLSINK_FILTER                  \
+                CONFIG_NULLSRC_FILTER                   \
+                CONFIG_OCR_FILTER                       \
+                CONFIG_OCV_FILTER                       \
+                CONFIG_OPENCLSRC_FILTER                 \
+                CONFIG_OSCILLOSCOPE_FILTER              \
+                CONFIG_OVERLAY_CUDA_FILTER              \
+                CONFIG_OVERLAY_FILTER                   \
+                CONFIG_OVERLAY_OPENCL_FILTER            \
+                CONFIG_OVERLAY_QSV_FILTER               \
+                CONFIG_OVERLAY_VAAPI_FILTER             \
+                CONFIG_OVERLAY_VULKAN_FILTER            \
+                CONFIG_OWDENOISE_FILTER                 \
+                CONFIG_PAD_FILTER                       \
+                CONFIG_PAD_OPENCL_FILTER                \
+                CONFIG_PAL100BARS_FILTER                \
+                CONFIG_PAL75BARS_FILTER                 \
+                CONFIG_PALETTEGEN_FILTER                \
+                CONFIG_PALETTEUSE_FILTER                \
+                CONFIG_PAN_FILTER                       \
+                CONFIG_PERMS_FILTER                     \
+                CONFIG_PERSPECTIVE_FILTER               \
+                CONFIG_PHASE_FILTER                     \
+                CONFIG_PHOTOSENSITIVITY_FILTER          \
+                CONFIG_PIXDESCTEST_FILTER               \
+                CONFIG_PIXELIZE_FILTER                  \
+                CONFIG_PIXSCOPE_FILTER                  \
+                CONFIG_PP7_FILTER                       \
+                CONFIG_PP_FILTER                        \
+                CONFIG_PREMULTIPLY_FILTER               \
+                CONFIG_PREWITT_FILTER                   \
+                CONFIG_PREWITT_OPENCL_FILTER            \
+                CONFIG_PROCAMP_VAAPI_FILTER             \
+                CONFIG_PROGRAM_OPENCL_FILTER            \
+                CONFIG_PSEUDOCOLOR_FILTER               \
+                CONFIG_PSNR_FILTER                      \
+                CONFIG_PULLUP_FILTER                    \
+                CONFIG_QP_FILTER                        \
+                CONFIG_QRENCODE_FILTER                  \
+                CONFIG_QRENCODESRC_FILTER               \
+                CONFIG_QSVVPP                           \
+                CONFIG_QUIRC_FILTER                     \
+                CONFIG_RANDOM_FILTER                    \
+                CONFIG_READEIA608_FILTER                \
+                CONFIG_READVITC_FILTER                  \
+                CONFIG_REALTIME_FILTER                  \
+                CONFIG_REMAP_FILTER                     \
+                CONFIG_REMAP_OPENCL_FILTER              \
+                CONFIG_REMOVEGRAIN_FILTER               \
+                CONFIG_REMOVELOGO_FILTER                \
+                CONFIG_REPEATFIELDS_FILTER              \
+                CONFIG_REPLAYGAIN_FILTER                \
+                CONFIG_REVERSE_FILTER                   \
+                CONFIG_RGBASHIFT_FILTER                 \
+                CONFIG_RGBTESTSRC_FILTER                \
+                CONFIG_ROBERTS_FILTER                   \
+                CONFIG_ROBERTS_OPENCL_FILTER            \
+                CONFIG_ROTATE_FILTER                    \
+                CONFIG_RUBBERBAND_FILTER                \
+                CONFIG_SAB_FILTER                       \
+                CONFIG_SCALE2REF_FILTER                 \
+                CONFIG_SCALE2REF_NPP_FILTER             \
+                CONFIG_SCALE_CUDA_FILTER                \
+                CONFIG_SCALE_FILTER                     \
+                CONFIG_SCALE_NPP_FILTER                 \
+                CONFIG_SCALE_QSV_FILTER                 \
+                CONFIG_SCALE_VAAPI_FILTER               \
+                CONFIG_SCALE_VT_FILTER                  \
+                CONFIG_SCALE_VULKAN_FILTER              \
+                CONFIG_SCDET_FILTER                     \
+                CONFIG_SCENE_SAD                        \
+                CONFIG_SCHARR_FILTER                    \
+                CONFIG_SCROLL_FILTER                    \
+                CONFIG_SEGMENT_FILTER                   \
+                CONFIG_SELECT_FILTER                    \
+                CONFIG_SELECTIVECOLOR_FILTER            \
+                CONFIG_SENDCMD_FILTER                   \
+                CONFIG_SEPARATEFIELDS_FILTER            \
+                CONFIG_SETDAR_FILTER                    \
+                CONFIG_SETFIELD_FILTER                  \
+                CONFIG_SETPARAMS_FILTER                 \
+                CONFIG_SETPTS_FILTER                    \
+                CONFIG_SETRANGE_FILTER                  \
+                CONFIG_SETSAR_FILTER                    \
+                CONFIG_SETTB_FILTER                     \
+                CONFIG_SHARPEN_NPP_FILTER               \
+                CONFIG_SHARPNESS_VAAPI_FILTER           \
+                CONFIG_SHEAR_FILTER                     \
+                CONFIG_SHOWCQT_FILTER                   \
+                CONFIG_SHOWCWT_FILTER                   \
+                CONFIG_SHOWFREQS_FILTER                 \
+                CONFIG_SHOWINFO_FILTER                  \
+                CONFIG_SHOWPALETTE_FILTER               \
+                CONFIG_SHOWSPATIAL_FILTER               \
+                CONFIG_SHOWSPECTRUM_FILTER              \
+                CONFIG_SHOWSPECTRUMPIC_FILTER           \
+                CONFIG_SHOWVOLUME_FILTER                \
+                CONFIG_SHOWWAVES_FILTER                 \
+                CONFIG_SHOWWAVESPIC_FILTER              \
+                CONFIG_SHUFFLEFRAMES_FILTER             \
+                CONFIG_SHUFFLEPIXELS_FILTER             \
+                CONFIG_SHUFFLEPLANES_FILTER             \
+                CONFIG_SIDECHAINCOMPRESS_FILTER         \
+                CONFIG_SIDECHAINGATE_FILTER             \
+                CONFIG_SIDEDATA_FILTER                  \
+                CONFIG_SIERPINSKI_FILTER                \
+                CONFIG_SIGNALSTATS_FILTER               \
+                CONFIG_SIGNATURE_FILTER                 \
+                CONFIG_SILENCEDETECT_FILTER             \
+                CONFIG_SILENCEREMOVE_FILTER             \
+                CONFIG_SINC_FILTER                      \
+                CONFIG_SINE_FILTER                      \
+                CONFIG_SITI_FILTER                      \
+                CONFIG_SMARTBLUR_FILTER                 \
+                CONFIG_SMPTEBARS_FILTER                 \
+                CONFIG_SMPTEHDBARS_FILTER               \
+                CONFIG_SOBEL_FILTER                     \
+                CONFIG_SOBEL_OPENCL_FILTER              \
+                CONFIG_SOFALIZER_FILTER                 \
+                CONFIG_SPECTRUMSYNTH_FILTER             \
+                CONFIG_SPEECHNORM_FILTER                \
+                CONFIG_SPLIT_FILTER                     \
+                CONFIG_SPP_FILTER                       \
+                CONFIG_SR_FILTER                        \
+                CONFIG_SSIM360_FILTER                   \
+                CONFIG_SSIM_FILTER                      \
+                CONFIG_STEREO3D_FILTER                  \
+                CONFIG_STEREOTOOLS_FILTER               \
+                CONFIG_STEREOWIDEN_FILTER               \
+                CONFIG_STREAMSELECT_FILTER              \
+                CONFIG_SUBTITLES_FILTER                 \
+                CONFIG_SUPER2XSAI_FILTER                \
+                CONFIG_SUPEREQUALIZER_FILTER            \
+                CONFIG_SURROUND_FILTER                  \
+                CONFIG_SWAPRECT_FILTER                  \
+                CONFIG_SWAPUV_FILTER                    \
+                CONFIG_TBLEND_FILTER                    \
+                CONFIG_TELECINE_FILTER                  \
+                CONFIG_TESTSRC2_FILTER                  \
+                CONFIG_TESTSRC_FILTER                   \
+                CONFIG_THISTOGRAM_FILTER                \
+                CONFIG_THRESHOLD_FILTER                 \
+                CONFIG_THUMBNAIL_CUDA_FILTER            \
+                CONFIG_THUMBNAIL_FILTER                 \
+                CONFIG_TILE_FILTER                      \
+                CONFIG_TILTANDSHIFT_FILTER              \
+                CONFIG_TINTERLACE_FILTER                \
+                CONFIG_TLUT2_FILTER                     \
+                CONFIG_TMEDIAN_FILTER                   \
+                CONFIG_TMIDEQUALIZER_FILTER             \
+                CONFIG_TMIX_FILTER                      \
+                CONFIG_TONEMAP_FILTER                   \
+                CONFIG_TONEMAP_OPENCL_FILTER            \
+                CONFIG_TONEMAP_VAAPI_FILTER             \
+                CONFIG_TPAD_FILTER                      \
+                CONFIG_TRANSPOSE_FILTER                 \
+                CONFIG_TRANSPOSE_NPP_FILTER             \
+                CONFIG_TRANSPOSE_OPENCL_FILTER          \
+                CONFIG_TRANSPOSE_VAAPI_FILTER           \
+                CONFIG_TRANSPOSE_VT_FILTER              \
+                CONFIG_TRANSPOSE_VULKAN_FILTER          \
+                CONFIG_TREBLE_FILTER                    \
+                CONFIG_TREMOLO_FILTER                   \
+                CONFIG_TRIM_FILTER                      \
+                CONFIG_UNPREMULTIPLY_FILTER             \
+                CONFIG_UNSHARP_FILTER                   \
+                CONFIG_UNSHARP_OPENCL_FILTER            \
+                CONFIG_UNTILE_FILTER                    \
+                CONFIG_USPP_FILTER                      \
+                CONFIG_V360_FILTER                      \
+                CONFIG_VAGUEDENOISER_FILTER             \
+                CONFIG_VARBLUR_FILTER                   \
+                CONFIG_VECTORSCOPE_FILTER               \
+                CONFIG_VFLIP_FILTER                     \
+                CONFIG_VFLIP_VULKAN_FILTER              \
+                CONFIG_VFRDET_FILTER                    \
+                CONFIG_VIBRANCE_FILTER                  \
+                CONFIG_VIBRATO_FILTER                   \
+                CONFIG_VIDSTABDETECT_FILTER             \
+                CONFIG_VIDSTABTRANSFORM_FILTER          \
+                CONFIG_VIF_FILTER                       \
+                CONFIG_VIGNETTE_FILTER                  \
+                CONFIG_VIRTUALBASS_FILTER               \
+                CONFIG_VMAFMOTION_FILTER                \
+                CONFIG_VOLUMEDETECT_FILTER              \
+                CONFIG_VOLUME_FILTER                    \
+                CONFIG_VPP_QSV_FILTER                   \
+                CONFIG_VSTACK_FILTER                    \
+                CONFIG_VSTACK_QSV_FILTER                \
+                CONFIG_VSTACK_VAAPI_FILTER              \
+                CONFIG_W3FDIF_FILTER                    \
+                CONFIG_WAVEFORM_FILTER                  \
+                CONFIG_WEAVE_FILTER                     \
+                CONFIG_XBR_FILTER                       \
+                CONFIG_XCORRELATE_FILTER                \
+                CONFIG_XFADE_FILTER                     \
+                CONFIG_XFADE_OPENCL_FILTER              \
+                CONFIG_XFADE_VULKAN_FILTER              \
+                CONFIG_XMEDIAN_FILTER                   \
+                CONFIG_XSTACK_FILTER                    \
+                CONFIG_XSTACK_QSV_FILTER                \
+                CONFIG_XSTACK_VAAPI_FILTER              \
+                CONFIG_YADIF_CUDA_FILTER                \
+                CONFIG_YADIF_FILTER                     \
+                CONFIG_YADIF_VIDEOTOOLBOX_FILTER        \
+                CONFIG_YAEPBLUR_FILTER                  \
+                CONFIG_YUVTESTSRC_FILTER                \
+                CONFIG_ZMQ_FILTER                       \
+                CONFIG_ZONEPLATE_FILTER                 \
+                CONFIG_ZOOMPAN_FILTER                   \
+                CONFIG_ZSCALE_FILTER                    \
+                HAVE_GNU_WINDRES                        \
+                HAVE_LIBC_MSVCRT                        \
+                HAVE_THREADS                            \
+                HAVE_X86ASM
+
+# Note that we don't need to pass *.poptions because every macro imported from
+# config.h will have a literal value.
+#
+[rule_hint=c.predefs] buildfile{config}: $config_h
+{
+  c.predefs.poptions = false
+  c.predefs.macros = $config_macros
+}
+
+# Update and source config.build and adjust the imported variables.
+#
+if ($build.meta_operation == 'perform')
+{
+  update buildfile{config}
+  source $path(buildfile{config})
+
+  # Adjust the resulting values.
+  #
+  # Note: assume all macros in config_macros are boolean.
+  #
+  for m: $config_macros
+    $m = (!$null($($m)) && $($m) != 0) # Convert [null], 0, or 1 to boolean.
+}
+else
+{
+  for m: $config_macros
+    $m = false
+}
+
+libul{avfilter}: buildfile{config} # Ensure it gets cleaned.
+
+# Conditionally-compiled source files
+#
+# @@ TODO include $(SRC_PATH)/libavfilter/dnn/Makefile
+
+libul{avfilter}: libavfilter/c{aeval}: include = ($CONFIG_AEVALSRC_FILTER || $CONFIG_AEVAL_FILTER)
+libul{avfilter}: libavfilter/c{af_aap}: include = $CONFIG_AAP_FILTER
+libul{avfilter}: libavfilter/c{af_acontrast}: include = $CONFIG_ACONTRAST_FILTER
+libul{avfilter}: libavfilter/c{af_acopy}: include = $CONFIG_ACOPY_FILTER
+libul{avfilter}: libavfilter/c{af_acrossover}: include = $CONFIG_ACROSSOVER_FILTER
+libul{avfilter}: libavfilter/c{af_acrusher}: include = $CONFIG_ACRUSHER_FILTER
+libul{avfilter}: libavfilter/c{af_adeclick}: include = ($CONFIG_ADECLICK_FILTER || $CONFIG_ADECLIP_FILTER)
+libul{avfilter}: libavfilter/c{af_adecorrelate}: include = $CONFIG_ADECORRELATE_FILTER
+libul{avfilter}: libavfilter/c{af_adelay}: include = $CONFIG_ADELAY_FILTER
+libul{avfilter}: libavfilter/c{af_adenorm}: include = $CONFIG_ADENORM_FILTER
+libul{avfilter}: libavfilter/c{af_aderivative}: include = ($CONFIG_ADERIVATIVE_FILTER || $CONFIG_AINTEGRAL_FILTER)
+libul{avfilter}: libavfilter/c{af_adrc}: include = $CONFIG_ADRC_FILTER
+libul{avfilter}: libavfilter/c{af_adynamicequalizer}: include = $CONFIG_ADYNAMICEQUALIZER_FILTER
+libul{avfilter}: libavfilter/c{af_adynamicsmooth}: include = $CONFIG_ADYNAMICSMOOTH_FILTER
+libul{avfilter}: libavfilter/c{af_aecho}: include = $CONFIG_AECHO_FILTER
+libul{avfilter}: libavfilter/c{af_aemphasis}: include = $CONFIG_AEMPHASIS_FILTER
+libul{avfilter}: libavfilter/c{af_aexciter}: include = $CONFIG_AEXCITER_FILTER
+libul{avfilter}: libavfilter/c{af_afade}: include = ($CONFIG_ACROSSFADE_FILTER || $CONFIG_AFADE_FILTER)
+libul{avfilter}: libavfilter/c{af_afftdn}: include = $CONFIG_AFFTDN_FILTER
+libul{avfilter}: libavfilter/c{af_afftfilt}: include = $CONFIG_AFFTFILT_FILTER
+libul{avfilter}: libavfilter/c{af_afir}: include = $CONFIG_AFIR_FILTER
+libul{avfilter}: libavfilter/c{af_aformat}: include = $CONFIG_AFORMAT_FILTER
+libul{avfilter}: libavfilter/c{af_afreqshift}: include = ($CONFIG_AFREQSHIFT_FILTER || $CONFIG_APHASESHIFT_FILTER)
+libul{avfilter}: libavfilter/c{af_afwtdn}: include = $CONFIG_AFWTDN_FILTER
+libul{avfilter}: libavfilter/c{af_agate}: include = ($CONFIG_AGATE_FILTER || $CONFIG_SIDECHAINGATE_FILTER)
+libul{avfilter}: libavfilter/c{af_aiir}: include = $CONFIG_AIIR_FILTER
+libul{avfilter}: libavfilter/c{af_alimiter}: include = $CONFIG_ALIMITER_FILTER
+libul{avfilter}: libavfilter/c{af_amerge}: include = $CONFIG_AMERGE_FILTER
+libul{avfilter}: libavfilter/c{af_amix}: include = $CONFIG_AMIX_FILTER
+libul{avfilter}: libavfilter/c{af_amultiply}: include = $CONFIG_AMULTIPLY_FILTER
+libul{avfilter}: libavfilter/c{af_anequalizer}: include = $CONFIG_ANEQUALIZER_FILTER
+libul{avfilter}: libavfilter/c{af_anlmdn}: include = $CONFIG_ANLMDN_FILTER
+libul{avfilter}: libavfilter/c{af_anlms}: include = ($CONFIG_ANLMF_FILTER || $CONFIG_ANLMS_FILTER)
+libul{avfilter}: libavfilter/c{af_anull}: include = $CONFIG_ANULL_FILTER
+libul{avfilter}: libavfilter/c{af_apad}: include = $CONFIG_APAD_FILTER
+libul{avfilter}: libavfilter/c{af_aphaser}: include = $CONFIG_APHASER_FILTER
+libul{avfilter}: libavfilter/c{af_apsyclip}: include = $CONFIG_APSYCLIP_FILTER
+libul{avfilter}: libavfilter/c{af_apulsator}: include = $CONFIG_APULSATOR_FILTER
+libul{avfilter}: libavfilter/c{af_aresample}: include = $CONFIG_ARESAMPLE_FILTER
+libul{avfilter}: libavfilter/c{af_arls}: include = $CONFIG_ARLS_FILTER
+libul{avfilter}: libavfilter/c{af_arnndn}: include = $CONFIG_ARNNDN_FILTER
+libul{avfilter}: libavfilter/c{af_asdr}: include = ($CONFIG_APSNR_FILTER || $CONFIG_ASDR_FILTER || $CONFIG_ASISDR_FILTER)
+libul{avfilter}: libavfilter/c{af_asetnsamples}: include = $CONFIG_ASETNSAMPLES_FILTER
+libul{avfilter}: libavfilter/c{af_asetrate}: include = $CONFIG_ASETRATE_FILTER
+libul{avfilter}: libavfilter/c{af_ashowinfo}: include = $CONFIG_ASHOWINFO_FILTER
+libul{avfilter}: libavfilter/c{af_asoftclip}: include = $CONFIG_ASOFTCLIP_FILTER
+libul{avfilter}: libavfilter/c{af_aspectralstats}: include = $CONFIG_ASPECTRALSTATS_FILTER
+libul{avfilter}: libavfilter/c{af_asr}: include = $CONFIG_ASR_FILTER
+libul{avfilter}: libavfilter/c{af_astats}: include = $CONFIG_ASTATS_FILTER
+libul{avfilter}: libavfilter/c{af_asubboost}: include = $CONFIG_ASUBBOOST_FILTER
+libul{avfilter}: libavfilter/c{af_asupercut}: include = ($CONFIG_ASUBCUT_FILTER || $CONFIG_ASUPERCUT_FILTER || $CONFIG_ASUPERPASS_FILTER || $CONFIG_ASUPERSTOP_FILTER)
+libul{avfilter}: libavfilter/c{af_atempo}: include = $CONFIG_ATEMPO_FILTER
+libul{avfilter}: libavfilter/c{af_atilt}: include = $CONFIG_ATILT_FILTER
+libul{avfilter}: libavfilter/c{af_axcorrelate}: include = $CONFIG_AXCORRELATE_FILTER
+libul{avfilter}: libavfilter/c{af_biquads}: include = ($CONFIG_ALLPASS_FILTER || $CONFIG_BANDPASS_FILTER || $CONFIG_BANDREJECT_FILTER || $CONFIG_BASS_FILTER || $CONFIG_BIQUAD_FILTER || $CONFIG_EQUALIZER_FILTER || $CONFIG_HIGHPASS_FILTER || $CONFIG_HIGHSHELF_FILTER || $CONFIG_LOWPASS_FILTER || $CONFIG_LOWSHELF_FILTER || $CONFIG_TREBLE_FILTER)
+libul{avfilter}: libavfilter/c{af_bs2b}: include = $CONFIG_BS2B_FILTER
+libul{avfilter}: libavfilter/c{af_channelmap}: include = $CONFIG_CHANNELMAP_FILTER
+libul{avfilter}: libavfilter/c{af_channelsplit}: include = $CONFIG_CHANNELSPLIT_FILTER
+libul{avfilter}: libavfilter/c{af_chorus}: include = $CONFIG_CHORUS_FILTER
+libul{avfilter}: libavfilter/c{af_compand}: include = $CONFIG_COMPAND_FILTER
+libul{avfilter}: libavfilter/c{af_compensationdelay}: include = $CONFIG_COMPENSATIONDELAY_FILTER
+libul{avfilter}: libavfilter/c{af_crossfeed}: include = $CONFIG_CROSSFEED_FILTER
+libul{avfilter}: libavfilter/c{af_crystalizer}: include = $CONFIG_CRYSTALIZER_FILTER
+libul{avfilter}: libavfilter/c{af_dcshift}: include = $CONFIG_DCSHIFT_FILTER
+libul{avfilter}: libavfilter/c{af_deesser}: include = $CONFIG_DEESSER_FILTER
+libul{avfilter}: libavfilter/c{af_dialoguenhance}: include = $CONFIG_DIALOGUENHANCE_FILTER
+libul{avfilter}: libavfilter/c{af_drmeter}: include = $CONFIG_DRMETER_FILTER
+libul{avfilter}: libavfilter/c{af_dynaudnorm}: include = $CONFIG_DYNAUDNORM_FILTER
+libul{avfilter}: libavfilter/c{af_earwax}: include = $CONFIG_EARWAX_FILTER
+libul{avfilter}: libavfilter/c{af_extrastereo}: include = $CONFIG_EXTRASTEREO_FILTER
+libul{avfilter}: libavfilter/c{af_firequalizer}: include = $CONFIG_FIREQUALIZER_FILTER
+libul{avfilter}: libavfilter/c{af_flanger}: include = $CONFIG_FLANGER_FILTER
+libul{avfilter}: libavfilter/c{af_haas}: include = $CONFIG_HAAS_FILTER
+libul{avfilter}: libavfilter/c{af_hdcd}: include = $CONFIG_HDCD_FILTER
+libul{avfilter}: libavfilter/c{af_headphone}: include = $CONFIG_HEADPHONE_FILTER
+libul{avfilter}: libavfilter/c{af_join}: include = $CONFIG_JOIN_FILTER
+libul{avfilter}: libavfilter/c{af_ladspa}: include = $CONFIG_LADSPA_FILTER
+libul{avfilter}: libavfilter/c{af_loudnorm}: include = $CONFIG_LOUDNORM_FILTER 
+libul{avfilter}: libavfilter/c{af_lv2}: include = $CONFIG_LV2_FILTER
+libul{avfilter}: libavfilter/c{af_mcompand}: include = $CONFIG_MCOMPAND_FILTER
+libul{avfilter}: libavfilter/c{af_pan}: include = $CONFIG_PAN_FILTER
+libul{avfilter}: libavfilter/c{af_replaygain}: include = $CONFIG_REPLAYGAIN_FILTER
+libul{avfilter}: libavfilter/c{af_rubberband}: include = $CONFIG_RUBBERBAND_FILTER
+libul{avfilter}: libavfilter/c{af_sidechaincompress}: include = ($CONFIG_ACOMPRESSOR_FILTER || $CONFIG_SIDECHAINCOMPRESS_FILTER)
+libul{avfilter}: libavfilter/c{af_silencedetect}: include = $CONFIG_SILENCEDETECT_FILTER
+libul{avfilter}: libavfilter/c{af_silenceremove}: include = $CONFIG_SILENCEREMOVE_FILTER
+libul{avfilter}: libavfilter/c{af_sofalizer}: include = $CONFIG_SOFALIZER_FILTER
+libul{avfilter}: libavfilter/c{af_speechnorm}: include = $CONFIG_SPEECHNORM_FILTER
+libul{avfilter}: libavfilter/c{af_stereotools}: include = $CONFIG_STEREOTOOLS_FILTER
+libul{avfilter}: libavfilter/c{af_stereowiden}: include = $CONFIG_STEREOWIDEN_FILTER
+libul{avfilter}: libavfilter/c{af_superequalizer}: include = $CONFIG_SUPEREQUALIZER_FILTER
+libul{avfilter}: libavfilter/c{af_surround}: include = $CONFIG_SURROUND_FILTER
+libul{avfilter}: libavfilter/c{af_tremolo}: include = $CONFIG_TREMOLO_FILTER
+libul{avfilter}: libavfilter/c{af_vibrato}: include = $CONFIG_VIBRATO_FILTER
+libul{avfilter}: libavfilter/c{af_virtualbass}: include = $CONFIG_VIRTUALBASS_FILTER
+libul{avfilter}: libavfilter/c{af_volumedetect}: include = $CONFIG_VOLUMEDETECT_FILTER
+libul{avfilter}: libavfilter/c{af_volume}: include = $CONFIG_VOLUME_FILTER
+libul{avfilter}: libavfilter/c{asink_anullsink}: include = $CONFIG_ANULLSINK_FILTER
+libul{avfilter}: libavfilter/c{asrc_afdelaysrc}: include = $CONFIG_AFDELAYSRC_FILTER
+libul{avfilter}: libavfilter/c{asrc_afirsrc}: include = ($CONFIG_AFIREQSRC_FILTER || $CONFIG_AFIRSRC_FILTER)
+libul{avfilter}: libavfilter/c{asrc_anoisesrc}: include = $CONFIG_ANOISESRC_FILTER
+libul{avfilter}: libavfilter/c{asrc_anullsrc}: include = $CONFIG_ANULLSRC_FILTER
+libul{avfilter}: libavfilter/c{asrc_flite}: include = $CONFIG_FLITE_FILTER
+libul{avfilter}: libavfilter/c{asrc_hilbert}: include = $CONFIG_HILBERT_FILTER
+libul{avfilter}: libavfilter/c{asrc_sinc}: include = $CONFIG_SINC_FILTER
+libul{avfilter}: libavfilter/c{asrc_sine}: include = $CONFIG_SINE_FILTER
+libul{avfilter}: libavfilter/c{avf_a3dscope}: include = $CONFIG_A3DSCOPE_FILTER
+libul{avfilter}: libavfilter/c{avf_abitscope}: include = $CONFIG_ABITSCOPE_FILTER
+libul{avfilter}: libavfilter/c{avf_ahistogram}: include = $CONFIG_AHISTOGRAM_FILTER
+libul{avfilter}: libavfilter/c{avf_aphasemeter}: include = $CONFIG_APHASEMETER_FILTER
+libul{avfilter}: libavfilter/c{avf_avectorscope}: include = $CONFIG_AVECTORSCOPE_FILTER
+libul{avfilter}: libavfilter/c{avf_concat}: include = $CONFIG_CONCAT_FILTER
+libul{avfilter}: libavfilter/c{avf_showcqt}: include = $CONFIG_SHOWCQT_FILTER
+libul{avfilter}: libavfilter/c{avf_showcwt}: include = $CONFIG_SHOWCWT_FILTER
+libul{avfilter}: libavfilter/c{avf_showfreqs}: include = $CONFIG_SHOWFREQS_FILTER
+libul{avfilter}: libavfilter/c{avf_showspatial}: include = $CONFIG_SHOWSPATIAL_FILTER
+libul{avfilter}: libavfilter/c{avf_showspectrum}: include = ($CONFIG_SHOWSPECTRUMPIC_FILTER || $CONFIG_SHOWSPECTRUM_FILTER)
+libul{avfilter}: libavfilter/c{avf_showvolume}: include = $CONFIG_SHOWVOLUME_FILTER
+libul{avfilter}: libavfilter/c{avf_showwaves}: include = ($CONFIG_SHOWWAVESPIC_FILTER || $CONFIG_SHOWWAVES_FILTER)
+libul{avfilter}: libavfilter/c{bbox}: include = ($CONFIG_BBOX_FILTER || $CONFIG_REMOVELOGO_FILTER)
+libul{avfilter}: libavfilter/c{boxblur}: include = ($CONFIG_AVGBLUR_OPENCL_FILTER || $CONFIG_BOXBLUR_FILTER || $CONFIG_BOXBLUR_OPENCL_FILTER)
+libul{avfilter}: libavfilter/c{bwdifdsp}: include = $CONFIG_BWDIF_FILTER
+libul{avfilter}: libavfilter/c{colorspacedsp}: include = $CONFIG_COLORSPACE_FILTER
+# libul{avfilter}: libavfilter/c{cuda/load_helper}: include = ($CONFIG_COLORSPACE_CUDA_FILTER || $CONFIG_OVERLAY_CUDA_FILTER || $CONFIG_SCALE_CUDA_FILTER || $CONFIG_THUMBNAIL_CUDA_FILTER || $CONFIG_YADIF_CUDA_FILTER)
+libul{avfilter}: libavfilter/c{dnn_filter_common}: include = $CONFIG_DNN
+libul{avfilter}: libavfilter/c{ebur128}: include = $CONFIG_LOUDNORM_FILTER
+libul{avfilter}: libavfilter/c{edge_common}: include = ($CONFIG_BLURDETECT_FILTER || $CONFIG_CROPDETECT_FILTER || $CONFIG_EDGEDETECT_FILTER)
+libul{avfilter}: libavfilter/c{f_bench}: include = ($CONFIG_ABENCH_FILTER || $CONFIG_BENCH_FILTER)
+libul{avfilter}: libavfilter/c{f_cue}: include = ($CONFIG_ACUE_FILTER || $CONFIG_CUE_FILTER)
+libul{avfilter}: libavfilter/c{f_drawgraph}: include = ($CONFIG_ADRAWGRAPH_FILTER || $CONFIG_DRAWGRAPH_FILTER)
+libul{avfilter}: libavfilter/c{f_ebur128}: include = $CONFIG_EBUR128_FILTER
+libul{avfilter}: libavfilter/c{f_graphmonitor}: include = ($CONFIG_AGRAPHMONITOR_FILTER || $CONFIG_GRAPHMONITOR_FILTER)
+libul{avfilter}: libavfilter/c{f_interleave}: include = ($CONFIG_AINTERLEAVE_FILTER || $CONFIG_INTERLEAVE_FILTER)
+libul{avfilter}: libavfilter/c{f_latency}: include = ($CONFIG_ALATENCY_FILTER || $CONFIG_LATENCY_FILTER)
+libul{avfilter}: libavfilter/c{f_loop}: include = ($CONFIG_ALOOP_FILTER || $CONFIG_LOOP_FILTER)
+libul{avfilter}: libavfilter/c{f_metadata}: include = ($CONFIG_AMETADATA_FILTER || $CONFIG_METADATA_FILTER)
+libul{avfilter}: libavfilter/c{f_perms}: include = ($CONFIG_APERMS_FILTER || $CONFIG_PERMS_FILTER)
+libul{avfilter}: libavfilter/c{f_realtime}: include = ($CONFIG_AREALTIME_FILTER || $CONFIG_REALTIME_FILTER)
+libul{avfilter}: libavfilter/c{f_reverse}: include = ($CONFIG_AREVERSE_FILTER || $CONFIG_REVERSE_FILTER)
+libul{avfilter}: libavfilter/c{f_segment}: include = ($CONFIG_ASEGMENT_FILTER || $CONFIG_SEGMENT_FILTER)
+libul{avfilter}: libavfilter/c{f_select}: include = ($CONFIG_ASELECT_FILTER || $CONFIG_SELECT_FILTER)
+libul{avfilter}: libavfilter/c{f_sendcmd}: include = ($CONFIG_ASENDCMD_FILTER || $CONFIG_SENDCMD_FILTER)
+libul{avfilter}: libavfilter/c{f_sidedata}: include = ($CONFIG_ASIDEDATA_FILTER || $CONFIG_SIDEDATA_FILTER)
+libul{avfilter}: libavfilter/c{f_streamselect}: include = ($CONFIG_ASTREAMSELECT_FILTER || $CONFIG_STREAMSELECT_FILTER)
+libul{avfilter}: libavfilter/c{f_zmq}: include = ($CONFIG_AZMQ_FILTER || $CONFIG_ZMQ_FILTER)
+libul{avfilter}: libavfilter/c{fflcms2}: include = ($CONFIG_ICCDETECT_FILTER || $CONFIG_ICCGEN_FILTER)
+libul{avfilter}: libavfilter/c{file_open}: include = $HAVE_LIBC_MSVCRT
+libul{avfilter}: libavfilter/c{framesync}: include = ($CONFIG_ALPHAMERGE_FILTER || $CONFIG_ASTREAMSELECT_FILTER || $CONFIG_BLEND_FILTER || $CONFIG_BLEND_VULKAN_FILTER || $CONFIG_BM3D_FILTER || $CONFIG_CONVOLVE_FILTER || $CONFIG_CORR_FILTER || $CONFIG_DECONVOLVE_FILTER || $CONFIG_DISPLACE_FILTER || $CONFIG_HALDCLUT_FILTER || $CONFIG_HSTACK_FILTER || $CONFIG_HSTACK_QSV_FILTER || $CONFIG_HSTACK_VAAPI_FILTER || $CONFIG_HYSTERESIS_FILTER || $CONFIG_LIBVMAF_CUDA_FILTER || $CONFIG_LIBVMAF_FILTER || $CONFIG_LIMITDIFF_FILTER || $CONFIG_LUT2_FILTER || $CONFIG_LUT3D_FILTER || $CONFIG_MASKEDCLAMP_FILTER || $CONFIG_MASKEDMAX_FILTER || $CONFIG_MASKEDMERGE_FILTER || $CONFIG_MASKEDMIN_FILTER || $CONFIG_MASKEDTHRESHOLD_FILTER || $CONFIG_MERGEPLANES_FILTER || $CONFIG_MIDEQUALIZER_FILTER || $CONFIG_MIX_FILTER || $CONFIG_OVERLAY_CUDA_FILTER || $CONFIG_OVERLAY_FILTER || $CONFIG_OVERLAY_OPENCL_FILTER || $CONFIG_OVERLAY_QSV_FILTER || $CONFIG_OVERLAY_VAAPI_FILTER || $CONFIG_PALETTEUSE_FILTER || $CONFIG_PREMULTIPLY_FILTER || $CONFIG_PROGRAM_OPENCL_FILTER || $CONFIG_PSNR_FILTER || $CONFIG_REMAP_FILTER || $CONFIG_REMAP_OPENCL_FILTER || $CONFIG_SSIM360_FILTER || $CONFIG_SSIM_FILTER || $CONFIG_STREAMSELECT_FILTER || $CONFIG_TBLEND_FILTER || $CONFIG_THRESHOLD_FILTER || $CONFIG_TLUT2_FILTER || $CONFIG_TMEDIAN_FILTER || $CONFIG_TMIX_FILTER || $CONFIG_UNPREMULTIPLY_FILTER || $CONFIG_VARBLUR_FILTER || $CONFIG_VIF_FILTER || $CONFIG_VMAFMOTION_FILTER || $CONFIG_VSTACK_FILTER || $CONFIG_VSTACK_QSV_FILTER || $CONFIG_VSTACK_VAAPI_FILTER || $CONFIG_XCORRELATE_FILTER || $CONFIG_XMEDIAN_FILTER || $CONFIG_XSTACK_FILTER || $CONFIG_XSTACK_QSV_FILTER || $CONFIG_XSTACK_VAAPI_FILTER)
+libul{avfilter}: libavfilter/c{generate_wave_table}: include = ($CONFIG_APHASER_FILTER || $CONFIG_CHORUS_FILTER || $CONFIG_FLANGER_FILTER || $CONFIG_VIBRATO_FILTER)
+libul{avfilter}: libavfilter/c{lavfutils}: include = ($CONFIG_COVER_RECT_FILTER || $CONFIG_FIND_RECT_FILTER || $CONFIG_REMOVELOGO_FILTER || $CONFIG_SHOWCQT_FILTER)
+libul{avfilter}: libavfilter/c{lswsutils}: include = ($CONFIG_REMOVELOGO_FILTER || $CONFIG_SHOWCQT_FILTER)
+#libul{avfilter}: libavfilter/m{metal/utils}: include = ($tgt_macos && $CONFIG_YADIF_VIDEOTOOLBOX_FILTER)
+#libul{avfilter}: libavfilter/m{metal/vf_yadif_videotoolbox.metallib}: include = ($tgt_macos && $CONFIG_YADIF_VIDEOTOOLBOX_FILTER)
+libul{avfilter}: libavfilter/c{motion_estimation}: include = ($CONFIG_MESTIMATE_FILTER || $CONFIG_MINTERPOLATE_FILTER)
+# libul{avfilter}: libavfilter/c{opencl/avgblur}: include = ($CONFIG_AVGBLUR_OPENCL_FILTER || $CONFIG_BOXBLUR_OPENCL_FILTER)
+# libul{avfilter}: libavfilter/c{opencl/colorkey}: include = $CONFIG_COLORKEY_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/colorspace_common}: include = $CONFIG_TONEMAP_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/convolution}: include = ($CONFIG_CONVOLUTION_OPENCL_FILTER || $CONFIG_PREWITT_OPENCL_FILTER || $CONFIG_ROBERTS_OPENCL_FILTER || $CONFIG_SOBEL_OPENCL_FILTER)
+# libul{avfilter}: libavfilter/c{opencl/deshake}: include = $CONFIG_DESHAKE_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/neighbor}: include = ($CONFIG_DILATION_OPENCL_FILTER || $CONFIG_EROSION_OPENCL_FILTER)
+# libul{avfilter}: libavfilter/c{opencl/nlmeans}: include = $CONFIG_NLMEANS_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/overlay}: include = $CONFIG_OVERLAY_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/pad}: include = $CONFIG_PAD_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/remap}: include = $CONFIG_REMAP_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/tonemap}: include = $CONFIG_TONEMAP_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/transpose}: include = $CONFIG_TRANSPOSE_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/unsharp}: include = $CONFIG_UNSHARP_OPENCL_FILTER
+# libul{avfilter}: libavfilter/c{opencl/xfade}: include = $CONFIG_XFADE_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{opencl}: include = ($CONFIG_AVGBLUR_OPENCL_FILTER || $CONFIG_BOXBLUR_OPENCL_FILTER || $CONFIG_COLORKEY_OPENCL_FILTER || $CONFIG_CONVOLUTION_OPENCL_FILTER || $CONFIG_DESHAKE_OPENCL_FILTER || $CONFIG_DILATION_OPENCL_FILTER || $CONFIG_EROSION_OPENCL_FILTER || $CONFIG_NLMEANS_OPENCL_FILTER || $CONFIG_OPENCLSRC_FILTER || $CONFIG_OVERLAY_OPENCL_FILTER || $CONFIG_PAD_OPENCL_FILTER || $CONFIG_PREWITT_OPENCL_FILTER || $CONFIG_PROGRAM_OPENCL_FILTER || $CONFIG_REMAP_OPENCL_FILTER || $CONFIG_ROBERTS_OPENCL_FILTER || $CONFIG_SOBEL_OPENCL_FILTER || $CONFIG_TONEMAP_OPENCL_FILTER || $CONFIG_TRANSPOSE_OPENCL_FILTER || $CONFIG_UNSHARP_OPENCL_FILTER || $CONFIG_XFADE_OPENCL_FILTER)
+libul{avfilter}: libavfilter/c{palette}: include = ($CONFIG_PALETTEGEN_FILTER || $CONFIG_PALETTEUSE_FILTER)
+libul{avfilter}: libavfilter/c{pthread}: include = $HAVE_THREADS
+libul{avfilter}: libavfilter/c{qp_table}: include = ($CONFIG_CODECVIEW_FILTER || $CONFIG_FSPP_FILTER || $CONFIG_PP7_FILTER || $CONFIG_PP_FILTER || $CONFIG_SPP_FILTER || $CONFIG_USPP_FILTER)
+libul{avfilter}: libavfilter/c{qrencode}: include = ($CONFIG_QRENCODESRC_FILTER || $CONFIG_QRENCODE_FILTER)
+libul{avfilter}: libavfilter/c{qsvvpp}: include = $CONFIG_QSVVPP
+libul{avfilter}: libavfilter/c{scale_eval}: include = ($CONFIG_SCALE2REF_FILTER || $CONFIG_SCALE2REF_NPP_FILTER || $CONFIG_SCALE_CUDA_FILTER || $CONFIG_SCALE_NPP_FILTER || $CONFIG_SCALE_VAAPI_FILTER || $CONFIG_SCALE_VT_FILTER || $CONFIG_SCALE_FILTER)
+libul{avfilter}: libavfilter/c{scene_sad}: include = $CONFIG_SCENE_SAD
+libul{avfilter}: libavfilter/c{setpts}: include = ($CONFIG_ASETPTS_FILTER || $CONFIG_SETPTS_FILTER)
+libul{avfilter}: libavfilter/c{settb}: include = ($CONFIG_ASETTB_FILTER || $CONFIG_SETTB_FILTER)
+libul{avfilter}: libavfilter/c{split}: include = ($CONFIG_ASPLIT_FILTER || $CONFIG_SPLIT_FILTER)
+libul{avfilter}: libavfilter/c{src_avsynctest}: include = $CONFIG_AVSYNCTEST_FILTER
+libul{avfilter}: libavfilter/c{src_movie}: include = ($CONFIG_AMOVIE_FILTER || $CONFIG_MOVIE_FILTER)
+libul{avfilter}: libavfilter/c{textutils}: include = ($CONFIG_DRAWTEXT_FILTER || $CONFIG_QRENCODESRC_FILTER || $CONFIG_QRENCODE_FILTER)
+libul{avfilter}: libavfilter/c{transform}: include = ($CONFIG_DESHAKE_FILTER || $CONFIG_DESHAKE_OPENCL_FILTER)
+libul{avfilter}: libavfilter/c{trim}: include = ($CONFIG_ATRIM_FILTER || $CONFIG_TRIM_FILTER)
+libul{avfilter}: libavfilter/c{vaapi_vpp}: include = ($CONFIG_DEINTERLACE_VAAPI_FILTER || $CONFIG_DENOISE_VAAPI_FILTER || $CONFIG_HSTACK_VAAPI_FILTER || $CONFIG_OVERLAY_VAAPI_FILTER || $CONFIG_PROCAMP_VAAPI_FILTER || $CONFIG_SCALE_VAAPI_FILTER || $CONFIG_SHARPNESS_VAAPI_FILTER || $CONFIG_TONEMAP_VAAPI_FILTER || $CONFIG_TRANSPOSE_VAAPI_FILTER || $CONFIG_VSTACK_VAAPI_FILTER || $CONFIG_XSTACK_VAAPI_FILTER)
+libul{avfilter}: libavfilter/c{vaf_spectrumsynth}: include = $CONFIG_SPECTRUMSYNTH_FILTER
+libul{avfilter}: libavfilter/c{vf_addroi}: include = $CONFIG_ADDROI_FILTER
+libul{avfilter}: libavfilter/c{vf_alphamerge}: include = $CONFIG_ALPHAMERGE_FILTER
+libul{avfilter}: libavfilter/c{vf_amplify}: include = $CONFIG_AMPLIFY_FILTER
+libul{avfilter}: libavfilter/c{vf_aspect}: include = ($CONFIG_SETDAR_FILTER || $CONFIG_SETSAR_FILTER)
+libul{avfilter}: libavfilter/c{vf_atadenoise}: include = $CONFIG_ATADENOISE_FILTER
+libul{avfilter}: libavfilter/c{vf_avgblur_opencl}: include = ($CONFIG_AVGBLUR_OPENCL_FILTER || $CONFIG_BOXBLUR_OPENCL_FILTER)
+libul{avfilter}: libavfilter/c{vf_avgblur_vulkan}: include = $CONFIG_AVGBLUR_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vf_avgblur}: include = $CONFIG_AVGBLUR_FILTER
+libul{avfilter}: libavfilter/c{vf_backgroundkey}: include = $CONFIG_BACKGROUNDKEY_FILTER
+libul{avfilter}: libavfilter/c{vf_bbox}: include = $CONFIG_BBOX_FILTER
+#libul{avfilter}: libavfilter/c{vf_bilateral_cuda.ptx}: include = $CONFIG_BILATERAL_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_bilateral_cuda}: include = $CONFIG_BILATERAL_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_bilateral}: include = $CONFIG_BILATERAL_FILTER
+libul{avfilter}: libavfilter/c{vf_bitplanenoise}: include = $CONFIG_BITPLANENOISE_FILTER
+libul{avfilter}: libavfilter/c{vf_blackdetect}: include = $CONFIG_BLACKDETECT_FILTER
+libul{avfilter}: libavfilter/c{vf_blackframe}: include = $CONFIG_BLACKFRAME_FILTER
+libul{avfilter}: libavfilter/c{vf_blend_vulkan}: include = $CONFIG_BLEND_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vf_blend}: include = ($CONFIG_BLEND_FILTER || $CONFIG_TBLEND_FILTER)
+libul{avfilter}: libavfilter/c{vf_blockdetect}: include = $CONFIG_BLOCKDETECT_FILTER
+libul{avfilter}: libavfilter/c{vf_blurdetect}: include = $CONFIG_BLURDETECT_FILTER
+libul{avfilter}: libavfilter/c{vf_bm3d}: include = $CONFIG_BM3D_FILTER
+libul{avfilter}: libavfilter/c{vf_boxblur}: include = $CONFIG_BOXBLUR_FILTER
+#libul{avfilter}: libavfilter/c{vf_bwdif_cuda.ptx}: include = $CONFIG_BWDIF_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_bwdif_cuda}: include = $CONFIG_BWDIF_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_bwdif_vulkan}: include = $CONFIG_BWDIF_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vf_bwdif}: include = $CONFIG_BWDIF_FILTER
+libul{avfilter}: libavfilter/c{vf_cas}: include = $CONFIG_CAS_FILTER
+libul{avfilter}: libavfilter/c{vf_ccrepack}: include = $CONFIG_CCREPACK_FILTER
+libul{avfilter}: libavfilter/c{vf_chromaber_vulkan}: include = $CONFIG_CHROMABER_VULKAN_FILTER
+#libul{avfilter}: libavfilter/c{vf_chromakey_cuda.ptx}: include = $CONFIG_CHROMAKEY_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_chromakey_cuda}: include = $CONFIG_CHROMAKEY_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_chromakey}: include = ($CONFIG_CHROMAHOLD_FILTER || $CONFIG_CHROMAKEY_FILTER)
+libul{avfilter}: libavfilter/c{vf_chromanr}: include = $CONFIG_CHROMANR_FILTER
+libul{avfilter}: libavfilter/c{vf_chromashift}: include = ($CONFIG_CHROMASHIFT_FILTER || $CONFIG_RGBASHIFT_FILTER)
+libul{avfilter}: libavfilter/c{vf_ciescope}: include = $CONFIG_CIESCOPE_FILTER
+libul{avfilter}: libavfilter/c{vf_codecview}: include = $CONFIG_CODECVIEW_FILTER
+libul{avfilter}: libavfilter/c{vf_colorbalance}: include = $CONFIG_COLORBALANCE_FILTER
+libul{avfilter}: libavfilter/c{vf_colorchannelmixer}: include = $CONFIG_COLORCHANNELMIXER_FILTER
+libul{avfilter}: libavfilter/c{vf_colorconstancy}: include = $CONFIG_GREYEDGE_FILTER
+libul{avfilter}: libavfilter/c{vf_colorcontrast}: include = $CONFIG_COLORCONTRAST_FILTER
+libul{avfilter}: libavfilter/c{vf_colorcorrect}: include = $CONFIG_COLORCORRECT_FILTER
+libul{avfilter}: libavfilter/c{vf_colorize}: include = $CONFIG_COLORIZE_FILTER
+libul{avfilter}: libavfilter/c{vf_colorkey_opencl}: include = $CONFIG_COLORKEY_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_colorkey}: include = ($CONFIG_COLORHOLD_FILTER || $CONFIG_COLORKEY_FILTER)
+libul{avfilter}: libavfilter/c{vf_colorlevels}: include = $CONFIG_COLORLEVELS_FILTER
+libul{avfilter}: libavfilter/c{vf_colormap}: include = $CONFIG_COLORMAP_FILTER
+libul{avfilter}: libavfilter/c{vf_colormatrix}: include = $CONFIG_COLORMATRIX_FILTER
+#libul{avfilter}: libavfilter/c{vf_colorspace_cuda.ptx}: include = $CONFIG_COLORSPACE_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_colorspace_cuda}: include = $CONFIG_COLORSPACE_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_colorspace}: include = $CONFIG_COLORSPACE_FILTER
+libul{avfilter}: libavfilter/c{vf_colortemperature}: include = $CONFIG_COLORTEMPERATURE_FILTER
+libul{avfilter}: libavfilter/c{vf_convolution_opencl}: include = ($CONFIG_CONVOLUTION_OPENCL_FILTER || $CONFIG_PREWITT_OPENCL_FILTER || $CONFIG_ROBERTS_OPENCL_FILTER || $CONFIG_SOBEL_OPENCL_FILTER)
+libul{avfilter}: libavfilter/c{vf_convolution}: include = ($CONFIG_CONVOLUTION_FILTER || $CONFIG_KIRSCH_FILTER || $CONFIG_PREWITT_FILTER || $CONFIG_ROBERTS_FILTER || $CONFIG_SCHARR_FILTER || $CONFIG_SOBEL_FILTER)
+libul{avfilter}: libavfilter/c{vf_convolve}: include = ($CONFIG_CONVOLVE_FILTER || $CONFIG_DECONVOLVE_FILTER || $CONFIG_XCORRELATE_FILTER)
+libul{avfilter}: libavfilter/c{vf_copy}: include = $CONFIG_COPY_FILTER
+libul{avfilter}: libavfilter/m{vf_coreimage}: include = ($tgt_macos && $CONFIG_COREIMAGESRC_FILTER || $CONFIG_COREIMAGE_FILTER)
+libul{avfilter}: libavfilter/c{vf_corr}: include = $CONFIG_CORR_FILTER
+libul{avfilter}: libavfilter/c{vf_cover_rect}: include = $CONFIG_COVER_RECT_FILTER
+libul{avfilter}: libavfilter/c{vf_cropdetect}: include = $CONFIG_CROPDETECT_FILTER
+libul{avfilter}: libavfilter/c{vf_crop}: include = $CONFIG_CROP_FILTER
+libul{avfilter}: libavfilter/c{vf_curves}: include = $CONFIG_CURVES_FILTER
+libul{avfilter}: libavfilter/c{vf_datascope}: include = ($CONFIG_DATASCOPE_FILTER || $CONFIG_OSCILLOSCOPE_FILTER || $CONFIG_PIXSCOPE_FILTER)
+libul{avfilter}: libavfilter/c{vf_dblur}: include = $CONFIG_DBLUR_FILTER
+libul{avfilter}: libavfilter/c{vf_dctdnoiz}: include = $CONFIG_DCTDNOIZ_FILTER
+libul{avfilter}: libavfilter/c{vf_deband}: include = $CONFIG_DEBAND_FILTER
+libul{avfilter}: libavfilter/c{vf_deblock}: include = $CONFIG_DEBLOCK_FILTER
+libul{avfilter}: libavfilter/c{vf_decimate}: include = $CONFIG_DECIMATE_FILTER
+libul{avfilter}: libavfilter/c{vf_dedot}: include = $CONFIG_DEDOT_FILTER
+libul{avfilter}: libavfilter/c{vf_deflicker}: include = $CONFIG_DEFLICKER_FILTER
+libul{avfilter}: libavfilter/c{vf_deinterlace_vaapi}: include = $CONFIG_DEINTERLACE_VAAPI_FILTER
+libul{avfilter}: libavfilter/c{vf_dejudder}: include = $CONFIG_DEJUDDER_FILTER
+libul{avfilter}: libavfilter/c{vf_delogo}: include = $CONFIG_DELOGO_FILTER
+libul{avfilter}: libavfilter/c{vf_derain}: include = $CONFIG_DERAIN_FILTER
+libul{avfilter}: libavfilter/c{vf_deshake_opencl}: include = $CONFIG_DESHAKE_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_deshake}: include = $CONFIG_DESHAKE_FILTER
+libul{avfilter}: libavfilter/c{vf_despill}: include = $CONFIG_DESPILL_FILTER
+libul{avfilter}: libavfilter/c{vf_detelecine}: include = $CONFIG_DETELECINE_FILTER
+libul{avfilter}: libavfilter/c{vf_displace}: include = $CONFIG_DISPLACE_FILTER
+libul{avfilter}: libavfilter/c{vf_dnn_classify}: include = $CONFIG_DNN_CLASSIFY_FILTER
+libul{avfilter}: libavfilter/c{vf_dnn_detect}: include = $CONFIG_DNN_DETECT_FILTER
+libul{avfilter}: libavfilter/c{vf_dnn_processing}: include = $CONFIG_DNN_PROCESSING_FILTER
+libul{avfilter}: libavfilter/c{vf_drawbox}: include = ($CONFIG_DRAWBOX_FILTER || $CONFIG_DRAWGRID_FILTER)
+libul{avfilter}: libavfilter/c{vf_drawtext}: include = $CONFIG_DRAWTEXT_FILTER
+libul{avfilter}: libavfilter/c{vf_edgedetect}: include = $CONFIG_EDGEDETECT_FILTER
+libul{avfilter}: libavfilter/c{vf_elbg}: include = $CONFIG_ELBG_FILTER
+libul{avfilter}: libavfilter/c{vf_entropy}: include = $CONFIG_ENTROPY_FILTER
+libul{avfilter}: libavfilter/c{vf_epx}: include = $CONFIG_EPX_FILTER
+libul{avfilter}: libavfilter/c{vf_eq}: include = $CONFIG_EQ_FILTER
+libul{avfilter}: libavfilter/c{vf_estdif}: include = $CONFIG_ESTDIF_FILTER
+libul{avfilter}: libavfilter/c{vf_exposure}: include = $CONFIG_EXPOSURE_FILTER
+libul{avfilter}: libavfilter/c{vf_extractplanes}: include = ($CONFIG_ALPHAEXTRACT_FILTER || $CONFIG_EXTRACTPLANES_FILTER)
+libul{avfilter}: libavfilter/c{vf_fade}: include = $CONFIG_FADE_FILTER
+libul{avfilter}: libavfilter/c{vf_feedback}: include = $CONFIG_FEEDBACK_FILTER
+libul{avfilter}: libavfilter/c{vf_fftdnoiz}: include = $CONFIG_FFTDNOIZ_FILTER
+libul{avfilter}: libavfilter/c{vf_fftfilt}: include = $CONFIG_FFTFILT_FILTER
+libul{avfilter}: libavfilter/c{vf_fieldhint}: include = $CONFIG_FIELDHINT_FILTER
+libul{avfilter}: libavfilter/c{vf_fieldmatch}: include = $CONFIG_FIELDMATCH_FILTER
+libul{avfilter}: libavfilter/c{vf_fieldorder}: include = $CONFIG_FIELDORDER_FILTER
+libul{avfilter}: libavfilter/c{vf_field}: include = $CONFIG_FIELD_FILTER
+libul{avfilter}: libavfilter/c{vf_fillborders}: include = $CONFIG_FILLBORDERS_FILTER
+libul{avfilter}: libavfilter/c{vf_find_rect}: include = $CONFIG_FIND_RECT_FILTER
+libul{avfilter}: libavfilter/c{vf_flip_vulkan}: include = ($CONFIG_HFLIP_VULKAN_FILTER || $CONFIG_VFLIP_VULKAN_FILTER)
+libul{avfilter}: libavfilter/c{vf_floodfill}: include = $CONFIG_FLOODFILL_FILTER
+libul{avfilter}: libavfilter/c{vf_format}: include = ($CONFIG_FORMAT_FILTER || $CONFIG_NOFORMAT_FILTER)
+libul{avfilter}: libavfilter/c{vf_fps}: include = $CONFIG_FPS_FILTER
+libul{avfilter}: libavfilter/c{vf_framepack}: include = $CONFIG_FRAMEPACK_FILTER
+libul{avfilter}: libavfilter/c{vf_framerate}: include = $CONFIG_FRAMERATE_FILTER
+libul{avfilter}: libavfilter/c{vf_framestep}: include = $CONFIG_FRAMESTEP_FILTER
+libul{avfilter}: libavfilter/c{vf_freezedetect}: include = $CONFIG_FREEZEDETECT_FILTER
+libul{avfilter}: libavfilter/c{vf_freezeframes}: include = $CONFIG_FREEZEFRAMES_FILTER
+libul{avfilter}: libavfilter/c{vf_frei0r}: include = ($CONFIG_FREI0R_FILTER || $CONFIG_FREI0R_SRC_FILTER)
+libul{avfilter}: libavfilter/c{vf_fspp}: include = $CONFIG_FSPP_FILTER
+libul{avfilter}: libavfilter/c{vf_fsync}: include = $CONFIG_FSYNC_FILTER
+libul{avfilter}: libavfilter/c{vf_gblur_vulkan}: include = $CONFIG_GBLUR_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vf_gblur}: include = $CONFIG_GBLUR_FILTER
+libul{avfilter}: libavfilter/c{vf_geq}: include = $CONFIG_GEQ_FILTER
+libul{avfilter}: libavfilter/c{vf_gradfun}: include = $CONFIG_GRADFUN_FILTER
+libul{avfilter}: libavfilter/c{vf_grayworld}: include = $CONFIG_GRAYWORLD_FILTER
+libul{avfilter}: libavfilter/c{vf_guided}: include = $CONFIG_GUIDED_FILTER
+libul{avfilter}: libavfilter/c{vf_hflip}: include = $CONFIG_HFLIP_FILTER
+libul{avfilter}: libavfilter/c{vf_histeq}: include = $CONFIG_HISTEQ_FILTER
+libul{avfilter}: libavfilter/c{vf_histogram}: include = ($CONFIG_HISTOGRAM_FILTER || $CONFIG_THISTOGRAM_FILTER)
+libul{avfilter}: libavfilter/c{vf_hqdn3d}: include = $CONFIG_HQDN3D_FILTER
+libul{avfilter}: libavfilter/c{vf_hqx}: include = $CONFIG_HQX_FILTER
+libul{avfilter}: libavfilter/c{vf_hsvkey}: include = ($CONFIG_HSVHOLD_FILTER || $CONFIG_HSVKEY_FILTER)
+libul{avfilter}: libavfilter/c{vf_huesaturation}: include = $CONFIG_HUESATURATION_FILTER
+libul{avfilter}: libavfilter/c{vf_hue}: include = $CONFIG_HUE_FILTER
+libul{avfilter}: libavfilter/c{vf_hwdownload}: include = $CONFIG_HWDOWNLOAD_FILTER
+libul{avfilter}: libavfilter/c{vf_hwmap}: include = $CONFIG_HWMAP_FILTER
+libul{avfilter}: libavfilter/c{vf_hwupload_cuda}: include = $CONFIG_HWUPLOAD_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_hwupload}: include = $CONFIG_HWUPLOAD_FILTER
+libul{avfilter}: libavfilter/c{vf_hysteresis}: include = $CONFIG_HYSTERESIS_FILTER
+libul{avfilter}: libavfilter/c{vf_iccdetect}: include = $CONFIG_ICCDETECT_FILTER
+libul{avfilter}: libavfilter/c{vf_iccgen}: include = $CONFIG_ICCGEN_FILTER
+libul{avfilter}: libavfilter/c{vf_identity}: include = $CONFIG_IDENTITY_FILTER
+libul{avfilter}: libavfilter/c{vf_idet}: include = $CONFIG_IDET_FILTER
+libul{avfilter}: libavfilter/c{vf_il}: include = $CONFIG_IL_FILTER
+libul{avfilter}: libavfilter/c{vf_kerndeint}: include = $CONFIG_KERNDEINT_FILTER
+libul{avfilter}: libavfilter/c{vf_lagfun}: include = $CONFIG_LAGFUN_FILTER
+libul{avfilter}: libavfilter/c{vf_lenscorrection}: include = $CONFIG_LENSCORRECTION_FILTER
+libul{avfilter}: libavfilter/c{vf_lensfun}: include = $CONFIG_LENSFUN_FILTER
+libul{avfilter}: libavfilter/c{vf_libopencv}: include = $CONFIG_OCV_FILTER
+libul{avfilter}: libavfilter/c{vf_libplacebo}: include = $CONFIG_LIBPLACEBO_FILTER
+libul{avfilter}: libavfilter/c{vf_libvmaf}: include = ($CONFIG_LIBVMAF_CUDA_FILTER || $CONFIG_LIBVMAF_FILTER)
+libul{avfilter}: libavfilter/c{vf_limitdiff}: include = $CONFIG_LIMITDIFF_FILTER
+libul{avfilter}: libavfilter/c{vf_limiter}: include = $CONFIG_LIMITER_FILTER
+libul{avfilter}: libavfilter/c{vf_lumakey}: include = $CONFIG_LUMAKEY_FILTER
+libul{avfilter}: libavfilter/c{vf_lut2}: include = ($CONFIG_LUT2_FILTER || $CONFIG_TLUT2_FILTER)
+libul{avfilter}: libavfilter/c{vf_lut3d}: include = ($CONFIG_HALDCLUT_FILTER || $CONFIG_LUT1D_FILTER || $CONFIG_LUT3D_FILTER)
+libul{avfilter}: libavfilter/c{vf_lut}: include = ($CONFIG_LUTRGB_FILTER || $CONFIG_LUTYUV_FILTER || $CONFIG_LUT_FILTER)
+libul{avfilter}: libavfilter/c{vf_maskedclamp}: include = $CONFIG_MASKEDCLAMP_FILTER
+libul{avfilter}: libavfilter/c{vf_maskedmerge}: include = $CONFIG_MASKEDMERGE_FILTER
+libul{avfilter}: libavfilter/c{vf_maskedminmax}: include = ($CONFIG_MASKEDMAX_FILTER || $CONFIG_MASKEDMIN_FILTER)
+libul{avfilter}: libavfilter/c{vf_maskedthreshold}: include = $CONFIG_MASKEDTHRESHOLD_FILTER
+libul{avfilter}: libavfilter/c{vf_maskfun}: include = $CONFIG_MASKFUN_FILTER
+libul{avfilter}: libavfilter/c{vf_mcdeint}: include = $CONFIG_MCDEINT_FILTER
+libul{avfilter}: libavfilter/c{vf_median}: include = $CONFIG_MEDIAN_FILTER
+libul{avfilter}: libavfilter/c{vf_mergeplanes}: include = $CONFIG_MERGEPLANES_FILTER
+libul{avfilter}: libavfilter/c{vf_mestimate}: include = $CONFIG_MESTIMATE_FILTER
+libul{avfilter}: libavfilter/c{vf_midequalizer}: include = $CONFIG_MIDEQUALIZER_FILTER
+libul{avfilter}: libavfilter/c{vf_minterpolate}: include = $CONFIG_MINTERPOLATE_FILTER
+libul{avfilter}: libavfilter/c{vf_misc_vaapi}: include = ($CONFIG_DENOISE_VAAPI_FILTER || $CONFIG_SHARPNESS_VAAPI_FILTER)
+libul{avfilter}: libavfilter/c{vf_mix}: include = ($CONFIG_MIX_FILTER || $CONFIG_TMIX_FILTER)
+libul{avfilter}: libavfilter/c{vf_monochrome}: include = $CONFIG_MONOCHROME_FILTER
+libul{avfilter}: libavfilter/c{vf_morpho}: include = $CONFIG_MORPHO_FILTER
+libul{avfilter}: libavfilter/c{vf_mpdecimate}: include = $CONFIG_MPDECIMATE_FILTER
+libul{avfilter}: libavfilter/c{vf_multiply}: include = $CONFIG_MULTIPLY_FILTER
+libul{avfilter}: libavfilter/c{vf_negate}: include = $CONFIG_NEGATE_FILTER
+libul{avfilter}: libavfilter/c{vf_neighbor_opencl}: include = ($CONFIG_DILATION_OPENCL_FILTER || $CONFIG_EROSION_OPENCL_FILTER)
+libul{avfilter}: libavfilter/c{vf_neighbor}: include = ($CONFIG_DEFLATE_FILTER || $CONFIG_DILATION_FILTER || $CONFIG_EROSION_FILTER || $CONFIG_INFLATE_FILTER)
+libul{avfilter}: libavfilter/c{vf_nlmeans_opencl}: include = $CONFIG_NLMEANS_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_nlmeans_vulkan}: include = $CONFIG_NLMEANS_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vf_nlmeans}: include = $CONFIG_NLMEANS_FILTER
+libul{avfilter}: libavfilter/c{vf_nnedi}: include = $CONFIG_NNEDI_FILTER
+libul{avfilter}: libavfilter/c{vf_noise}: include = $CONFIG_NOISE_FILTER
+libul{avfilter}: libavfilter/c{vf_normalize}: include = $CONFIG_NORMALIZE_FILTER
+libul{avfilter}: libavfilter/c{vf_null}: include = $CONFIG_NULL_FILTER
+libul{avfilter}: libavfilter/c{vf_ocr}: include = $CONFIG_OCR_FILTER
+#libul{avfilter}: libavfilter/c{vf_overlay_cuda.ptx}: include = $CONFIG_OVERLAY_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_overlay_cuda}: include = $CONFIG_OVERLAY_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_overlay_opencl}: include = $CONFIG_OVERLAY_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_overlay_qsv}: include = $CONFIG_OVERLAY_QSV_FILTER
+libul{avfilter}: libavfilter/c{vf_overlay_vaapi}: include = $CONFIG_OVERLAY_VAAPI_FILTER
+libul{avfilter}: libavfilter/c{vf_overlay_vulkan}: include = $CONFIG_OVERLAY_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vf_overlay}: include = $CONFIG_OVERLAY_FILTER
+libul{avfilter}: libavfilter/c{vf_owdenoise}: include = $CONFIG_OWDENOISE_FILTER
+libul{avfilter}: libavfilter/c{vf_pad_opencl}: include = $CONFIG_PAD_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_pad}: include = $CONFIG_PAD_FILTER
+libul{avfilter}: libavfilter/c{vf_palettegen}: include = $CONFIG_PALETTEGEN_FILTER
+libul{avfilter}: libavfilter/c{vf_paletteuse}: include = $CONFIG_PALETTEUSE_FILTER
+libul{avfilter}: libavfilter/c{vf_perspective}: include = $CONFIG_PERSPECTIVE_FILTER
+libul{avfilter}: libavfilter/c{vf_phase}: include = $CONFIG_PHASE_FILTER
+libul{avfilter}: libavfilter/c{vf_photosensitivity}: include = $CONFIG_PHOTOSENSITIVITY_FILTER
+libul{avfilter}: libavfilter/c{vf_pixdesctest}: include = $CONFIG_PIXDESCTEST_FILTER
+libul{avfilter}: libavfilter/c{vf_pixelize}: include = $CONFIG_PIXELIZE_FILTER
+libul{avfilter}: libavfilter/c{vf_pp7}: include = $CONFIG_PP7_FILTER
+libul{avfilter}: libavfilter/c{vf_pp}: include = $CONFIG_PP_FILTER
+libul{avfilter}: libavfilter/c{vf_premultiply}: include = ($CONFIG_PREMULTIPLY_FILTER || $CONFIG_UNPREMULTIPLY_FILTER)
+libul{avfilter}: libavfilter/c{vf_procamp_vaapi}: include = $CONFIG_PROCAMP_VAAPI_FILTER
+libul{avfilter}: libavfilter/c{vf_program_opencl}: include = ($CONFIG_OPENCLSRC_FILTER || $CONFIG_PROGRAM_OPENCL_FILTER)
+libul{avfilter}: libavfilter/c{vf_pseudocolor}: include = $CONFIG_PSEUDOCOLOR_FILTER
+libul{avfilter}: libavfilter/c{vf_psnr}: include = $CONFIG_PSNR_FILTER
+libul{avfilter}: libavfilter/c{vf_pullup}: include = $CONFIG_PULLUP_FILTER
+libul{avfilter}: libavfilter/c{vf_qp}: include = $CONFIG_QP_FILTER
+libul{avfilter}: libavfilter/c{vf_quirc}: include = $CONFIG_QUIRC_FILTER
+libul{avfilter}: libavfilter/c{vf_random}: include = $CONFIG_RANDOM_FILTER
+libul{avfilter}: libavfilter/c{vf_readeia608}: include = $CONFIG_READEIA608_FILTER
+libul{avfilter}: libavfilter/c{vf_readvitc}: include = $CONFIG_READVITC_FILTER
+libul{avfilter}: libavfilter/c{vf_remap_opencl}: include = $CONFIG_REMAP_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_remap}: include = $CONFIG_REMAP_FILTER
+libul{avfilter}: libavfilter/c{vf_removegrain}: include = $CONFIG_REMOVEGRAIN_FILTER
+libul{avfilter}: libavfilter/c{vf_removelogo}: include = $CONFIG_REMOVELOGO_FILTER
+libul{avfilter}: libavfilter/c{vf_repeatfields}: include = $CONFIG_REPEATFIELDS_FILTER
+libul{avfilter}: libavfilter/c{vf_rotate}: include = $CONFIG_ROTATE_FILTER
+libul{avfilter}: libavfilter/c{vf_sab}: include = $CONFIG_SAB_FILTER
+#libul{avfilter}: libavfilter/c{vf_scale_cuda.ptx}: include = $CONFIG_SCALE_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_scale_cuda}: include = $CONFIG_SCALE_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_scale_npp}: include = ($CONFIG_SCALE2REF_NPP_FILTER || $CONFIG_SCALE_NPP_FILTER)
+libul{avfilter}: libavfilter/c{vf_scale_vaapi}: include = $CONFIG_SCALE_VAAPI_FILTER
+libul{avfilter}: libavfilter/c{vf_scale_vt}: include = $CONFIG_SCALE_VT_FILTER
+libul{avfilter}: libavfilter/c{vf_scale_vulkan}: include = $CONFIG_SCALE_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vf_scale}: include = ($CONFIG_SCALE2REF_FILTER || $CONFIG_SCALE_FILTER)
+libul{avfilter}: libavfilter/c{vf_scdet}: include = $CONFIG_SCDET_FILTER
+libul{avfilter}: libavfilter/c{vf_scroll}: include = $CONFIG_SCROLL_FILTER
+libul{avfilter}: libavfilter/c{vf_selectivecolor}: include = $CONFIG_SELECTIVECOLOR_FILTER
+libul{avfilter}: libavfilter/c{vf_separatefields}: include = $CONFIG_SEPARATEFIELDS_FILTER
+libul{avfilter}: libavfilter/c{vf_setparams}: include = ($CONFIG_SETFIELD_FILTER || $CONFIG_SETPARAMS_FILTER || $CONFIG_SETRANGE_FILTER)
+libul{avfilter}: libavfilter/c{vf_sharpen_npp}: include = $CONFIG_SHARPEN_NPP_FILTER
+libul{avfilter}: libavfilter/c{vf_shear}: include = $CONFIG_SHEAR_FILTER
+libul{avfilter}: libavfilter/c{vf_showinfo}: include = $CONFIG_SHOWINFO_FILTER
+libul{avfilter}: libavfilter/c{vf_showpalette}: include = $CONFIG_SHOWPALETTE_FILTER
+libul{avfilter}: libavfilter/c{vf_shuffleframes}: include = $CONFIG_SHUFFLEFRAMES_FILTER
+libul{avfilter}: libavfilter/c{vf_shufflepixels}: include = $CONFIG_SHUFFLEPIXELS_FILTER
+libul{avfilter}: libavfilter/c{vf_shuffleplanes}: include = $CONFIG_SHUFFLEPLANES_FILTER
+libul{avfilter}: libavfilter/c{vf_signalstats}: include = $CONFIG_SIGNALSTATS_FILTER
+libul{avfilter}: libavfilter/c{vf_signature}: include = $CONFIG_SIGNATURE_FILTER
+libul{avfilter}: libavfilter/c{vf_siti}: include = $CONFIG_SITI_FILTER
+libul{avfilter}: libavfilter/c{vf_smartblur}: include = $CONFIG_SMARTBLUR_FILTER
+libul{avfilter}: libavfilter/c{vf_spp}: include = $CONFIG_SPP_FILTER
+libul{avfilter}: libavfilter/c{vf_sr}: include = $CONFIG_SR_FILTER
+libul{avfilter}: libavfilter/c{vf_ssim360}: include = $CONFIG_SSIM360_FILTER
+libul{avfilter}: libavfilter/c{vf_ssim}: include = $CONFIG_SSIM_FILTER
+libul{avfilter}: libavfilter/c{vf_stack_qsv}: include = ($CONFIG_HSTACK_QSV_FILTER || $CONFIG_VSTACK_QSV_FILTER || $CONFIG_XSTACK_QSV_FILTER)
+libul{avfilter}: libavfilter/c{vf_stack_vaapi}: include = ($CONFIG_HSTACK_VAAPI_FILTER || $CONFIG_VSTACK_VAAPI_FILTER || $CONFIG_XSTACK_VAAPI_FILTER)
+libul{avfilter}: libavfilter/c{vf_stack}: include = ($CONFIG_HSTACK_FILTER || $CONFIG_VSTACK_FILTER || $CONFIG_XSTACK_FILTER)
+libul{avfilter}: libavfilter/c{vf_stereo3d}: include = $CONFIG_STEREO3D_FILTER
+libul{avfilter}: libavfilter/c{vf_subtitles}: include = ($CONFIG_ASS_FILTER || $CONFIG_SUBTITLES_FILTER)
+libul{avfilter}: libavfilter/c{vf_super2xsai}: include = $CONFIG_SUPER2XSAI_FILTER
+libul{avfilter}: libavfilter/c{vf_swaprect}: include = $CONFIG_SWAPRECT_FILTER
+libul{avfilter}: libavfilter/c{vf_swapuv}: include = $CONFIG_SWAPUV_FILTER
+libul{avfilter}: libavfilter/c{vf_telecine}: include = $CONFIG_TELECINE_FILTER
+libul{avfilter}: libavfilter/c{vf_threshold}: include = $CONFIG_THRESHOLD_FILTER
+#libul{avfilter}: libavfilter/c{vf_thumbnail_cuda.ptx}: include = $CONFIG_THUMBNAIL_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_thumbnail_cuda}: include = $CONFIG_THUMBNAIL_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_thumbnail}: include = $CONFIG_THUMBNAIL_FILTER
+libul{avfilter}: libavfilter/c{vf_tile}: include = $CONFIG_TILE_FILTER
+libul{avfilter}: libavfilter/c{vf_tiltandshift}: include = $CONFIG_TILTANDSHIFT_FILTER
+libul{avfilter}: libavfilter/c{vf_tinterlace}: include = ($CONFIG_INTERLACE_FILTER || $CONFIG_TINTERLACE_FILTER)
+libul{avfilter}: libavfilter/c{vf_tmidequalizer}: include = $CONFIG_TMIDEQUALIZER_FILTER
+libul{avfilter}: libavfilter/c{vf_tonemap_opencl}: include = $CONFIG_TONEMAP_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_tonemap_vaapi}: include = $CONFIG_TONEMAP_VAAPI_FILTER
+libul{avfilter}: libavfilter/c{vf_tonemap}: include = $CONFIG_TONEMAP_FILTER
+libul{avfilter}: libavfilter/c{vf_tpad}: include = $CONFIG_TPAD_FILTER
+libul{avfilter}: libavfilter/c{vf_transpose_npp}: include = $CONFIG_TRANSPOSE_NPP_FILTER
+libul{avfilter}: libavfilter/c{vf_transpose_opencl}: include = $CONFIG_TRANSPOSE_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_transpose_vaapi}: include = $CONFIG_TRANSPOSE_VAAPI_FILTER
+libul{avfilter}: libavfilter/c{vf_transpose_vt}: include = $CONFIG_TRANSPOSE_VT_FILTER
+libul{avfilter}: libavfilter/c{vf_transpose_vulkan}: include = $CONFIG_TRANSPOSE_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vf_transpose}: include = $CONFIG_TRANSPOSE_FILTER
+libul{avfilter}: libavfilter/c{vf_unsharp_opencl}: include = $CONFIG_UNSHARP_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_unsharp}: include = $CONFIG_UNSHARP_FILTER
+libul{avfilter}: libavfilter/c{vf_untile}: include = $CONFIG_UNTILE_FILTER
+libul{avfilter}: libavfilter/c{vf_uspp}: include = $CONFIG_USPP_FILTER
+libul{avfilter}: libavfilter/c{vf_v360}: include = $CONFIG_V360_FILTER
+libul{avfilter}: libavfilter/c{vf_vaguedenoiser}: include = $CONFIG_VAGUEDENOISER_FILTER
+libul{avfilter}: libavfilter/c{vf_varblur}: include = $CONFIG_VARBLUR_FILTER
+libul{avfilter}: libavfilter/c{vf_vectorscope}: include = $CONFIG_VECTORSCOPE_FILTER
+libul{avfilter}: libavfilter/c{vf_vflip}: include = $CONFIG_VFLIP_FILTER
+libul{avfilter}: libavfilter/c{vf_vfrdet}: include = $CONFIG_VFRDET_FILTER
+libul{avfilter}: libavfilter/c{vf_vibrance}: include = $CONFIG_VIBRANCE_FILTER
+libul{avfilter}: libavfilter/c{vf_vidstabdetect}: include = $CONFIG_VIDSTABDETECT_FILTER
+libul{avfilter}: libavfilter/c{vf_vidstabtransform}: include = $CONFIG_VIDSTABTRANSFORM_FILTER
+libul{avfilter}: libavfilter/c{vf_vif}: include = $CONFIG_VIF_FILTER
+libul{avfilter}: libavfilter/c{vf_vignette}: include = $CONFIG_VIGNETTE_FILTER
+libul{avfilter}: libavfilter/c{vf_vmafmotion}: include = $CONFIG_VMAFMOTION_FILTER
+libul{avfilter}: libavfilter/c{vf_vpp_qsv}: include = ($CONFIG_DEINTERLACE_QSV_FILTER || $CONFIG_SCALE_QSV_FILTER || $CONFIG_VPP_QSV_FILTER)
+libul{avfilter}: libavfilter/c{vf_w3fdif}: include = $CONFIG_W3FDIF_FILTER
+libul{avfilter}: libavfilter/c{vf_waveform}: include = $CONFIG_WAVEFORM_FILTER
+libul{avfilter}: libavfilter/c{vf_weave}: include = ($CONFIG_DOUBLEWEAVE_FILTER || $CONFIG_WEAVE_FILTER)
+libul{avfilter}: libavfilter/c{vf_xbr}: include = $CONFIG_XBR_FILTER
+libul{avfilter}: libavfilter/c{vf_xfade_opencl}: include = $CONFIG_XFADE_OPENCL_FILTER
+libul{avfilter}: libavfilter/c{vf_xfade_vulkan}: include = $CONFIG_XFADE_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vf_xfade}: include = $CONFIG_XFADE_FILTER
+libul{avfilter}: libavfilter/c{vf_xmedian}: include = ($CONFIG_TMEDIAN_FILTER || $CONFIG_XMEDIAN_FILTER)
+#libul{avfilter}: libavfilter/c{vf_yadif_cuda.ptx}: include = $CONFIG_YADIF_CUDA_FILTER
+libul{avfilter}: libavfilter/c{vf_yadif_cuda}: include = $CONFIG_YADIF_CUDA_FILTER
+#libul{avfilter}: libavfilter/c{vf_yadif_videotoolbox}: include = $CONFIG_YADIF_VIDEOTOOLBOX_FILTER
+libul{avfilter}: libavfilter/c{vf_yadif}: include = $CONFIG_YADIF_FILTER
+libul{avfilter}: libavfilter/c{vf_yaepblur}: include = $CONFIG_YAEPBLUR_FILTER
+libul{avfilter}: libavfilter/c{vf_zoompan}: include = $CONFIG_ZOOMPAN_FILTER
+libul{avfilter}: libavfilter/c{vf_zscale}: include = $CONFIG_ZSCALE_FILTER
+libul{avfilter}: libavfilter/c{vidstabutils}: include = ($CONFIG_VIDSTABDETECT_FILTER || $CONFIG_VIDSTABTRANSFORM_FILTER)
+libul{avfilter}: libavfilter/c{vsink_nullsink}: include = $CONFIG_NULLSINK_FILTER
+libul{avfilter}: libavfilter/c{vsrc_cellauto}: include = $CONFIG_CELLAUTO_FILTER
+libul{avfilter}: libavfilter/c{vsrc_ddagrab}: include = $CONFIG_DDAGRAB_FILTER
+libul{avfilter}: libavfilter/c{vsrc_gradients}: include = $CONFIG_GRADIENTS_FILTER
+libul{avfilter}: libavfilter/c{vsrc_life}: include = $CONFIG_LIFE_FILTER
+libul{avfilter}: libavfilter/c{vsrc_mandelbrot}: include = $CONFIG_MANDELBROT_FILTER
+libul{avfilter}: libavfilter/c{vsrc_mptestsrc}: include = $CONFIG_MPTESTSRC_FILTER
+libul{avfilter}: libavfilter/c{vsrc_sierpinski}: include = $CONFIG_SIERPINSKI_FILTER
+libul{avfilter}: libavfilter/c{vsrc_testsrc_vulkan}: include = $CONFIG_COLOR_VULKAN_FILTER
+libul{avfilter}: libavfilter/c{vsrc_testsrc}: include = ($CONFIG_ALLRGB_FILTER || $CONFIG_ALLYUV_FILTER || $CONFIG_COLORCHART_FILTER || $CONFIG_COLORSPECTRUM_FILTER || $CONFIG_COLOR_FILTER || $CONFIG_HALDCLUTSRC_FILTER || $CONFIG_NULLSRC_FILTER || $CONFIG_PAL100BARS_FILTER || $CONFIG_PAL75BARS_FILTER || $CONFIG_RGBTESTSRC_FILTER || $CONFIG_SMPTEBARS_FILTER || $CONFIG_SMPTEHDBARS_FILTER || $CONFIG_TESTSRC2_FILTER || $CONFIG_TESTSRC_FILTER || $CONFIG_YUVTESTSRC_FILTER || $CONFIG_ZONEPLATE_FILTER)
+libul{avfilter}: libavfilter/c{vulkan_filter}: include = ($CONFIG_AVGBLUR_VULKAN_FILTER || $CONFIG_BLEND_VULKAN_FILTER || $CONFIG_BWDIF_VULKAN_FILTER || $CONFIG_CHROMABER_VULKAN_FILTER || $CONFIG_COLOR_VULKAN_FILTER || $CONFIG_GBLUR_VULKAN_FILTER || $CONFIG_LIBPLACEBO_FILTER || $CONFIG_NLMEANS_VULKAN_FILTER || $CONFIG_OVERLAY_VULKAN_FILTER || $CONFIG_SCALE_VULKAN_FILTER || $CONFIG_TRANSPOSE_VULKAN_FILTER || $CONFIG_XFADE_VULKAN_FILTER)
+libul{avfilter}: libavfilter/c{vulkan_glslang}: include = $CONFIG_LIBGLSLANG
+libul{avfilter}: libavfilter/c{vulkan_shaderc}: include = $CONFIG_LIBSHADERC
+libul{avfilter}: libavfilter/c{vulkan}: include = ($CONFIG_AVGBLUR_VULKAN_FILTER || $CONFIG_BLEND_VULKAN_FILTER || $CONFIG_BWDIF_VULKAN_FILTER || $CONFIG_CHROMABER_VULKAN_FILTER || $CONFIG_COLOR_VULKAN_FILTER || $CONFIG_GBLUR_VULKAN_FILTER || $CONFIG_HFLIP_VULKAN_FILTER || $CONFIG_LIBPLACEBO_FILTER || $CONFIG_NLMEANS_VULKAN_FILTER || $CONFIG_OVERLAY_VULKAN_FILTER || $CONFIG_SCALE_VULKAN_FILTER || $CONFIG_TRANSPOSE_VULKAN_FILTER || $CONFIG_VFLIP_VULKAN_FILTER || $CONFIG_XFADE_VULKAN_FILTER)
+libul{avfilter}: libavfilter/c{yadif_common}: include = ($CONFIG_BWDIF_CUDA_FILTER || $CONFIG_BWDIF_FILTER || $CONFIG_BWDIF_VULKAN_FILTER || $CONFIG_YADIF_CUDA_FILTER || $CONFIG_YADIF_FILTER || $CONFIG_YADIF_VIDEOTOOLBOX_FILTER)
+
+# x86
+#
+libul{avfilter}: libavfilter/x86/c{af_afir_init}: include = ($ARCH_X86 && $CONFIG_AFIR_FILTER)
+libul{avfilter}: libavfilter/x86/c{af_anlmdn_init}: include = ($ARCH_X86 && $CONFIG_ANLMDN_FILTER)
+libul{avfilter}: libavfilter/x86/c{af_volume_init}: include = ($ARCH_X86 && $CONFIG_VOLUME_FILTER)
+libul{avfilter}: libavfilter/x86/c{avf_showcqt_init}: include = ($ARCH_X86 && $CONFIG_SHOWCQT_FILTER)
+libul{avfilter}: libavfilter/x86/c{colorspacedsp_init}: include = ($ARCH_X86 && $CONFIG_COLORSPACE_FILTER)
+libul{avfilter}: libavfilter/x86/c{scene_sad_init}: include = ($ARCH_X86 && $CONFIG_SCENE_SAD)
+libul{avfilter}: libavfilter/x86/c{vf_atadenoise_init}: include = ($ARCH_X86 && $CONFIG_ATADENOISE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_blend_init}: include = ($ARCH_X86 && ($CONFIG_BLEND_FILTER || $CONFIG_TBLEND_FILTER))
+libul{avfilter}: libavfilter/x86/c{vf_bwdif_init}: include = ($ARCH_X86 && $CONFIG_BWDIF_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_convolution_init}: include = ($ARCH_X86 && $CONFIG_CONVOLUTION_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_eq_init}: include = ($ARCH_X86 && $CONFIG_EQ_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_framerate_init}: include = ($ARCH_X86 && $CONFIG_FRAMERATE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_fspp_init}: include = ($ARCH_X86 && $CONFIG_FSPP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_gblur_init}: include = ($ARCH_X86 && $CONFIG_GBLUR_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_gradfun_init}: include = ($ARCH_X86 && $CONFIG_GRADFUN_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_hflip_init}: include = ($ARCH_X86 && $CONFIG_HFLIP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_hqdn3d_init}: include = ($ARCH_X86 && $CONFIG_HQDN3D_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_idet_init}: include = ($ARCH_X86 && $CONFIG_IDET_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_limiter_init}: include = ($ARCH_X86 && $CONFIG_LIMITER_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_lut3d_init}: include = ($ARCH_X86 && $CONFIG_LUT3D_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_maskedclamp_init}: include = ($ARCH_X86 && $CONFIG_MASKEDCLAMP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_maskedmerge_init}: include = ($ARCH_X86 && $CONFIG_MASKEDMERGE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_nlmeans_init}: include = ($ARCH_X86 && $CONFIG_NLMEANS_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_noise}: include = ($ARCH_X86 && $CONFIG_NOISE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_overlay_init}: include = ($ARCH_X86 && $CONFIG_OVERLAY_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_pp7_init}: include = ($ARCH_X86 && $CONFIG_PP7_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_psnr_init}: include = ($ARCH_X86 && $CONFIG_PSNR_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_pullup_init}: include = ($ARCH_X86 && $CONFIG_PULLUP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_removegrain_init}: include = ($ARCH_X86 && $CONFIG_REMOVEGRAIN_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_spp}: include = ($ARCH_X86 && $CONFIG_SPP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_ssim_init}: include = ($ARCH_X86 && $CONFIG_SSIM_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_stereo3d_init}: include = ($ARCH_X86 && $CONFIG_STEREO3D_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_threshold_init}: include = ($ARCH_X86 && $CONFIG_THRESHOLD_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_tinterlace_init}: include = ($ARCH_X86 && ($CONFIG_INTERLACE_FILTER || $CONFIG_TINTERLACE_FILTER))
+libul{avfilter}: libavfilter/x86/c{vf_transpose_init}: include = ($ARCH_X86 && $CONFIG_TRANSPOSE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_v360_init}: include = ($ARCH_X86 && $CONFIG_V360_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_w3fdif_init}: include = ($ARCH_X86 && $CONFIG_W3FDIF_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_yadif_init}: include = ($ARCH_X86 && $CONFIG_YADIF_FILTER)
+
+# X86 assembly sources
+#
+# There is no built-in rule to synthesize the libu{s,a} -> obj{s,a} -> asm{}
+# dependencies so we have to do it manually.
+#
+# First is the source file name and second the value of the controlling
+# feature check macros (in addition to the usual HAVE_X86ASM).
+#
+for p: af_afir@$CONFIG_AFIR_FILTER                                      \
+       af_anlmdn@$CONFIG_ANLMDN_FILTER                                  \
+       af_volume@$CONFIG_VOLUME_FILTER                                  \
+       avf_showcqt@$CONFIG_SHOWCQT_FILTER                               \
+       colorspacedsp@$CONFIG_COLORSPACE_FILTER                          \
+       scene_sad@$CONFIG_SCENE_SAD                                      \
+       vf_atadenoise@$CONFIG_ATADENOISE_FILTER                          \
+       vf_blend@$CONFIG_BLEND_FILTER                                    \
+       vf_blend@$CONFIG_TBLEND_FILTER                                   \
+       vf_bwdif@$CONFIG_BWDIF_FILTER                                    \
+       vf_convolution@$CONFIG_CONVOLUTION_FILTER                        \
+       vf_eq@$CONFIG_EQ_FILTER                                          \
+       vf_framerate@$CONFIG_FRAMERATE_FILTER                            \
+       vf_fspp@$CONFIG_FSPP_FILTER                                      \
+       vf_gblur@$CONFIG_GBLUR_FILTER                                    \
+       vf_gradfun@$CONFIG_GRADFUN_FILTER                                \
+       vf_hflip@$CONFIG_HFLIP_FILTER                                    \
+       vf_hqdn3d@$CONFIG_HQDN3D_FILTER                                  \
+       vf_idet@$CONFIG_IDET_FILTER                                      \
+       vf_interlace@$CONFIG_INTERLACE_FILTER                            \
+       vf_interlace@$CONFIG_TINTERLACE_FILTER                           \
+       vf_limiter@$CONFIG_LIMITER_FILTER                                \
+       vf_lut3d@$CONFIG_LUT3D_FILTER                                    \
+       vf_maskedclamp@$CONFIG_MASKEDCLAMP_FILTER                        \
+       vf_maskedmerge@$CONFIG_MASKEDMERGE_FILTER                        \
+       vf_nlmeans@$CONFIG_NLMEANS_FILTER                                \
+       vf_overlay@$CONFIG_OVERLAY_FILTER                                \
+       vf_pp7@$CONFIG_PP7_FILTER                                        \
+       vf_psnr@$CONFIG_PSNR_FILTER                                      \
+       vf_pullup@$CONFIG_PULLUP_FILTER                                  \
+       vf_removegrain@($CONFIG_GPL && $CONFIG_REMOVEGRAIN_FILTER)       \
+       vf_ssim@$CONFIG_SSIM_FILTER                                      \
+       vf_stereo3d@$CONFIG_STEREO3D_FILTER                              \
+       vf_threshold@$CONFIG_THRESHOLD_FILTER                            \
+       vf_transpose@$CONFIG_TRANSPOSE_FILTER                            \
+       vf_v360@$CONFIG_V360_FILTER                                      \
+       vf_w3fdif@$CONFIG_W3FDIF_FILTER                                  \
+       vf_yadif@$CONFIG_YADIF_FILTER                                    \
+       yadif-10@$CONFIG_YADIF_FILTER                                    \
+       yadif-16@$CONFIG_YADIF_FILTER
+{
+  n = $first($p)  # Source file name
+  m = $second($p) # Check macro value
+
+  # Dependencies of the shared and static libraries on their respective object
+  # files.
+  #
+  libus{avfilter}: libavfilter/x86/objs{$(n).asm.so.o}: \
+    include = ($HAVE_X86ASM && $m)
+  libua{avfilter}: libavfilter/x86/obja{$(n).asm.a.o}: \
+    include = ($HAVE_X86ASM && $m)
+
+  # Dependencies of the object files on the .asm source file.
+  #
+  libavfilter/x86/objs{$(n).asm.so.o}: libavfilter/x86/asm{$n} $config_asm
+  libavfilter/x86/obja{$(n).asm.a.o}:  libavfilter/x86/asm{$n} $config_asm
+}
+
+# Windows Resources
+#
+# @@ TODO Disabled for the time being but see note in libavutil/src/buildfile.
+#
+# libs{avfilter}: winres{avfilter}: include = ($c.target.system == 'win32-msvc')
+# winres{avfilter}: libavfilter/rc{avfilterres} libus{avfilter-meta}
+
+# Libraries
+
+libul{avfilter}: $intf_libs $impl_libs
+
+# Set up the upstream tests as unit tests.
+#
+exe{*.test}:
+{
+  test = true
+  install = false
+}
+
+# @@ TODO filtfmts needs to be run with a filter name. Read the enabled
+#    filters from filter_list.c and run filtfmts with each one.
+#
+for p: drawutils@true   \
+       filtfmts@false   \
+       integral@$CONFIG_NLMEANS_FILTER
+{
+  n = $first($p)  # Source file name
+  i = $second($p) # Include value
+
+  d = libavfilter
+  s = $d/c{$(n).test...}
+  t = $d/exe{$(n).test...}
+
+  if! $i
+    text 'skip test' $t
+
+  ./: $t: include = $i
+  $t: $s $d/testscript
+  $t: libul{avfilter}: bin.whole = false
+}
+
+# formats.test has a custom testscript.
+#
+./: libavfilter/exe{formats.test...}: libavfilter/c{formats.test...}    \
+                                      libavfilter/testscript{formats}
+libavfilter/exe{formats.test...}: libul{avfilter}: bin.whole = false
+
+libavfilter/c{filter_list}: libavfilter/c{allfilters}
 {{
-  diag gen $>
-
   s = $path($<[0])     # Source file.
   f = $path($>)        # Target file.
-  cat $path($<[1]) | set -w defines [string_set]
 
-  sed -n -e 's/.*extern.* AVFilter\s+ff_(\S+);/\1_filter/p' $s | set -n func_list
-  if $empty($func_list)
-    echo "No filter functions found"
-    exit 1
-  end
+  # Lines of interest from allfilters.c have the format
+  #
+  #   extern const AVFilter ff_<ftype>_<fname>;
+  #
+  # For example:
+  #
+  #   extern const AVFilter ff_af_afreqshift;
+  #
+  # Examples of known filter types: af,asrc,vf,asink,vsrc,vsink,avf,vaf,avsrc.
+  #
+  # Afterwards each `all_funcs` element is of the form
+  #
+  #   ff_<ftype>_<fname>
+  #
+  # For example:
+  #
+  #   ff_af_afreqshift
+  #
+  sed -n -e 's/.+ AVFilter\s+(ff_[\S]+);/\1/p' $s | set -n all_funcs
+
+  # Compile the list of enabled filter functions as determined by the
+  # corresponding CONFIG_ variables.
+  #
+  # Computed variable names can only be dereferenced in the depdb preamble
+  # (because their values must be tracked) so we have to store the
+  # CONFIG_<funcname> values before calling depdb. Hence the `funcs` variable.
+  #
+  funcs = # Enabled functions
+  for c: $all_funcs
+  {
+    fn = $regex.replace($c, 'ff_[a-z]+_(\S+)', '\1') # Filter name
+
+    # The corresponding feature check macro has the form
+    # CONFIG_<fname>_FILTER. For example CONFIG_AFREQSHIFT_FILTER.
+    #
+    # If the filter is enabled simply copy the value from `all_funcs` to
+    # `funcs`.
+    #
+    v = $string.ucase(CONFIG_$(fn)_FILTER)
+    if ($($v) == true) # @@ Doesn't work without the explicit `== true`.
+      funcs += $c
+  }
+  depdb hash $funcs
+
+  diag gen $>
+
+  ife $all_funcs
+    exit "No filter functions found"
+
   echo 'static const AVFilter* const filter_list[] = {' > $f
-  for c: $func_list
-    group = $string.ucase(CONFIG_$c)
-    if ($defines[$group])
-      echo "    &ff_$c," >> $path($>)
-    end
-  end
-  echo "    NULL };" >> $path($>)
+  for p: $funcs
+    echo "    &$p," >> $f
+  echo "    NULL };" >> $f
 }}
+
 # Build options.
 #
-import [once] libconfig%buildfile{common-configs}
+c.poptions =+ "-I$out_base" "-I$src_base"       \
+              $common_poptions                  \
+              -DBUILDING_avfilter
 
-out_pfx = [dir_path] $out_root/src/
-src_pfx = [dir_path] $src_root/src/
+obj{*}: c.coptions += $common_coptions
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avfilter
+# Disable "conversion from 'size_t' to 'unsigned int', possible loss of data"
+# MSVC warning which is emitted dozens of times.
+#
+if ($c.class == 'msvc')
+  obj{*}: c.coptions += /wd4133 \
+                        /wd4267
 
-obja{*}: c.poptions += -DCONFIG_STATIC
-objs{*}: c.poptions += -DCONFIG_SHARED
+# @@ TODO Revisit after CI.
+#
+# switch ($c.id)
+# {
+#   case 'msvc'
+#     c.coptions += -wd4003 -wd4333
+# }
 
+objs{*}: c.poptions += $common_objs_poptions
+obja{*}: c.poptions += $common_obja_poptions
+
+# Add common_obja_poptions for the correct definition of CONFIG_SHARED (i.e.,
+# 0) otherwise we get a warning about it being undefined on Mingw-w64. (We
+# know the test executables are linked against the utility library which is
+# static so this is probably OK.)
+#
+# obje{*.test}: c.poptions += $common_obja_poptions
+
+lib{avfilter}: c.loptions += $common_loptions
+
+# Export all symbols from the DLL if on Windows.
+#
 libs{avfilter}: def{avfilter}: include = ($c.target.system == 'win32-msvc')
 def{avfilter}: libul{avfilter}
 
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
+if $tgt_mingw
+  libs{avfilter}: c.loptions += -Wl,--export-all-symbols
 
-# System libraries
-sys_libs =
-switch $c.target.class, $c.target.system
-{
-  case 'windows', 'win32-msvc'
-    sys_libs += bcrypt.lib
-  case 'windows', 'mingw32'
-    sys_libs += -lbcrypt
-}
-c.libs += $sys_libs
+libul{avfilter}: c.libs += $common_libs
 
-switch ($c.id)
-{
-  case 'msvc'
-  {
-    c.coptions += -wd4003 -wd4018 -wd4146 -wd4244 -wd4305 -wd4554 -wd4133 -wd4333
-    c.poptions += -DWIN32_LEAN_AND_MEAN -D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS
-  }
-}
+if! $windows
+  libul{avfilter}: c.libs += -pthread
 
 # Export options.
 #
 lib{avfilter}:
 {
-  c.export.poptions = "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs $sys_libs
+  c.export.poptions = "-I$out_base" "-I$src_base"
+  c.export.libs = $intf_libs
 }
 
 # For pre-releases use the complete version to make sure they cannot
@@ -116,10 +1475,34 @@ if $version.pre_release
 else
   lib{avfilter}: bin.lib.version = "-$version.major.$version.minor"
 
-# Install recreating subdirectories.
+# Installation.
 #
-h{*}:
-{
-  install         = include/
-  install.subdirs = true
-}
+pub_hdr = avfilter      \
+	  buffersink    \
+	  buffersrc     \
+	  version       \
+	  version_major
+
+# The private headers in libavfilter/ are the complement of the public
+# headers.
+#
+priv_hdr = libavfilter/h{* -{$pub_hdr}}
+
+# Install all headers by default.
+#
+h{*}: install = include/libavfilter/
+
+# Don't install private libavutil headers.
+#
+for h: libavutil/x86/h{**}
+  $h@./libavutil/x86/: install = false
+
+# Set private headers install location.
+#
+# These are included as `#include "libavfilter/foo.h"` by all libraries.
+#
+for h: $priv_hdr
+  $h@./libavfilter/: install = include/libavfilter/private/libavfilter/
+
+lib{avfilter}:         c.pkgconfig.include = include/
+lib{avfilter_private}: c.pkgconfig.include = include/libavfilter/private/

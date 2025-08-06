@@ -11,9 +11,10 @@ url: https://git.ffmpeg.org/ffmpeg.git
 email: libav-user@ffmpeg.org ; Mailing list.
 package-url: https://github.com/build2-packaging/build2-FFmpeg
 package-email: libav-user@ffmpeg.org ; Mailing list.
+build-include: **/x86_64**
+build-exclude: ** ; Only x86_64 currently supported.
 depends: * build2 >= 0.18.0-
 depends: * bpkg >= 0.18.0-
 depends: * nasm
-depends: libconfig == $
 depends: libavutil == $
 depends: libswscale == $

@@ -1,0 +1,1 @@
+../../../upstream/libavutil/tests/encryption_info.c

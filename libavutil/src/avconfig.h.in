@@ -1,9 +1,0 @@
-#pragma once
-
-#undef AV_HAVE_BIGENDIAN
-#undef AV_HAVE_FAST_UNALIGNED
-
-// Defaulted defines (used in compiled contexts)
-#ifndef AV_HAVE_BIGENDIAN
-#  define AV_HAVE_BIGENDIAN 0
-#endif

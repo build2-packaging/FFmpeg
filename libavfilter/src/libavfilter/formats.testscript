@@ -1,0 +1,7 @@
+$* >- 2>>EOE
+Invalid channel layout 'blah'
+Invalid channel layout '-1'
+Invalid channel layout '-1c'
+Invalid channel layout '60c'
+Invalid channel layout '65c'
+EOE

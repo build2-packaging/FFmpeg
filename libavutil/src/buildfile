@@ -1,65 +1,965 @@
-using in
+using autoconf
 
 intf_libs = # Interface dependencies.
-impl_libs = # Implementation dependencies.
 
-import config = libconfig%lib{config}
+if (!$config.libavutil.frame_thread_encoder)
+{
+  warn "frame_thread_encoder is always enabled, see upstream/configure:7647"
+  config.libavutil.frame_thread_encoder = true
+}
 
-impl_libs += $config
+# A utility library is required by the bin.def rule and the unit test
+# executables.
+#
+./: lib{avutil}: libul{avutil}
 
-tgt_win32 = [bool] ($c.target.system == 'win32-msvc')
+# Include the lib{avutil} metadata variables (thousands of lines).
+#
+source libavutil-metadata.build
 
-./: lib{avutil}: libul{avutil}: libavutil/h{avconfig ffversion} \
-                                $impl_libs $intf_libs
+# Headers.
+#
+libul{avutil}: libavutil/h{**} compat/h{**} libavcodec/h{**}
 
-# conditional source & assembly
-import [once] libconfig%buildfile{conditional-src}
-import config_asm = libconfig%file{config.asm}
-import config_defs = libconfig%file{enabled-defines}
+# Headers we created or modified to some degree.
+#
+libul{avutil}: h{config_components config_cpu}
 
-[rule_hint=c] \
-libul{avutil-meta}: $impl_libs $intf_libs
-libul{avutil}: enabled_source{avutil}: $config_defs json{files} libavutil/h{** -avconfig -ffversion}: update = match
-libua{avutil}: enabled_asm{avutil-a}: $config_defs $config_asm json{files} libua{avutil-meta}:        update = match
-libus{avutil}: enabled_asm{avutil-s}: $config_defs $config_asm json{files} libus{avutil-meta}:        update = match
+# Generated headers.
+#
+# The locations of these generated headers mirror those of upstream. Not sure
+# why they didn't just put all of them in libavutil/ but one reason we can't
+# do that is because, for some reason, config.h (and other headers in
+# $src_base/) is included relatively (`include "config.h"`) whereas avconfig.h
+# and ffversion.h are included with a `libavutil/` prefix (the superior
+# choice).
+#
+libul{avutil}: h{config} file{config.asm} \
+               libavutil/h{avconfig ffversion}
 
-libs{avutil}: winres{avutil}: include = ($c.target.system == 'win32-msvc')
-winres{avutil}: libavutil/rc{avutilres} libus{avutil-meta}
+# This target exports the paths to config.h and config.asm and, in the
+# installed case only, exports the path to all private headers.
+#
+# Its primary purpose is to make the installed case work. The config.{h,asm}
+# paths are null in the develop (uninstalled) case which signals to consumers
+# that they can simply import the target. In the installed case the paths are
+# non-null in which case consumers simply create a local file{config_h_path}
+# target.
+#
+# This library is meant to be used only by other FFmpeg libraries (libswscale,
+# etc.) because they routinely include each others' private headers. But
+# regular user libraries should use lib{avutil} only. Ideally we would've gone
+# further and restructured the upstream sources so that the private headers
+# are in a completely separate subtree in order to prevent regular user
+# libraries from being able to find them accidentally (see the Qt6
+# packages). And then we'd export the appropriate include search paths to
+# expose the private headers from this private library only. However the
+# upstream code (primarily their #include policies) makes this so difficult
+# that it's not worth it.
+#
+[rule_hint=c] lib{avutil_private}:
+{
+  export.metadata = 1 libavutil_private
 
-libul{avutil}: compat/windows/{h c}{*} \
-               compat/msvrt/{h c}{*} \
-               compat/{h}{*} \
-               : include = $tgt_win32
+  # Export the path to the generated config.h as metadata.
+  #
+  libavutil_private.config_h_path = [path, null]
+  libavutil_private.config_h_path.for_install =                                 \
+    [path] ($install.root != [null]                                             \
+            ? $install.resolve($install.include)/libavutil/private/config.h     \
+            : .)
 
-# these c files are included, not built.
-libul{avutil}: adhoc_source{avutil}: include = adhoc
-adhoc_source{avutil}: libavutil/c{**_template} libavutil/aarch64/S{asm}
+  # Export the path to the generated config.asm as metadata.
+  #
+  libavutil_private.config_asm_path = [path, null]
+  libavutil_private.config_asm_path.for_install =                               \
+    [path] ($install.root != [null]                                             \
+            ? $install.resolve($install.include)/libavutil/private/config.asm   \
+            : .)
+}
 
-libavutil/h{avconfig}: in{avconfig}
+./: lib{avutil_private}
+
+# @@ TODO Upstream doesn't add all compat/ sources all the time. Adds some on
+#    mingw and some on windows. And only two specific ones in the latter case
+#    for example.
+#
+# libul{avutil}: compat/windows/c{*} compat/msvcrt/c{*}: include = $tgt_win32
+
+# Included source files
+#
+libul{avutil}: libavutil/c{tx_template}: include = adhoc
+
+# Compiled source files
+#
+libul{avutil}: libavutil/c{adler32                      \
+                           aes                          \
+                           aes_ctr                      \
+                           ambient_viewing_environment  \
+                           audio_fifo                   \
+                           avsscanf                     \
+                           avstring                     \
+                           base64                       \
+                           blowfish                     \
+                           bprint                       \
+                           buffer                       \
+                           camellia                     \
+                           cast5                        \
+                           channel_layout               \
+                           cpu                          \
+                           crc                          \
+                           csp                          \
+                           des                          \
+                           detection_bbox               \
+                           dict                         \
+                           display                      \
+                           dovi_meta                    \
+                           downmix_info                 \
+                           encryption_info              \
+                           error                        \
+                           eval                         \
+                           executor                     \
+                           fifo                         \
+                           file                         \
+                           file_open                    \
+                           film_grain_params            \
+                           fixed_dsp                    \
+                           float_dsp                    \
+                           frame                        \
+                           hash                         \
+                           hdr_dynamic_metadata         \
+                           hdr_dynamic_vivid_metadata   \
+                           hmac                         \
+                           hwcontext                    \
+                           iamf                         \
+                           imgutils                     \
+                           integer                      \
+                           intmath                      \
+                           lfg                          \
+                           lls                          \
+                           log                          \
+                           log2_tab                     \
+                           lzo                          \
+                           mastering_display_metadata   \
+                           mathematics                  \
+                           md5                          \
+                           mem                          \
+                           murmur3                      \
+                           opt                          \
+                           parseutils                   \
+                           pixdesc                      \
+                           pixelutils                   \
+                           random_seed                  \
+                           rational                     \
+                           rc4                          \
+                           reverse                      \
+                           ripemd                       \
+                           samplefmt                    \
+                           sha                          \
+                           sha512                       \
+                           slicethread                  \
+                           spherical                    \
+                           stereo3d                     \
+                           tea                          \
+                           threadmessage                \
+                           time                         \
+                           timecode                     \
+                           timestamp                    \
+                           tree                         \
+                           twofish                      \
+                           tx                           \
+                           tx_double                    \
+                           tx_float                     \
+                           tx_int32                     \
+                           utils                        \
+                           uuid                         \
+                           version                      \
+                           video_enc_params             \
+                           video_hint                   \
+                           xga_font_data                \
+                           xtea}
+
+# Generate config.h and make its contents available in this buildfile via a
+# buildfile fragment.
+#
+# FFmpeg wants every HAVE_FOO and CONF_* macro in config.h to be defined to 1
+# or 0 (ie, not just #undef in case of false). The only way to get that from
+# libbuild2-autoconf is using the #cmakedefine01 line flavor. But
+# unfortunately #cmakedefine01 does not currently work with checks so we have
+# to take an indirect route via the default #undef line flavor which does
+# support checks.
+#
+# We first generate config-autoconf-checks.h containing only those macros with
+# libbuild2-autoconf checks using the #undef line flavor and then import those
+# macro values as buildfile variables via the buildfile fragment
+# config-autoconf-checks.build.
+#
+# We do something similar for with config_cpu.h containing macros whose values
+# are conditional.
+#
+# Then the final config.h is generated from config.h.cmake which contains a
+# `#cmakedefine01 FOO` line for every boolean macro (including the check
+# macros). We assign the values of the variables imported from the above
+# buildfiles to the h{config} target's corresponding target-specific variable,
+# thus resulting in a `#define FOO 1` or `#define FOO 0` for every macro.
+#
+# Finally we import those macros to be used for regular build-related use in
+# this buildfile from config.h via the second buildfile fragment config.build.
+
+# The macros to be extracted from config.h as buildfile variables.
+#
+config_macros = ARCH_AARCH64            \
+                ARCH_ARM                \
+                ARCH_LOONGARCH          \
+                ARCH_MIPS               \
+                ARCH_PPC                \
+                ARCH_RISCV              \
+                ARCH_X86                \
+                ARCH_HEADERS            \
+                BUILT_HEADERS           \
+                CONFIG_CUDA             \
+                CONFIG_D3D11VA          \
+                CONFIG_D3D12VA          \
+                CONFIG_DXVA2            \
+                CONFIG_LIBDRM           \
+                CONFIG_MACOS_KPERF      \
+                CONFIG_MEDIACODEC       \
+                CONFIG_OPENCL           \
+                CONFIG_PIXELUTILS       \
+                CONFIG_QSV              \
+                CONFIG_VAAPI            \
+                CONFIG_VDPAU            \
+                CONFIG_VIDEOTOOLBOX     \
+                CONFIG_VULKAN           \
+                HAVE_ALTIVEC            \
+                HAVE_ARC4RANDOM_BUF     \
+                HAVE_AVX2               \
+                HAVE_CUDA_H             \
+                HAVE_GETOPT             \
+                HAVE_GNU_WINDRES        \
+                HAVE_INLINE_ASM         \
+                HAVE_MM_EMPTY           \
+                HAVE_MMX                \
+                HAVE_NEON               \
+                HAVE_RVV                \
+                HAVE_VFP                \
+                HAVE_VSX                \
+                HAVE_X86ASM
+
+# The macros to be extracted from config-autoconf-checks.h as buildfile
+# variables. These should all have libbuild2-autoconf checks.
+#
+# TODO: Keep this list up to date with config-autoconf-checks.h.in and
+#      config.h.cmake.
+#
+autoconf_macros = HAVE_ACCESS                                           \
+                  HAVE_ALIGNED_MALLOC                                   \
+                  HAVE_ALTIVEC                                          \
+                  HAVE_ARC4RANDOM_BUF                                   \
+                  HAVE_ARMASM                                           \
+                  HAVE_ARPA_INET_H                                      \
+                  HAVE_ASM_TYPES_H                                      \
+                  HAVE_AS_ARCHEXT_DOTPROD_DIRECTIVE                     \
+                  HAVE_AS_ARCHEXT_I8MM_DIRECTIVE                        \
+                  HAVE_AS_ARCH_DIRECTIVE                                \
+                  HAVE_AS_DN_DIRECTIVE                                  \
+                  HAVE_AS_FPU_DIRECTIVE                                 \
+                  HAVE_AS_FUNC                                          \
+                  HAVE_AS_OBJECT_ARCH                                   \
+                  HAVE_ATAN2F                                           \
+                  HAVE_ATANF                                            \
+                  HAVE_AVX                                              \
+                  HAVE_AVX2                                             \
+                  HAVE_AVX512                                           \
+                  HAVE_AVX512ICL                                        \
+                  HAVE_BIGENDIAN                                        \
+                  HAVE_CBRT                                             \
+                  HAVE_CBRTF                                            \
+                  HAVE_CLOCK_GETTIME                                    \
+                  HAVE_CLOSESOCKET                                      \
+                  HAVE_COMMANDLINETOARGVW                               \
+                  HAVE_COPYSIGN                                         \
+                  HAVE_COSF                                             \
+                  HAVE_DCBZL                                            \
+                  HAVE_DIRECT_H                                         \
+                  HAVE_DIRENT_H                                         \
+                  HAVE_DOS_PATHS                                        \
+                  HAVE_DXGIDEBUG_H                                      \
+                  HAVE_DXVA_H                                           \
+                  HAVE_EBP_AVAILABLE                                    \
+                  HAVE_EBX_AVAILABLE                                    \
+                  HAVE_ERF                                              \
+                  HAVE_EXP2                                             \
+                  HAVE_EXP2F                                            \
+                  HAVE_EXPF                                             \
+                  HAVE_FAST_CLZ                                         \
+                  HAVE_FAST_CMOV                                        \
+                  HAVE_FAST_FLOAT16                                     \
+                  HAVE_FAST_UNALIGNED                                   \
+                  HAVE_FCNTL                                            \
+                  HAVE_FMA3                                             \
+                  HAVE_FMA4                                             \
+                  HAVE_GETADDRINFO                                      \
+                  HAVE_GETAUXVAL                                        \
+                  HAVE_GETENV                                           \
+                  HAVE_GETHRTIME                                        \
+                  HAVE_GETOPT                                           \
+                  HAVE_GETRUSAGE                                        \
+                  HAVE_GETTIMEOFDAY                                     \
+                  HAVE_GLOB                                             \
+                  HAVE_GMTIME                                           \
+                  HAVE_GMTIME_R                                         \
+                  HAVE_GNU_WINDRES                                      \
+                  HAVE_HYPOT                                            \
+                  HAVE_I686                                             \
+                  HAVE_I8MM                                             \
+                  HAVE_IBM_ASM                                          \
+                  HAVE_INET_ATON                                        \
+                  HAVE_INLINE_ASM                                       \
+                  HAVE_INLINE_ASM_DIRECT_SYMBOL_REFS                    \
+                  HAVE_INLINE_ASM_NONLOCAL_LABELS                       \
+                  HAVE_ISATTY                                           \
+                  HAVE_ISFINITE                                         \
+                  HAVE_ISINF                                            \
+                  HAVE_ISNAN                                            \
+                  HAVE_KCMVIDEOCODECTYPE_HEVC                           \
+                  HAVE_KCMVIDEOCODECTYPE_HEVCWITHALPHA                  \
+                  HAVE_KCMVIDEOCODECTYPE_VP9                            \
+                  HAVE_KCVIMAGEBUFFERCOLORPRIMARIES_ITU_R_2020          \
+                  HAVE_KCVIMAGEBUFFERTRANSFERFUNCTION_ITU_R_2020        \
+                  HAVE_KCVIMAGEBUFFERTRANSFERFUNCTION_ITU_R_2100_HLG    \
+                  HAVE_KCVIMAGEBUFFERTRANSFERFUNCTION_SMPTE_ST_2084_PQ  \
+                  HAVE_KCVIMAGEBUFFERTRANSFERFUNCTION_SMPTE_ST_428_1    \
+                  HAVE_KCVIMAGEBUFFERYCBCRMATRIX_ITU_R_2020             \
+                  HAVE_KCVPIXELFORMATTYPE_420YPCBCR10BIPLANARVIDEORANGE \
+                  HAVE_KCVPIXELFORMATTYPE_422YPCBCR10BIPLANARVIDEORANGE \
+                  HAVE_KCVPIXELFORMATTYPE_422YPCBCR16BIPLANARVIDEORANGE \
+                  HAVE_KCVPIXELFORMATTYPE_422YPCBCR8BIPLANARVIDEORANGE  \
+                  HAVE_KCVPIXELFORMATTYPE_444YPCBCR10BIPLANARVIDEORANGE \
+                  HAVE_KCVPIXELFORMATTYPE_444YPCBCR16BIPLANARVIDEORANGE \
+                  HAVE_KCVPIXELFORMATTYPE_444YPCBCR8BIPLANARVIDEORANGE  \
+                  HAVE_LASX                                             \
+                  HAVE_LDBRX                                            \
+                  HAVE_LDEXPF                                           \
+                  HAVE_LIBC_MSVCRT                                      \
+                  HAVE_LINUX_DMA_BUF_H                                  \
+                  HAVE_LLRINT                                           \
+                  HAVE_LLRINTF                                          \
+                  HAVE_LOCALTIME_R                                      \
+                  HAVE_LOCAL_ALIGNED                                    \
+                  HAVE_LOG10F                                           \
+                  HAVE_LOG2                                             \
+                  HAVE_LOG2F                                            \
+                  HAVE_LOONGSON2                                        \
+                  HAVE_LOONGSON3                                        \
+                  HAVE_LRINT                                            \
+                  HAVE_LRINTF                                           \
+                  HAVE_LSTAT                                            \
+                  HAVE_LSX                                              \
+                  HAVE_MACH_ABSOLUTE_TIME                               \
+                  HAVE_MAPVIEWOFFILE                                    \
+                  HAVE_MEMALIGN                                         \
+                  HAVE_MKSTEMP                                          \
+                  HAVE_MMAL_PARAMETER_VIDEO_MAX_NUM_CALLBACKS           \
+                  HAVE_MMAP                                             \
+                  HAVE_MMI                                              \
+                  HAVE_MMX                                              \
+                  HAVE_MMXEXT                                           \
+                  HAVE_MM_EMPTY                                         \
+                  HAVE_MPROTECT                                         \
+                  HAVE_MSA                                              \
+                  HAVE_NANOSLEEP                                        \
+                  HAVE_NEON                                             \
+                  HAVE_OS2THREADS                                       \
+                  HAVE_PEEKNAMEDPIPE                                    \
+                  HAVE_POLL_H                                           \
+                  HAVE_POSIX_MEMALIGN                                   \
+                  HAVE_POWF                                             \
+                  HAVE_PPC4XX                                           \
+                  HAVE_PRAGMA_DEPRECATED                                \
+                  HAVE_PRCTL                                            \
+                  HAVE_PTHREADS                                         \
+                  HAVE_PTHREAD_CANCEL                                   \
+                  HAVE_PTHREAD_NP_H                                     \
+                  HAVE_PTHREAD_SETNAME_NP                               \
+                  HAVE_PTHREAD_SET_NAME_NP                              \
+                  HAVE_RDTSC                                            \
+                  HAVE_RINT                                             \
+                  HAVE_ROUND                                            \
+                  HAVE_ROUNDF                                           \
+                  HAVE_RV                                               \
+                  HAVE_RVV                                              \
+                  HAVE_SCHED_GETAFFINITY                                \
+                  HAVE_SECITEMIMPORT                                    \
+                  HAVE_SECTION_DATA_REL_RO                              \
+                  HAVE_SETCONSOLECTRLHANDLER                            \
+                  HAVE_SETCONSOLETEXTATTRIBUTE                          \
+                  HAVE_SETDLLDIRECTORY                                  \
+                  HAVE_SETMODE                                          \
+                  HAVE_SETRLIMIT                                        \
+                  HAVE_SIMD_ALIGN_16                                    \
+                  HAVE_SIMD_ALIGN_32                                    \
+                  HAVE_SIMD_ALIGN_64                                    \
+                  HAVE_SINF                                             \
+                  HAVE_SLEEP                                            \
+                  HAVE_SOCKLEN_T                                        \
+                  HAVE_SSE                                              \
+                  HAVE_SSE2                                             \
+                  HAVE_SSE3                                             \
+                  HAVE_SSE4                                             \
+                  HAVE_SSSE3                                            \
+                  HAVE_STRERROR_R                                       \
+                  HAVE_STRUCT_ADDRINFO                                  \
+                  HAVE_STRUCT_GROUP_SOURCE_REQ                          \
+                  HAVE_STRUCT_IPV6_MREQ                                 \
+                  HAVE_STRUCT_IP_MREQ_SOURCE                            \
+                  HAVE_STRUCT_POLLFD                                    \
+                  HAVE_STRUCT_RUSAGE_RU_MAXRSS                          \
+                  HAVE_STRUCT_SOCKADDR_IN6                              \
+                  HAVE_STRUCT_SOCKADDR_SA_LEN                           \
+                  HAVE_STRUCT_SOCKADDR_STORAGE                          \
+                  HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC                      \
+                  HAVE_STRUCT_V4L2_FRMIVALENUM_DISCRETE                 \
+                  HAVE_SYSCONF                                          \
+                  HAVE_SYSCTL                                           \
+                  HAVE_SYSCTLBYNAME                                     \
+                  HAVE_SYS_PARAM_H                                      \
+                  HAVE_SYS_RESOURCE_H                                   \
+                  HAVE_SYS_SELECT_H                                     \
+                  HAVE_SYS_TIME_H                                       \
+                  HAVE_SYS_UN_H                                         \
+                  HAVE_SYS_VIDEOIO_H                                    \
+                  HAVE_TERMIOS_H                                        \
+                  HAVE_TRUNC                                            \
+                  HAVE_TRUNCF                                           \
+                  HAVE_UDPLITE_H                                        \
+                  HAVE_UNISTD_H                                         \
+                  HAVE_USLEEP                                           \
+                  HAVE_UWP                                              \
+                  HAVE_VFP                                              \
+                  HAVE_VFPV3                                            \
+                  HAVE_VFP_ARGS                                         \
+                  HAVE_VSX                                              \
+                  HAVE_WINDOWS_H                                        \
+                  HAVE_WINRT                                            \
+                  HAVE_WINSOCK2_H                                       \
+                  HAVE_X86ASM                                           \
+                  HAVE_XFORM_ASM                                        \
+                  HAVE_XMM_CLOBBERS                                     \
+                  HAVE_XOP
+
+# Macros to be extracted from config_cpu.h as buildfile variables.
+#
+config_cpu_macros = ARCH_AARCH64                                \
+                    ARCH_ALPHA                                  \
+                    ARCH_ARM                                    \
+                    ARCH_ARMV8                                  \
+                    HAVE_ARMV8                                  \
+                    ARCH_AVR32                                  \
+                    ARCH_IA64                                   \
+                    ARCH_LOONGARCH                              \
+                    ARCH_LOONGARCH64                            \
+                    ARCH_MIPS                                   \
+                    ARCH_PPC                                    \
+                    ARCH_RISCV                                  \
+                    ARCH_SH4                                    \
+                    ARCH_X86                                    \
+                    ARCH_X86_32                                 \
+                    ARCH_X86_64                                 \
+                    AS_ARCH_MINOR                               \
+                    AS_ARCH_EXT                                 \
+                    __ARM_ARCH@ARM_ARCH                         \
+                    __ARM_FEATURE_ATOMICS@ARM_FEATURE_ATOMICS   \
+                    __ARM_FEATURE_CRYPTO@ARM_FEATURE_CRYPTO     \
+                    __ARM_FEATURE_CRC32@ARM_FEATURE_CRC32       \
+                    __ARM_FEATURE_DOTPROD@ARM_FEATURE_DOTPROD   \
+                    __ARM_FEATURE_QRDMX@ARM_FEATURE_QRDMX       \
+                    __ARM_FEATURE_PAC@ARM_FEATURE_PAC           \
+                    __ARM_FEATURE_FRINT@ARM_FEATURE_FRINT       \
+                    __ARM_FEATURE_BTI@ARM_FEATURE_BTI
+
+# Note: we would usually set poptions in the build options section below but
+# we need them for the generated headers which have to be up here.
+#
+c.poptions =+ "-I$out_base" "-I$src_base"
+
+# Generate the header for those macros with libbuild2-autoconf checks (see
+# above).
+#
+h{config-autoconf-checks}: in{config-autoconf-checks}
+{
+  # Note that using autoconf.aliases may seem kind of pointless at first
+  # because given alias A@T we have to manually assign T's value to A before
+  # copying A into h{config} so we don't get full automation. However going
+  # via autoconf.aliases allows us to use the alias macro name in all three
+  # places: autoconf_macros, config-autoconf-checks.h.in, and
+  # config.h.cmake. Otherwise we'd have T in autoconf_macros and
+  # config-autoconf-checks.h.in but A in config.h.cmake.
+  #
+  # Note: None of the alias targets (the builtin name, on the right-hand side)
+  #       should be in the autoconf_macros list above otherwise they'll get
+  #       processed twice. If this is unavoidable (e.g. HAVE_NEON, which has
+  #       to be in autoconf_macros) rather do the assignment separately (see
+  #       HAVE_INTRINSICS_NEON below).
+  #
+  autoconf.aliases = HAVE_ALIGNED_MALLOC@HAVE__ALIGNED_MALLOC                   \
+                     HAVE_AS_ARCHEXT_DOTPROD_DIRECTIVE@HAVE_AS_ARCHEXT_DOTPROD  \
+                     HAVE_AS_ARCHEXT_I8MM_DIRECTIVE@HAVE_AS_ARCHEXT_I8MM        \
+                     HAVE_AS_FUNC@HAVE_AS_FUNC_DIRECTIVE                        \
+                     HAVE_EBP_AVAILABLE@HAVE_ASM_EBP                            \
+                     HAVE_EBX_AVAILABLE@HAVE_ASM_EBX                            \
+                     HAVE_FAST_FLOAT16@HAVE_F16C                                \
+                     HAVE_GMTIME@HAVE__GMTIME                                   \
+                     HAVE_AS_OBJECT_ARCH@HAVE_AS_OBJECT_ARCH_DIRECTIVE          \
+                     HAVE_PTHREADS@HAVE_PTHREAD
+}
+
+# @@ TODO Update the autoconf checks to reflect that these things do exist on
+#    Windows.
+#
+if $windows
+{
+  h{config-autoconf-checks}:
+  {
+    HAVE_STRUCT_ADDRINFO = true
+    HAVE_GETADDRINFO = true
+  }
+}
+
+# Although MSVC does support F16C it does not support the _Float16 type that
+# FFmpeg uses when this macro is true.
+#
+if ($c.id == 'msvc')
+  h{config-autoconf-checks}: HAVE_FAST_FLOAT16 = false
+
+# Force the use of compat/getopt.c on mingw because the Mingw-w64 getopt()
+# takes a char*const* argv argument but FFmpeg passes a char**. Upstream turns
+# on -Werror=implicit-function-declaration (and thus so do we) which is why
+# this is getting triggered. Thus upstream must also be ending up with
+# compat/getopt.c on Mingw-w64.
+#
+if $tgt_mingw
+  h{config-autoconf-checks}: HAVE_GETOPT = false
+
+# Add autoconf alias targets (the builtin name) to the list of macros to be
+# extracted so we can evaluate the alias's true value before copying it to
+# h{config}.
+#
+for p: $(h{config-autoconf-checks}: autoconf.aliases)
+  autoconf_macros += $second($p)
+
+# The final config header containing all macros (including those with checks;
+# see above).
+#
+h{config}: in{config.h.cmake}
+
+# Source the body of the h{config} target containing variable assignments
+# (thousands of lines).
+#
+source config-h-target.build
+
+# Generate a buildfile fragment containing a buildfile variable for each macro
+# in config-autoconf-checks.h, to be assigned to the corresponding
+# target-specific variable of h{config}.
+#
+[rule_hint=c.predefs] buildfile{config-autoconf-checks}: h{config-autoconf-checks}
+{
+  c.predefs.poptions = true # @@ TODO Should probably be false
+  c.predefs.macros = $autoconf_macros
+}
+
+# Generate a buildfile fragment containing a buildfile variable for each macro
+# in config_cpu.h, to be assigned to the corresponding target-specific
+# variable of h{config}.
+#
+[rule_hint=c.predefs] buildfile{config_cpu}: h{config_cpu}
+{
+  c.predefs.poptions = true # @@ TODO Should probably be false
+  c.predefs.macros = $config_cpu_macros
+}
+
+# Generate a buildfile fragment containing a buildfile variable for each macro
+# we need to use for regular business in this buildfile.
+#
+# Note that we don't need to pass *.poptions because every macro imported from
+# config.h will have a literal value.
+#
+[rule_hint=c.predefs] buildfile{config}: h{config}
+{
+  c.predefs.poptions = false
+  c.predefs.macros = $config_macros
+}
+
+# Update and source config-autoconf-checks.build, config_cpu.build, and
+# config.build, and adjust the imported variables.
+#
+if ($build.meta_operation == 'perform')
+{
+  # config-autoconf-checks.build
+  #
+  update buildfile{config-autoconf-checks}
+  source $path(buildfile{config-autoconf-checks})
+
+  # Adjust the resulting values and copy them to h{config}.
+  #
+  for m: $autoconf_macros
+  {
+    # @@ TODO Note that the few variables with values like (1 && 0) will have
+    #    the wrong values.
+    #
+    if ($null($($m)) || $($m) == 0)
+      $m = false
+    elif ($($m) == 1)
+      $m = true
+    else
+    {
+      # If it's not null, 0, or 1, it must be an alias with the value being
+      # the name of the builtin check. So dereference m three times to get to
+      # the true value.
+      #
+      # Note that for this to work all alias targets have to be added to
+      # c.predefs.macros (probably via autoconf_macros; see above).
+      #
+      $m = $($($m))
+    }
+
+    h{config}: $m = $($m) # Copy variable to h{config}.
+  }
+
+  for p: $(h{config-autoconf-checks}: autoconf.aliases)
+    h{config}: $first($p) = $($second($p))
+
+  # config_cpu.build
+  #
+  update buildfile{config_cpu}
+  source $path(buildfile{config_cpu})
+
+  # Adjust the resulting values and copy them to h{config}.
+  #
+  for m: $config_cpu_macros
+  {
+    m = $second($m, true)
+    v = $($m)
+
+    ifn $v
+      $m = false
+    elif ($string.starts_with($m, 'AS_ARCH_') || $m == 'ARM_ARCH')
+      $m = $v # AS_ARCH_* and ARM_ARCH have non-boolean values.
+    else
+      $m = ($v != 0) # The rest are booleans so anything non-zero is true.
+
+    h{config}: $m = $($m) # Copy variable to h{config}.
+  }
+
+  h{config}:
+  {
+    HAVE_INTRINSICS_NEON = $HAVE_NEON
+
+    # @@ TODO Looks like this arch level stuff is only supported by armv8 and
+    #         upstream only deals with armv8 and higher. So I think we could
+    #         just hard-code "armv8" to begin with.
+    #
+    #         The ARM docs say that from armv8.1-a onwards __ARM_ARCH contains
+    #         the minor version too (e.g. 801) which would apply to most of
+    #         the upstream-supported versions so does this derivation scheme
+    #         even work?
+    #
+    #         There is no armv8.0-a, it's just "armv8-a". Upstream starts here
+    #         then tries armv8.2-a, armv8.4-a, and stops at armv8.6-a.
+    #
+    #         I also don't think the extensions are really necessary. Upstream
+    #         only enables/disables I8MM and dotprod, and that they do in
+    #         code. They add +crc to the arch_level just to work around a
+    #         clang 17 bug. I don't think they turn on any other extensions.
+    #
+    #         Much of this might be wrong but I thought it'd be worth leaving
+    #         my notes for future reference.
+    #
+    AS_ARCH_LEVEL = "armv$(ARM_ARCH).$(AS_ARCH_MINOR)$(AS_ARCH_EXT)"
+  }
+
+  # config.build
+  #
+  update buildfile{config}
+  source $path(buildfile{config})
+
+  # Adjust the resulting values.
+  #
+  # Note: assume all macros in config_macros are boolean.
+  #
+  for m: $config_macros
+    $m = (!$null($($m)) && $($m) != 0) # Convert [null], 0, or 1 to boolean.
+}
+else
+{
+  for m: $autoconf_macros
+    $m = false
+
+  for m: $config_cpu_macros
+    $second($m, true) = false
+
+  for m: $config_macros
+    $m = false
+}
+
+# Ensure the config macro-importing buildfile fragments get cleaned.
+#
+libul{avutil}: buildfile{config-autoconf-checks}
+libul{avutil}: buildfile{config_cpu}
+libul{avutil}: buildfile{config}
+
+# This header contains public library macros (that come from config.h but with
+# an AV_ prefix).
+#
+libavutil/h{avconfig}: libavutil/in{avconfig}
 {
   autoconf.prefix = AV_
 }
 
-libavutil/h{ffversion}: in{ffversion} $src_root/manifest
+libavutil/h{ffversion}: libavutil/in{ffversion}
+
+# generate config.asm from config.h, replacing
+# '#<spaces>' with '%' and '//' with ';', and remove
+# any spaces between
+file{config.asm}: h{config}
+{{
+  s = $path($<)
+
+  diag configure $< $>
+
+  cat $s | set tmp [string_set]
+  tmp = $regex.replace($tmp, '#[ ]*', '%')
+  tmp = $regex.replace($tmp, '//', '; ')
+
+  echo "$tmp" >$path($>)
+}}
+
+# Conditionally-compiled source files
+#
+libul{avutil}: libavutil/c{hwcontext_cuda}:       include = $CONFIG_CUDA
+libul{avutil}: libavutil/c{hwcontext_d3d11va}:    include = $CONFIG_D3D11VA
+libul{avutil}: libavutil/c{hwcontext_d3d12va}:    include = $CONFIG_D3D12VA
+libul{avutil}: libavutil/c{hwcontext_dxva2}:      include = $CONFIG_DXVA2
+libul{avutil}: libavutil/c{hwcontext_drm}:        include = $CONFIG_LIBDRM
+libul{avutil}: libavutil/c{macos_kperf}:          include = $CONFIG_MACOS_KPERF
+libul{avutil}: libavutil/c{hwcontext_mediacodec}: include = $CONFIG_MEDIACODEC
+libul{avutil}: libavutil/c{hwcontext_opencl}:     include = $CONFIG_OPENCL
+libul{avutil}: libavutil/c{hwcontext_qsv}:        include = $CONFIG_QSV
+libul{avutil}: libavutil/c{hwcontext_vaapi}:      include = $CONFIG_VAAPI
+libul{avutil}: libavutil/c{hwcontext_vdpau}:      include = $CONFIG_VDPAU
+libul{avutil}: libavutil/c{hwcontext_videotoolbox}:  include = $CONFIG_VIDEOTOOLBOX
+libul{avutil}: libavutil/c{hwcontext_vulkan vulkan}: include = $CONFIG_VULKAN
+
+# X86
+
+# Included assembly sources.
+#
+libul{avutil}: libavutil/x86/asm{x86util x86inc}: \
+  include = ($ARCH_X86 ? adhoc : false)
+
+libul{avutil}: libavutil/x86/c{cpu              \
+                               fixed_dsp_init   \
+                               float_dsp_init   \
+                               imgutils_init    \
+                               lls_init}: include = $ARCH_X86
+
+libul{avutil}: libavutil/c{x86/tx_float_init}: include = $HAVE_X86ASM
+
+libul{avutil}: libavutil/c{x86/pixelutils_init}: include = ($ARCH_X86 &&        \
+                                                            $CONFIG_PIXELUTILS)
+
+# X86 assembly sources
+#
+# There is no built-in rule to synthesize the libu{s,a} -> obj{s,a} -> asm{}
+# dependencies so we have to do it manually.
+#
+for n: cpuid            \
+       fixed_dsp        \
+       float_dsp        \
+       imgutils         \
+       lls              \
+       tx_float
+{
+  # Dependencies of the shared and static libraries on their respecive object
+  # files.
+  #
+  libus{avutil}: libavutil/x86/objs{$(n).asm.so.o}: include = $HAVE_X86ASM
+  libua{avutil}: libavutil/x86/obja{$(n).asm.a.o}:  include = $HAVE_X86ASM
+
+  # Dependencies of the object files on the .asm source file.
+  #
+  libavutil/x86/objs{$(n).asm.so.o}: libavutil/x86/asm{$n} file{config.asm}
+  libavutil/x86/obja{$(n).asm.a.o}:  libavutil/x86/asm{$n} file{config.asm}
+}
+
+# As above but only for emms.asm which is a bit different.
+#
+# Note that due to the way HAVE_*_INLINE and HAVE_*_EXTERNAL are defined in
+# config.h we cannot import the values into the buildfile. Fortunately this is
+# the only place we need any HAVE_*_INLINE or HAVE_*_EXTERNAL variables in a
+# buildfile so it's probably OK to duplicate the config.h logic here.
+#
+have_mmx_external = $HAVE_MMX
+have_mmx_inline = ($HAVE_MMX && $HAVE_INLINE_ASM)
+
+include_emms = ($ARCH_X86          &&   \
+                $have_mmx_external &&   \
+                !$have_mmx_inline  &&   \
+                !$HAVE_MM_EMPTY)
+
+libus{avutil}: libavutil/x86/objs{emms.asm.so.o}: include = $include_emms
+libua{avutil}: libavutil/x86/obja{emms.asm.a.o}:  include = $include_emms
+libavutil/x86/objs{emms.asm.so.o}: libavutil/x86/asm{emms} file{config.asm}
+libavutil/x86/obja{emms.asm.a.o}:  libavutil/x86/asm{emms} file{config.asm}
+
+# As above but only for pixelutils.asm which is a bit different.
+#
+libus{avutil}: libavutil/x86/objs{pixelutils.asm.so.o}: \
+  include = ($ARCH_X86 && $CONFIG_PIXELUTILS)
+libua{avutil}: libavutil/x86/obja{pixelutils.asm.a.o}: \
+  include = ($ARCH_X86 && $CONFIG_PIXELUTILS)
+libavutil/x86/objs{pixelutils.asm.so.o}: libavutil/x86/asm{pixelutils} file{config.asm}
+libavutil/x86/obja{pixelutils.asm.a.o}:  libavutil/x86/asm{pixelutils} file{config.asm}
+
+# ARM
+#
+libul{avutil}: libavutil/c{arm/float_dsp_init_neon}: include = ($ARCH_ARM && \
+                                                                $HAVE_NEON)
+libul{avutil}: libavutil/c{arm/float_dsp_init_vfp}: include = ($ARCH_ARM && \
+                                                               $HAVE_VFP)
+libul{avutil}: libavutil/arm/c{cpu float_dsp_init_arm}: include = $ARCH_ARM
+
+# AARCH64
+#
+libul{avutil}: libavutil/aarch64/S{asm}: \
+  include = ($ARCH_AARCH64 ? adhoc : false)
+
+libul{avutil}: libavutil/aarch64/c{cpu                  \
+                                   float_dsp_init       \
+                                   tx_float_init}: include = $ARCH_AARCH64
+
+libul{avutil}: libavutil/aarch64/S{float_dsp_neon       \
+                                   tx_float_neon}:      \
+  include = ($ARCH_AARCH64 && $HAVE_NEON)
+
+# PPC
+#
+libul{avutil}: libavutil/c{ppc/float_dsp_altivec}: include = ($ARCH_PPC &&      \
+                                                              $HAVE_ALTIVEC)
+
+libul{avutil}: libavutil/c{ppc/float_dsp_vsx}: include = ($ARCH_PPC &&  \
+                                                          $HAVE_VSX)
+
+# Windows Resources
+#
+# @@ TODO Enable once the winres ad hoc rule in conditional-src.build has been
+#    fixed.
+#
+# libul{avutil}: winres{avutil}: include = ($c.target.system == 'win32-msvc')
+# winres{avutil}: libavutil/rc{avutilres}
+
+# Libraries
+#
+libul{avutil}: $impl_libs $intf_libs
+
+# Unit tests
+#
+exe{*.test...}:
+{
+  test = true
+  install = false
+}
+
+for t: libavutil/c{*.test... -utf8.test... -pixelutils.test...}
+{
+  d = $directory($t)
+  n = $name($t)
+
+  ./: $d/exe{$n...}: $t $d/testscript
+  $d/exe{$n...}: libul{avutil}: bin.whole = false
+}
+
+# Ensure getopt.c is distributed (only required if HAVE_GETOPT is false).
+#
+libavutil/exe{cpu.test...}: compat/getopt.c: include = (!$HAVE_GETOPT ? adhoc : false)
+
+# Disable random_seed test because it's very slow.
+#
+libavutil/exe{random_seed.test...}: test = false
+
+# Conditional test pixelutils.test.
+#
+if! $CONFIG_PIXELUTILS
+  text 'skip test' libavutil/exe{pixelutils.test...}
+
+./: libavutil/exe{pixelutils.test...}: include = $CONFIG_PIXELUTILS
+libavutil/exe{pixelutils.test...}: libavutil/c{pixelutils.test...} libavutil/testscript
+libavutil/exe{pixelutils.test...}: libul{avutil}: bin.whole = false
+
+# utf8.test has a custom testscript.
+#
+./: libavutil/exe{utf8.test...}: libavutil/c{utf8.test...} libavutil/testscript{utf8}
+libavutil/exe{utf8.test...}: libul{avutil}: bin.whole = false
 
 # Build options.
 #
-import [once] libconfig%buildfile{common-configs}
+# Note that some of the poptions were already set above for the generated
+# header targets.
+#
+c.poptions += $common_poptions -DBUILDING_avutil
 
-out_pfx = [dir_path] $out_root/src/
-src_pfx = [dir_path] $src_root/src/
+obj{*}: c.coptions += $common_coptions
 
-c.poptions += "-I$out_pfx" "-I$src_pfx" -DBUILDING_avutil
+# Disable "conversion from 'size_t' to 'unsigned int', possible loss of data"
+# MSVC warning which is emitted dozens of times.
+#
+if ($c.class == 'msvc')
+  obj{*}: c.coptions += /wd4267
 
-obja{*}: c.poptions += -DCONFIG_STATIC
-objs{*}: c.poptions += -DCONFIG_SHARED
+objs{*}: c.poptions += $common_objs_poptions
+obja{*}: c.poptions += $common_obja_poptions
 
+# Add common_obja_poptions for the correct definition of CONFIG_SHARED (i.e.,
+# 0) otherwise we get a warning about it being undefined on Mingw-w64. (We
+# know the test executables are linked against the utility library which is
+# static so this is probably OK.)
+#
+obje{*.test}: c.poptions += $common_obja_poptions
+
+# On Linux arc4random_buf() needs _DEFAULT_SOURCE (and before glibc 2.20,
+# _BSD_SOURCE; the feature_test_macros(7) recommendation is to define both to
+# cover both eras).
+#
+# Note that the upstream compilation test does not define these macros and
+# thus fails unnecessarily on my Linux dev machine.
+#
+if ($HAVE_ARC4RANDOM_BUF && $c.target.class == 'linux')
+  libavutil/obj{random_seed random_seed.test}: \
+    c.poptions += -D_DEFAULT_SOURCE -D_BSD_SOURCE
+
+# Disable unused warnings for functions used only if HAVE_AVX2_EXTERNAL is
+# true. (See note above at have_mmx_external.)
+#
+have_avx2_external = ($HAVE_AVX2 && $HAVE_X86ASM)
+
+if (!$have_avx2_external && $c.class == 'gcc')
+  libavutil/x86/obj{tx_float_init}: c.coptions += -Wno-unused-function
+
+lib{avutil}: c.loptions += $common_loptions
+
+# Export all symbols from the DLL if on Windows.
+#
 libs{avutil}: def{avutil}: include = ($c.target.system == 'win32-msvc')
 def{avutil}: libul{avutil}
 
-if ($c.target.system == 'mingw32')
-  c.loptions += -Wl,--export-all-symbols
+if $tgt_mingw
+  libs{avutil}: c.loptions += -Wl,--export-all-symbols
 
+# System libraries
+#
+# @@ TODO Add -lX11 if config.libavutil.vdpau or config.libavutil.xlib are
+#    true.
+#
 sys_libs =
 switch $c.target.class, $c.target.system
 {
@@ -68,9 +968,10 @@ switch $c.target.class, $c.target.system
   case 'windows', 'mingw32'
     sys_libs += -lbcrypt
   default
-    sys_libs += -pthread -lm
+    sys_libs += -pthread
 }
-c.libs += $sys_libs
+
+libul{avutil}: c.libs += $common_libs $sys_libs
 
 switch $c.target.system
 {
@@ -80,8 +981,8 @@ switch $c.target.system
     use_compat_atomics = [bool] $tgt_win32 # ($c.find_system_header("stdatomic.h") == [null]) # NEED TO CHECK $c.std <= 17 (but handle case when not defined)
     if ($use_compat_atomics)
     {
-      c.poptions += "-I$src_pfx/compat/atomics/win32/"
-      lib{avutil}: c.export.poptions += "-I$src_pfx/compat/atomics/win32/"
+      c.poptions =+ "-I$src_base/compat/atomics/win32/"
+      lib{avutil}: c.export.poptions += "-I$src_base/compat/atomics/win32/"
     }
   }
 }
@@ -90,8 +991,13 @@ switch $c.target.system
 #
 lib{avutil}:
 {
-  c.export.poptions += "-I$out_pfx" "-I$src_pfx"
-  c.export.libs = $intf_libs $sys_libs
+  c.export.poptions =+ "-I$out_base" "-I$src_base"
+
+  # @@ TMP Let's hold off on exporting any system libraries until it's clear
+  #    which ones we have to export. Upstream doesn't appear to be concerned
+  #    about these sorts of things at all.
+  #
+  c.export.libs = $intf_libs # $sys_libs
 }
 
 # For pre-releases use the complete version to make sure they cannot
@@ -103,10 +1009,178 @@ if $version.pre_release
 else
   lib{avutil}: bin.lib.version = "-$version.major.$version.minor"
 
-# Install recreating subdirectories.
+# Installation.
 #
-h{*}:
+# Upstream's public and private headers are not distinguished in any way other
+# than the public headers being in the HEADERS variable in the upstream
+# Makefile. Therefore the most reliable method of determining the list of
+# private headers in libavutil/ is as the complement of this list.
+#
+
+# Public headers in libavutil/ as defined in the HEADERS variable of the
+# upstream Makefile.
+#
+pub_hdr = adler32                                                     \
+          aes                                                         \
+          aes_ctr                                                     \
+          ambient_viewing_environment                                 \
+          attributes                                                  \
+          audio_fifo                                                  \
+          avassert                                                    \
+          avstring                                                    \
+          avutil                                                      \
+          base64                                                      \
+          blowfish                                                    \
+          bprint                                                      \
+          bswap                                                       \
+          buffer                                                      \
+          cast5                                                       \
+          camellia                                                    \
+          channel_layout                                              \
+          common                                                      \
+          cpu                                                         \
+          crc                                                         \
+          csp                                                         \
+          des                                                         \
+          detection_bbox                                              \
+          dict                                                        \
+          display                                                     \
+          dovi_meta                                                   \
+          downmix_info                                                \
+          encryption_info                                             \
+          error                                                       \
+          eval                                                        \
+          executor                                                    \
+          fifo                                                        \
+          file                                                        \
+          frame                                                       \
+          hash                                                        \
+          hdr_dynamic_metadata                                        \
+          hdr_dynamic_vivid_metadata                                  \
+          hmac                                                        \
+          hwcontext                                                   \
+          hwcontext_cuda                                              \
+          hwcontext_d3d11va                                           \
+          hwcontext_d3d12va                                           \
+          hwcontext_drm                                               \
+          hwcontext_dxva2                                             \
+          hwcontext_qsv                                               \
+          hwcontext_mediacodec                                        \
+          hwcontext_opencl                                            \
+          hwcontext_vaapi                                             \
+          hwcontext_videotoolbox                                      \
+          hwcontext_vdpau                                             \
+          hwcontext_vulkan                                            \
+          iamf                                                        \
+          imgutils                                                    \
+          intfloat                                                    \
+          intreadwrite                                                \
+          lfg                                                         \
+          log                                                         \
+          lzo                                                         \
+          macros                                                      \
+          mathematics                                                 \
+          mastering_display_metadata                                  \
+          md5                                                         \
+          mem                                                         \
+          motion_vector                                               \
+          murmur3                                                     \
+          opt                                                         \
+          parseutils                                                  \
+          pixdesc                                                     \
+          pixelutils                                                  \
+          pixfmt                                                      \
+          random_seed                                                 \
+          rc4                                                         \
+          rational                                                    \
+          replaygain                                                  \
+          ripemd                                                      \
+          samplefmt                                                   \
+          sha                                                         \
+          sha512                                                      \
+          spherical                                                   \
+          stereo3d                                                    \
+          threadmessage                                               \
+          time                                                        \
+          timecode                                                    \
+          timestamp                                                   \
+          tree                                                        \
+          twofish                                                     \
+          uuid                                                        \
+          version                                                     \
+          video_enc_params                                            \
+          xtea                                                        \
+          tea                                                         \
+          tx                                                          \
+          film_grain_params                                           \
+          video_hint
+
+# Architecture-specific headers in libavutil/ (see below).
+#
+arch_hdr = bswap intmath intreadwrite timer
+
+# The private headers in libavutil/ are the complement of the public and arch
+# headers and the public generated headers (avconfig, ffversion).
+#
+priv_hdr = libavutil/h{* -{$pub_hdr $arch_hdr avconfig ffversion}}
+
+# Install all headers by default.
+#
+h{*}: install = include/libavutil/
+
+# Don't install headers used only during the build.
+#
+h{config-autoconf-checks} h{config_cpu}@./: install = false
+
+# Set private headers install location.
+#
+# These are included as `#include "libavutil/foo.h"` by all libraries.
+#
+for h: $priv_hdr
+  $h@./libavutil/: install = include/libavutil/private/libavutil/
+
+h{config_components}@./: install = include/libavutil/private/libavutil/
+
+# Install private generated headers.
+#
+# These are included as `#include "config.h"` by all libraries.
+#
+h{config} file{config.asm}: install = include/libavutil/private/
+
+# Install architecture-specific public headers.
+#
+# For each "arch header" as the upstream Makefile calls them there is
+# libavutil/foo.h and libavutil/<arch>/foo.h. In the development case
+# (libavutil or one of the other FFmpeg libraries are being built) the former
+# selects its appropriate counterpart in libavutil/<arch>/ based on the ARCH_*
+# macros in config.h. But then only the libavutil/<arch>/foo.h appropriate for
+# the target CPU is installed (at libavutil/foo.h).
+#
+for h: $arch_hdr
+  libavutil/h{$h}@./libavutil/: install = false
+
+# For each architecture, install only the "arch header" appropriate for the
+# target CPU (selected via the tgt_<arch> variables defined above).
+#
+for a: aarch64 arm avr32 loongarch mips ppc riscv sh4 x86
 {
-  install         = include/
-  install.subdirs = true
+  # Don't install headers in <arch>/ by default.
+  #
+  libavutil/$a/h{*}: install = false
+
+  # Install the "arch headers" for the target CPU.
+  #
+  if (!$null($(tgt_$a)) && $(tgt_$a))
+  {
+    for h: $arch_hdr
+    {
+      p = $src_base/libavutil/$a/$h.$(h{config}: extension) # Absolute path
+
+      if $file_exists($p)
+        libavutil/$a/h{$h}@./libavutil/$a/: install = include/libavutil/
+    }
+  }
 }
+
+lib{avutil}:         c.pkgconfig.include = include/
+lib{avutil_private}: c.pkgconfig.include = include/libavutil/private/
