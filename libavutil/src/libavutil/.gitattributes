@@ -1,0 +1,9 @@
+aarch64 symlink=dir
+arm symlink=dir
+avr32 symlink=dir
+loongarch symlink=dir
+mips symlink=dir
+ppc symlink=dir
+riscv symlink=dir
+sh4 symlink=dir
+x86 symlink=dir

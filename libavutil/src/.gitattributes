@@ -1,2 +1,1 @@
-compat    symlink=dir
-libavutil symlink=dir
+compat symlink=dir
