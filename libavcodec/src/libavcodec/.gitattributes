@@ -1,0 +1,4 @@
+bsf symlink=dir
+h26x symlink=dir
+vvc symlink=dir
+x86 symlink=dir
