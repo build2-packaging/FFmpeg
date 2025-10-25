@@ -256,7 +256,7 @@ autoconf_macros = HAVE_ACCESS                                           \
                   HAVE_ALIGNED_MALLOC                                   \
                   HAVE_ALTIVEC                                          \
                   HAVE_ARC4RANDOM_BUF                                   \
-                  HAVE_ARMASM                                           \
+                  HAVE_ARM_ASM                                          \
                   HAVE_ARPA_INET_H                                      \
                   HAVE_ASM_TYPES_H                                      \
                   HAVE_AS_ARCHEXT_DOTPROD_DIRECTIVE                     \
@@ -503,15 +503,10 @@ h{config-autoconf-checks}: in{config-autoconf-checks}
   #       HAVE_INTRINSICS_NEON below).
   #
   autoconf.aliases = HAVE_ALIGNED_MALLOC@HAVE__ALIGNED_MALLOC                   \
-                     HAVE_AS_ARCHEXT_DOTPROD_DIRECTIVE@HAVE_AS_ARCHEXT_DOTPROD  \
-                     HAVE_AS_ARCHEXT_I8MM_DIRECTIVE@HAVE_AS_ARCHEXT_I8MM        \
-                     HAVE_AS_FUNC@HAVE_AS_FUNC_DIRECTIVE                        \
-                     HAVE_EBP_AVAILABLE@HAVE_ASM_EBP                            \
-                     HAVE_EBX_AVAILABLE@HAVE_ASM_EBX                            \
                      HAVE_FAST_FLOAT16@HAVE_F16C                                \
                      HAVE_GMTIME@HAVE__GMTIME                                   \
-                     HAVE_AS_OBJECT_ARCH@HAVE_AS_OBJECT_ARCH_DIRECTIVE          \
-                     HAVE_PTHREADS@HAVE_PTHREAD
+                     HAVE_PTHREADS@HAVE_PTHREAD                                 \
+                     HAVE_X86ASM@HAVE_X86_ASM
 }
 
 # @@ TODO Update the autoconf checks to reflect that these things do exist on
