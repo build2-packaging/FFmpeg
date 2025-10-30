@@ -60,13 +60,17 @@ else
 # FFmpeg requires at least -O1 to inline compile-time capable checks and
 # remove dead code, otherwise it'll try to link unbuilt symbols.
 #
-# Add -O1 if no optimization options are present or fail if optimization has
-# been disabled (-O0 or /Od).
+# Add -O1 if no optimization options are present, or replace -O0 or /Od
+# (optimization has been explicitly disabled).
 #
-if! $regex.find_match($cc.coptions $c.coptions, '[-\/]O[a-z0-9]')
+is_opt_disabled = $regex.find_match($cc.coptions $c.coptions, '[-\/]O[0d]')
+if (!$regex.find_match($cc.coptions $c.coptions, '[-\/]O[a-z0-9]') || \
+    $is_opt_disabled)
 {
   if $is_libavutil
-    text  "appending -O1 \(optimization required)"
+  {
+    text  "($is_opt_disabled ? 'force' : 'append') -O1 \(optimization required)"
+  }
 
   c.coptions += "-O1"
 
@@ -75,8 +79,6 @@ if! $regex.find_match($cc.coptions $c.coptions, '[-\/]O[a-z0-9]')
   if (!$windows || $tgt_mingw)
     c.loptions += "-O1"
 }
-elif $regex.find_match($cc.coptions $c.coptions, '[-\/]O[0d]')
-  fail "optimization cannot be disabled: FFmpeg requires at least -O1"
 
 # Remove /RCT[1su] because it is incompatible with optimization turned on.
 #
@@ -119,7 +121,7 @@ if(!$regex.find_search($c.coptions $cc.coptions, '[-\/]?(?:m|arch)'))
     simd_flag = $flag_rvv64
 
   if ($is_libavutil)
-    text "appending $simd_flag \(SIMD auto-detected)"
+    text "append $simd_flag \(SIMD auto-detected)"
   c.coptions += $simd_flag
 }
 
