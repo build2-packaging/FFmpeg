@@ -82,7 +82,7 @@ if (!$regex.find_match($cc.coptions $c.coptions, '[-\/]O[a-z0-9]') || \
 
 # Remove /RCT[1su] because it is incompatible with optimization turned on.
 #
-if ($c.id.class == 'msvc')
+if ($c.id == 'msvc')
 {
   regex = '[-\/]RTC\S+'
 
