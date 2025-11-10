@@ -72,6 +72,12 @@ if (!$regex.find_match($cc.coptions $c.coptions, '[-\/]O[a-z0-9]') || \
     text  "($is_opt_disabled ? 'force' : 'append') -O1 \(optimization required)"
   }
 
+  # Remove existing 'no optimization'-flag.
+  if $is_opt_disabled
+  {
+    cc.coptions = $regex.filter_out_match($cc.coptions, '[-\/]O[0d]')
+  }
+
   c.coptions += "-O1"
 
   # Windows' link.exe doesn't support /O.
@@ -89,7 +95,7 @@ if ($c.id == 'msvc')
   if ($regex.find_match($cc.coptions $c.coptions, $regex))
   {
     if $is_libavutil
-      warn "removing /RTC \(incompatible with optimizations)"
+      text "removed -RTC \(incompatible with optimizations)"
     cc.coptions = $regex.filter_out_match($cc.coptions, $regex)
     c.coptions = $regex.filter_out_match($c.coptions, $regex)
   }
@@ -97,7 +103,7 @@ if ($c.id == 'msvc')
 
 # default to highest level of SIMD that can be reasonably
 # guaranteed (if none has been specified)
-if(!$regex.find_search($c.coptions $cc.coptions, '[-\/]?(?:m|arch)'))
+if(!$regex.find_search($c.coptions $cc.coptions, '[-\/](m|arch)'))
 {
   flag_x86     = ($c.id != 'msvc' ? '-msse'                : '-arch:SSE')
   flag_x86_64  = ($c.id != 'msvc' ? '-msse2'               : '-arch:AVX2')  # with 'SSE2' there are unresolved ext symbols to x86/vvc_init.c functions (MSVC only)
