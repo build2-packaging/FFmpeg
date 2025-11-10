@@ -1,6 +1,6 @@
 : 1
 name: libpostproc
-version: 7.0.2-a.0.z
+version: 7.0.2
 language: c
 project: build2-FFmpeg
 summary: Utility library to aid portable multimedia programming
