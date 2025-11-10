@@ -12,5 +12,5 @@ package-url: https://github.com/build2-packaging/build2-FFmpeg
 package-email: libav-user@ffmpeg.org ; Mailing list.
 depends: * build2 >= 0.18.0-
 depends: * bpkg >= 0.18.0-
-depends: * nasm
+depends: * nasm ^ 2.16.3
 depends: libavutil == $

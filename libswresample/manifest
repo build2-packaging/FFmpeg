@@ -15,6 +15,6 @@ build-include: **/x86_64**
 build-exclude: ** ; Only x86_64 currently supported.
 depends: * build2 >= 0.18.0-
 depends: * bpkg >= 0.18.0-
-depends: * nasm
+depends: * nasm ^ 2.16.3
 depends: libavutil == $
 depends: libswscale == $
