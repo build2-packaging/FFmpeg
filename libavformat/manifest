@@ -1,8 +1,8 @@
 : 1
 name: libavformat
-version: 7.0.2
+version: 7.0.2+1
 language: c
-project: build2-FFmpeg
+project: FFmpeg
 summary: Utility library to aid portable multimedia programming
 license: LGPL-2.1-or-later ; GNU Lesser General Public License v2.1 or later.
 description-file: README.txt
