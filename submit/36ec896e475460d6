@@ -1,0 +1,7 @@
+: 1
+name: libswresample
+version: 7.0.2
+language: c
+project: build2-FFmpeg
+summary: Utility library to aid portable multimedia programming
+license: LGPL-2.1-or-later; GNU Lesser General Public License v2.1 or later.
