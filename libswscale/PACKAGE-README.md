@@ -1,7 +1,8 @@
 # libswscale - A C library
 
-This is a `build2` package for the [`<UPSTREAM-NAME>`](https://<UPSTREAM-URL>)
-C library. It provides <SUMMARY-OF-FUNCTIONALITY>.
+This is a `build2` package for the [`libswscale`](https://github.com/FFmpeg/FFmpeg)
+C library. It provides highly optimized image scaling and
+colorspace and pixel format conversion operations.
 
 
 ## Usage
@@ -10,13 +11,13 @@ To start using `libswscale` in your project, add the following `depends`
 value to your `manifest`, adjusting the version constraint as appropriate:
 
 ```
-depends: libswscale ^<VERSION>
+depends: libswscale ^7.0.2
 ```
 
 Then import the library in your `buildfile`:
 
 ```
-import libs = libswscale%lib{<TARGET>}
+import libs = libswscale%lib{swscale}
 ```
 
 
@@ -25,18 +26,8 @@ import libs = libswscale%lib{<TARGET>}
 This package provides the following importable targets:
 
 ```
-lib{<TARGET>}
+lib{swscale}
 ```
 
-<DESCRIPTION-OF-IMPORTABLE-TARGETS>
-
-
-## Configuration variables
-
-This package provides the following configuration variables:
-
-```
-[bool] config.libswscale.<VARIABLE> ?= false
-```
-
-<DESCRIPTION-OF-CONFIG-VARIABLES>
+The `libswscale `library performs highly optimized image scaling and
+colorspace and pixel format conversion operations.

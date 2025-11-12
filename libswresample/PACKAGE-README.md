@@ -1,7 +1,8 @@
 # libswresample - A C library
 
-This is a `build2` package for the [`<UPSTREAM-NAME>`](https://<UPSTREAM-URL>)
-C library. It provides <SUMMARY-OF-FUNCTIONALITY>.
+This is a `build2` package for the [`libswresample`](https://github.com/FFmpeg/FFmpeg)
+C library. It provides highly optimized audio resampling,
+rematrixing and sample format conversion operations.
 
 
 ## Usage
@@ -10,13 +11,13 @@ To start using `libswresample` in your project, add the following `depends`
 value to your `manifest`, adjusting the version constraint as appropriate:
 
 ```
-depends: libswresample ^<VERSION>
+depends: libswresample ^7.0.2
 ```
 
 Then import the library in your `buildfile`:
 
 ```
-import libs = libswresample%lib{<TARGET>}
+import libs = libswresample%lib{swresample}
 ```
 
 
@@ -25,18 +26,8 @@ import libs = libswresample%lib{<TARGET>}
 This package provides the following importable targets:
 
 ```
-lib{<TARGET>}
+lib{swresample}
 ```
 
-<DESCRIPTION-OF-IMPORTABLE-TARGETS>
-
-
-## Configuration variables
-
-This package provides the following configuration variables:
-
-```
-[bool] config.libswresample.<VARIABLE> ?= false
-```
-
-<DESCRIPTION-OF-CONFIG-VARIABLES>
+The `libswresample` library performs highly optimized audio resampling,
+rematrixing and sample format conversion operations.

@@ -1,6 +1,6 @@
 : 1
 name: libswresample
-version: 7.0.2+1
+version: 7.0.2+2
 language: c
 project: FFmpeg
 summary: Utility library to aid portable multimedia programming
