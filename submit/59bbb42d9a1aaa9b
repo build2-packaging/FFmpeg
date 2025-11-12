@@ -1,0 +1,7 @@
+: 1
+name: libavutil
+version: 7.0.2+2
+language: c
+project: FFmpeg
+summary: Utility library to aid portable multimedia programming
+license: LGPL-2.1-or-later; GNU Lesser General Public License v2.1 or later.
