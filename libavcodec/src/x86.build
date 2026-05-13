@@ -1,0 +1,290 @@
+# X86
+#
+libul{avcodec}: libavcodec/x86/c{constants}: include = $ARCH_X86
+
+# subsystems
+libul{avcodec}: libavcodec/x86/c{ac3dsp_init}:          \
+  include = ($ARCH_X86 && $CONFIG_AC3DSP)
+libul{avcodec}: libavcodec/x86/c{audiodsp_init}:        \
+  include = ($ARCH_X86 && $CONFIG_AUDIODSP)
+libul{avcodec}: libavcodec/x86/c{blockdsp_init}:        \
+  include = ($ARCH_X86 && $CONFIG_BLOCKDSP)
+libul{avcodec}: libavcodec/x86/c{bswapdsp_init}:        \
+  include = ($ARCH_X86 && $CONFIG_BSWAPDSP)
+
+libul{avcodec}: libavcodec/x86/c{diracdsp_init          \
+                                 dirac_dwt_init}:       \
+  include = ($ARCH_X86 && $CONFIG_DIRAC_DECODER)
+
+libul{avcodec}: libavcodec/x86/c{fdctdsp_init}:                 \
+  include = ($ARCH_X86 && $CONFIG_FDCTDSP)
+libul{avcodec}: libavcodec/x86/c{fmtconvert_init}:              \
+  include = ($ARCH_X86 && $CONFIG_FMTCONVERT)
+libul{avcodec}: libavcodec/x86/c{h263dsp_init}:                 \
+  include = ($ARCH_X86 && $CONFIG_H263DSP)
+libul{avcodec}: libavcodec/x86/c{h264chroma_init}:              \
+  include = ($ARCH_X86 && $CONFIG_H264CHROMA)
+libul{avcodec}: libavcodec/x86/c{h264dsp_init}:                 \
+  include = ($ARCH_X86 && $CONFIG_H264DSP)
+libul{avcodec}: libavcodec/x86/c{h264_intrapred_init}:          \
+  include = ($ARCH_X86 && $CONFIG_H264PRED)
+libul{avcodec}: libavcodec/x86/c{h264_qpel}:                    \
+  include = ($ARCH_X86 && $CONFIG_H264QPEL)
+libul{avcodec}: libavcodec/x86/c{hpeldsp_init}:                 \
+  include = ($ARCH_X86 && $CONFIG_HPELDSP)
+libul{avcodec}: libavcodec/x86/c{lossless_audiodsp_init}:       \
+  include = ($ARCH_X86 && $CONFIG_LLAUDDSP)
+libul{avcodec}: libavcodec/x86/c{lossless_videodsp_init}:       \
+  include = ($ARCH_X86 && $CONFIG_LLVIDDSP)
+libul{avcodec}: libavcodec/x86/c{lossless_videoencdsp_init}:    \
+  include = ($ARCH_X86 && $CONFIG_LLVIDENCDSP)
+libul{avcodec}: libavcodec/x86/c{huffyuvdsp_init}:              \
+  include = ($ARCH_X86 && $CONFIG_HUFFYUVDSP)
+libul{avcodec}: libavcodec/x86/c{huffyuvencdsp_init}:           \
+  include = ($ARCH_X86 && $CONFIG_HUFFYUVENCDSP)
+libul{avcodec}: libavcodec/x86/c{idctdsp_init}:                 \
+  include = ($ARCH_X86 && $CONFIG_IDCTDSP)
+libul{avcodec}: libavcodec/x86/c{lpc_init}:                     \
+  include = ($ARCH_X86 && $CONFIG_LPC)
+libul{avcodec}: libavcodec/x86/c{me_cmp_init}:                  \
+  include = ($ARCH_X86 && $CONFIG_ME_CMP)
+libul{avcodec}: libavcodec/x86/c{mpegaudiodsp}:                 \
+  include = ($ARCH_X86 && $CONFIG_MPEGAUDIODSP)
+libul{avcodec}: libavcodec/x86/c{mpegvideo}:                    \
+  include = ($ARCH_X86 && $CONFIG_MPEGVIDEO)
+
+libul{avcodec}: libavcodec/x86/c{mpegvideoenc           \
+                                 mpegvideoencdsp_init}: \
+  include = ($ARCH_X86 && $CONFIG_MPEGVIDEOENC)
+
+libul{avcodec}: libavcodec/x86/c{pixblockdsp_init}:     \
+  include = ($ARCH_X86 && $CONFIG_PIXBLOCKDSP)
+libul{avcodec}: libavcodec/x86/c{qpeldsp_init}:         \
+  include = ($ARCH_X86 && $CONFIG_QPELDSP)
+libul{avcodec}: libavcodec/x86/c{rv34dsp_init}:         \
+  include = ($ARCH_X86 && $CONFIG_RV34DSP)
+libul{avcodec}: libavcodec/x86/c{vc1dsp_init}:          \
+  include = ($ARCH_X86 && $CONFIG_VC1DSP)
+libul{avcodec}: libavcodec/x86/c{videodsp_init}:        \
+  include = ($ARCH_X86 && $CONFIG_VIDEODSP)
+libul{avcodec}: libavcodec/x86/c{vp3dsp_init}:          \
+  include = ($ARCH_X86 && $CONFIG_VP3DSP)
+libul{avcodec}: libavcodec/x86/c{vp8dsp_init}:          \
+  include = ($ARCH_X86 && $CONFIG_VP8DSP)
+libul{avcodec}: libavcodec/x86/c{w64xmmtest}:           \
+  include = ($ARCH_X86 && $CONFIG_XMM_CLOBBER_TEST)
+
+# decoders/encoders
+libul{avcodec}: libavcodec/x86/c{aacencdsp_init}:    include = ($ARCH_X86 && $CONFIG_AAC_ENCODER)
+libul{avcodec}: libavcodec/x86/c{aacpsdsp_init}:     include = ($ARCH_X86 && $CONFIG_AAC_DECODER)
+libul{avcodec}: libavcodec/x86/c{alacdsp_init}:      include = ($ARCH_X86 && $CONFIG_ALAC_DECODER)
+libul{avcodec}: libavcodec/x86/c{cavsdsp}:           include = ($ARCH_X86 && $CONFIG_CAVS_DECODER)
+libul{avcodec}: libavcodec/x86/c{celt_pvq_init}:     include = ($ARCH_X86 && $CONFIG_OPUS_ENCODER)
+libul{avcodec}: libavcodec/x86/c{cfhddsp_init}:      include = ($ARCH_X86 && $CONFIG_CFHD_DECODER)
+libul{avcodec}: libavcodec/x86/c{cfhdencdsp_init}:   include = ($ARCH_X86 && $CONFIG_CFHD_ENCODER)
+libul{avcodec}: libavcodec/x86/c{dcadsp_init}:       include = ($ARCH_X86 && $CONFIG_DCA_DECODER)
+libul{avcodec}: libavcodec/x86/c{dnxhdenc_init}:     include = ($ARCH_X86 && $CONFIG_DNXHD_ENCODER)
+libul{avcodec}: libavcodec/x86/c{exrdsp_init}:       include = ($ARCH_X86 && $CONFIG_EXR_DECODER)
+libul{avcodec}: libavcodec/x86/c{flacdsp_init}:      include = ($ARCH_X86 && $CONFIG_FLAC_DECODER)
+libul{avcodec}: libavcodec/x86/c{flacencdsp_init}:   include = ($ARCH_X86 && $CONFIG_FLAC_ENCODER)
+libul{avcodec}: libavcodec/x86/c{g722dsp_init}:      include = ($ARCH_X86 && ($CONFIG_ADPCM_G722_ENCODER || $CONFIG_ADPCM_G722_DECODER))
+libul{avcodec}: libavcodec/x86/c{h26x/h2656dsp}:     include = ($ARCH_X86 && $CONFIG_HEVC_DECODER)
+libul{avcodec}: libavcodec/x86/c{jpeg2000dsp_init}:  include = ($ARCH_X86 && $CONFIG_JPEG2000_DECODER)
+libul{avcodec}: libavcodec/x86/c{mlpdsp_init}:       include = ($ARCH_X86 && ($CONFIG_TRUEHD_DECODER || $CONFIG_MLP_DECODER))
+libul{avcodec}: libavcodec/x86/c{mpeg4videodsp}:     include = ($ARCH_X86 && $CONFIG_MPEG4_DECODER)
+libul{avcodec}: libavcodec/x86/c{opusdsp_init}:      include = ($ARCH_X86 && $CONFIG_OPUS_DECODER)
+libul{avcodec}: libavcodec/x86/c{pngdsp_init}:       include = ($ARCH_X86 && ($CONFIG_PNG_DECODER || $CONFIG_APNG_DECODER || $CONFIG_LSCR_DECODER))
+libul{avcodec}: libavcodec/x86/c{proresdsp_init}:    include = ($ARCH_X86 && ($CONFIG_PRORES_DECODER || $CONFIG_PRORES_LGPL_DECODER))
+libul{avcodec}: libavcodec/x86/c{rv40dsp_init}:      include = ($ARCH_X86 && $CONFIG_RV40_DECODER)
+libul{avcodec}: libavcodec/x86/c{sbcdsp_init}:       include = ($ARCH_X86 && $CONFIG_SBC_ENCODER)
+libul{avcodec}: libavcodec/x86/c{sbrdsp_init}:       include = ($ARCH_X86 && $CONFIG_AAC_DECODER)
+libul{avcodec}: libavcodec/x86/c{svq1enc_init}:      include = ($ARCH_X86 && $CONFIG_SVQ1_ENCODER)
+libul{avcodec}: libavcodec/x86/c{synth_filter_init}: include = ($ARCH_X86 && $CONFIG_DCA_DECODER)
+libul{avcodec}: libavcodec/x86/c{takdsp_init}:       include = ($ARCH_X86 && $CONFIG_TAK_DECODER)
+libul{avcodec}: libavcodec/x86/c{ttadsp_init}:       include = ($ARCH_X86 && $CONFIG_TTA_DECODER)
+libul{avcodec}: libavcodec/x86/c{ttaencdsp_init}:    include = ($ARCH_X86 && $CONFIG_TTA_ENCODER)
+libul{avcodec}: libavcodec/x86/c{utvideodsp_init}:   include = ($ARCH_X86 && $CONFIG_UTVIDEO_DECODER)
+libul{avcodec}: libavcodec/x86/c{v210-init}:         include = ($ARCH_X86 && $CONFIG_V210_DECODER)
+libul{avcodec}: libavcodec/x86/c{v210enc_init}:      include = ($ARCH_X86 && $CONFIG_V210_ENCODER)
+libul{avcodec}: libavcodec/x86/c{vorbisdsp_init}:    include = ($ARCH_X86 && $CONFIG_VORBIS_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp6dsp_init}:       include = ($ARCH_X86 && $CONFIG_VP6_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp8dsp_init}:       include = ($ARCH_X86 && $CONFIG_WEBP_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp9dsp_init_10bpp}: include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp9dsp_init_12bpp}: include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp9dsp_init_16bpp}: include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
+libul{avcodec}: libavcodec/x86/c{vp9dsp_init}:       include = ($ARCH_X86 && $CONFIG_VP9_DECODER)
+libul{avcodec}: libavcodec/x86/c{xvididct_init}:     include = ($ARCH_X86 && $CONFIG_MPEG4_DECODER)
+
+# x86/vvc/Makefile
+libul{avcodec}: libavcodec/x86/vvc/c{vvcdsp_init}: include = $CONFIG_VVC_DECODER
+libul{avcodec}: libavcodec/x86/h26x/c{h2656dsp}: include = $CONFIG_VVC_DECODER
+
+# GCC inline assembly optimizations
+# subsystems
+libul{avcodec}: libavcodec/x86/c{fdct}:         \
+  include = ($ARCH_X86 && $HAVE_MMX && $CONFIG_FDCTDSP)
+libul{avcodec}: libavcodec/x86/c{vc1dsp_mmx}:   \
+  include = ($ARCH_X86 && $HAVE_MMX && $CONFIG_VC1DSP)
+
+# decoders/encoders
+libul{avcodec}: libavcodec/x86/c{snowdsp}:      \
+  include = ($ARCH_X86 && $HAVE_MMX &&          \
+             ($CONFIG_SNOW_ENCODER || $CONFIG_SNOW_DECODER))
+
+# X86 assembly sources
+#
+# There is no built-in rule to synthesize the libu{s,a} -> obj{s,a} -> asm{}
+# dependencies so we have to do it manually.
+#
+# First is the source file name and second the value of the controlling
+# feature check macros (in addition to the usual HAVE_X86ASM).
+#
+for p: ac3dsp@$CONFIG_AC3DSP                                                    \
+       aacencdsp@$CONFIG_AAC_ENCODER                                            \
+       aacpsdsp@$CONFIG_AAC_DECODER                                             \
+       ac3dsp_downmix@$CONFIG_AC3DSP                                            \
+       alacdsp@$CONFIG_ALAC_DECODER                                             \
+       audiodsp@$CONFIG_AUDIODSP                                                \
+       blockdsp@$CONFIG_BLOCKDSP                                                \
+       bswapdsp@$CONFIG_BSWAPDSP                                                \
+       cavsidct@$CONFIG_CAVS_DECODER                                            \
+       celt_pvq_search@$CONFIG_OPUS_ENCODER                                     \
+       cfhddsp@$CONFIG_CFHD_DECODER                                             \
+       cfhdencdsp@$CONFIG_CFHD_ENCODER                                          \
+       dcadsp@$CONFIG_DCA_DECODER                                               \
+       dct32@$CONFIG_MPEGAUDIODSP                                               \
+       dirac_dwt@$CONFIG_DIRAC_DECODER                                          \
+       diracdsp@$CONFIG_DIRAC_DECODER                                           \
+       dnxhdenc@$CONFIG_DNXHD_ENCODER                                           \
+       exrdsp@$CONFIG_EXR_DECODER                                               \
+       flacdsp@$CONFIG_FLAC_DECODER                                             \
+       fmtconvert@$CONFIG_FMTCONVERT                                            \
+       fpel@($CONFIG_H264QPEL || $CONFIG_HPELDSP || $CONFIG_QPELDSP)            \
+       h263_loopfilter@$CONFIG_H263DSP                                          \
+       h264_chromamc@$CONFIG_H264CHROMA                                         \
+       h264_chromamc_10bit@$CONFIG_H264CHROMA                                   \
+       h264_deblock@$CONFIG_H264DSP                                             \
+       h264_deblock_10bit@$CONFIG_H264DSP                                       \
+       h264_idct@$CONFIG_H264DSP                                                \
+       h264_idct_10bit@$CONFIG_H264DSP                                          \
+       h264_intrapred@$CONFIG_H264PRED                                          \
+       h264_intrapred_10bit@$CONFIG_H264PRED                                    \
+       h264_qpel_10bit@$CONFIG_H264QPEL                                         \
+       h264_qpel_8bit@$CONFIG_H264QPEL                                          \
+       h264_weight@$CONFIG_H264DSP                                              \
+       h264_weight_10bit@$CONFIG_H264DSP                                        \
+       h26x/h2656_inter@($CONFIG_VVC_DECODER || $CONFIG_HEVC_DECODER)           \
+       hevc_add_res@$CONFIG_HEVC_DECODER                                        \
+       hevc_deblock@$CONFIG_HEVC_DECODER                                        \
+       hevc_idct@$CONFIG_HEVC_DECODER                                           \
+       hevc_mc@$CONFIG_HEVC_DECODER                                             \
+       hevc_sao@$CONFIG_HEVC_DECODER                                            \
+       hevc_sao_10bit@$CONFIG_HEVC_DECODER                                      \
+       hpeldsp@$CONFIG_HPELDSP                                                  \
+       huffyuvdsp@$CONFIG_HUFFYUVDSP                                            \
+       huffyuvencdsp@$CONFIG_HUFFYUVENCDSP                                      \
+       idctdsp@$CONFIG_IDCTDSP                                                  \
+       imdct36@$CONFIG_MPEGAUDIODSP                                             \
+       jpeg2000dsp@$CONFIG_JPEG2000_DECODER                                     \
+       lossless_audiodsp@$CONFIG_LLAUDDSP                                       \
+       lossless_videodsp@$CONFIG_LLVIDDSP                                       \
+       lossless_videoencdsp@$CONFIG_LLVIDENCDSP                                 \
+       lpc@$CONFIG_LPC                                                          \
+       me_cmp@$CONFIG_ME_CMP                                                    \
+       mlpdsp@($CONFIG_TRUEHD_DECODER || $CONFIG_MLP_DECODER)                   \
+       mpegvideoencdsp@$CONFIG_MPEGVIDEOENC                                     \
+       opusdsp@$CONFIG_OPUS_DECODER                                             \
+       pixblockdsp@$CONFIG_PIXBLOCKDSP                                          \
+       pngdsp@($CONFIG_APNG_DECODER ||                                          \
+               $CONFIG_LSCR_DECODER ||                                          \
+               $CONFIG_PNG_DECODER)                                             \
+       proresdsp@($CONFIG_PRORES_DECODER || $CONFIG_PRORES_LGPL_DECODER)        \
+       qpel@($CONFIG_H264QPEL || $CONFIG_QPELDSP)                               \
+       qpeldsp@$CONFIG_QPELDSP                                                  \
+       rv34dsp@$CONFIG_RV34DSP                                                  \
+       rv40dsp@$CONFIG_RV40_DECODER                                             \
+       sbcdsp@$CONFIG_SBC_ENCODER                                               \
+       sbrdsp@$CONFIG_AAC_DECODER                                               \
+       svq1enc@$CONFIG_SVQ1_ENCODER                                             \
+       synth_filter@$CONFIG_DCA_DECODER                                         \
+       takdsp@$CONFIG_TAK_DECODER                                               \
+       ttadsp@$CONFIG_TTA_DECODER                                               \
+       ttaencdsp@$CONFIG_TTA_ENCODER                                            \
+       utvideodsp@$CONFIG_UTVIDEO_DECODER                                       \
+       v210@$CONFIG_V210_DECODER                                                \
+       v210enc@$CONFIG_V210_ENCODER                                             \
+       vc1dsp_loopfilter@$CONFIG_VC1DSP                                         \
+       vc1dsp_mc@$CONFIG_VC1DSP                                                 \
+       videodsp@$CONFIG_VIDEODSP                                                \
+       vorbisdsp@$CONFIG_VORBIS_DECODER                                         \
+       vp3dsp@$CONFIG_VP3DSP                                                    \
+       vp6dsp@$CONFIG_VP6_DECODER                                               \
+       vp8dsp@($CONFIG_VP8DSP || $CONFIG_WEBP_DECODER)                          \
+       vp8dsp_loopfilter@$CONFIG_VP8DSP                                         \
+       vp9intrapred@$CONFIG_VP9_DECODER                                         \
+       vp9intrapred_16bpp@$CONFIG_VP9_DECODER                                   \
+       vp9itxfm@$CONFIG_VP9_DECODER                                             \
+       vp9itxfm_16bpp@$CONFIG_VP9_DECODER                                       \
+       vp9lpf@$CONFIG_VP9_DECODER                                               \
+       vp9lpf_16bpp@$CONFIG_VP9_DECODER                                         \
+       vp9mc@$CONFIG_VP9_DECODER                                                \
+       vp9mc_16bpp@$CONFIG_VP9_DECODER                                          \
+       vvc/vvc_mc@$CONFIG_VVC_DECODER                                           \
+       xvididct@$CONFIG_MPEG4_DECODER
+{
+  n = $first($p)  # Source file name
+  m = $second($p) # Check macro value
+
+  # Dependencies of the shared and static libraries on their respective object
+  # files.
+  #
+  libus{avcodec}: libavcodec/x86/objs{$(n).asm.so.o}: \
+    include = ($HAVE_X86ASM && $m)
+  libua{avcodec}: libavcodec/x86/obja{$(n).asm.a.o}: \
+    include = ($HAVE_X86ASM && $m)
+
+  # Dependencies of the object files on the .asm source file.
+  #
+  libavcodec/x86/objs{$(n).asm.so.o}: libavcodec/x86/asm{$n} $config_asm
+  libavcodec/x86/obja{$(n).asm.a.o}:  libavcodec/x86/asm{$n} $config_asm
+}
+
+# As above but only for g722dsp which is a bit different.
+#
+libus{avcodec}: libavcodec/x86/objs{g722dsp.asm.so.o}:          \
+  include = ($HAVE_X86ASM && ($CONFIG_ADPCM_G722_DECODER ||     \
+                              $CONFIG_ADPCM_G722_ENCODER))
+libua{avcodec}: libavcodec/x86/obja{g722dsp.asm.a.o}:           \
+  include = ($HAVE_X86ASM && ($CONFIG_ADPCM_G722_DECODER ||     \
+                              $CONFIG_ADPCM_G722_ENCODER))
+
+# Dependencies of the object files on the .asm source file.
+#
+libavcodec/x86/objs{g722dsp.asm.so.o}: libavcodec/x86/asm{g722dsp} $config_asm
+libavcodec/x86/obja{g722dsp.asm.a.o}:  libavcodec/x86/asm{g722dsp} $config_asm
+
+# As above but only for simple_idct.asm and simple_idct10.asm which are a bit
+# different.
+#
+libus{avcodec}: libavcodec/x86/objs{simple_idct10.asm.so.o}: \
+  include = ($ARCH_X86_64 && $HAVE_X86ASM && $CONFIG_IDCTDSP)
+libua{avcodec}: libavcodec/x86/obja{simple_idct10.asm.a.o}: \
+  include = ($ARCH_X86_64 && $HAVE_X86ASM && $CONFIG_IDCTDSP)
+libavcodec/x86/objs{simple_idct10.asm.so.o}: libavcodec/x86/asm{simple_idct10} $config_asm
+libavcodec/x86/obja{simple_idct10.asm.a.o}:  libavcodec/x86/asm{simple_idct10} $config_asm
+
+libus{avcodec}: libavcodec/x86/objs{simple_idct.asm.so.o}: \
+  include = (!$ARCH_X86_64 && $HAVE_X86ASM && $CONFIG_IDCTDSP)
+libua{avcodec}: libavcodec/x86/obja{simple_idct.asm.a.o}: \
+  include = (!$ARCH_X86_64 && $HAVE_X86ASM && $CONFIG_IDCTDSP)
+libavcodec/x86/objs{simple_idct.asm.so.o}: libavcodec/x86/asm{simple_idct} $config_asm
+libavcodec/x86/obja{simple_idct.asm.a.o}:  libavcodec/x86/asm{simple_idct} $config_asm
+
+# As above but only for flac_dsp_gpl.asm which is a bit different.
+#
+libus{avcodec}: libavcodec/x86/objs{flac_dsp_gpl.asm.so.o}:     \
+  include = ($CONFIG_GPL && $HAVE_X86ASM && $CONFIG_FLAC_ENCODER)
+libua{avcodec}: libavcodec/x86/obja{flac_dsp_gpl.asm.a.o}:      \
+  include = ($CONFIG_GPL && $HAVE_X86ASM && $CONFIG_FLAC_ENCODER)
+libavcodec/x86/objs{flac_dsp_gpl.asm.so.o}: libavcodec/x86/asm{flac_dsp_gpl} $config_asm
+libavcodec/x86/obja{flac_dsp_gpl.asm.a.o}:  libavcodec/x86/asm{flac_dsp_gpl} $config_asm

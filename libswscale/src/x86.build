@@ -1,0 +1,36 @@
+# X86
+#
+libul{swscale}: libswscale/x86/c{rgb2rgb        \
+                                 swscale        \
+                                 yuv2rgb}: include = $ARCH_X86
+
+libul{swscale}: libswscale/x86/c{hscale_fast_bilinear_simd}: \
+  include = ($ARCH_X86 && $HAVE_MMX)
+
+libul{swscale}: libswscale/x86/c{w64xmmtest}: \
+  include = ($ARCH_X86 && $CONFIG_XMM_CLOBBER_TEST)
+
+# X86 assembly sources
+#
+# There is no built-in rule to synthesize the libu{s,a} -> obj{s,a} -> asm{}
+# dependencies so we have to do it manually.
+#
+for n: input            \
+       output           \
+       scale            \
+       scale_avx2       \
+       rgb_2_rgb        \
+       yuv_2_rgb        \
+       yuv2yuvX
+{
+  # Dependencies of the shared and static libraries on their respecive object
+  # files.
+  #
+  libus{swscale}: libswscale/x86/objs{$(n).asm.so.o}: include = $HAVE_X86ASM
+  libua{swscale}: libswscale/x86/obja{$(n).asm.a.o}:  include = $HAVE_X86ASM
+
+  # Dependencies of the object files on the .asm source file.
+  #
+  libswscale/x86/objs{$(n).asm.so.o}: libswscale/x86/asm{$n} $config_asm
+  libswscale/x86/obja{$(n).asm.a.o}:  libswscale/x86/asm{$n} $config_asm
+}

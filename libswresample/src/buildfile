@@ -105,37 +105,7 @@ libul{swresample}: buildfile{config} # Ensure it gets cleaned.
 # Conditionally-compiled source files
 #
 
-# X86
-#
-libul{swresample}: libswresample/x86/c{audio_convert_init       \
-                                       rematrix_init            \
-                                       resample_init}: include = $ARCH_X86
-
-libul{swresample}: libswresample/x86/c{w64xmmtest}: \
-  include = ($ARCH_X86 && $CONFIG_XMM_CLOBBER_TEST)
-
-# X86 assembly sources
-#
-# There is no built-in rule to synthesize the libu{s,a} -> obj{s,a} -> asm{}
-# dependencies so we have to do it manually.
-#
-for n: audio_convert    \
-       rematrix         \
-       resample
-{
-  # Dependencies of the shared and static libraries on their respecive object
-  # files.
-  #
-  libus{swresample}: libswresample/x86/objs{$(n).asm.so.o}: include = $HAVE_X86ASM
-  libua{swresample}: libswresample/x86/obja{$(n).asm.a.o}:  include = $HAVE_X86ASM
-
-  # Dependencies of the object files on the .asm source file.
-  #
-  libswresample/x86/objs{$(n).asm.so.o}: libswresample/x86/asm{$n} $config_asm
-  libswresample/x86/obja{$(n).asm.a.o}:  libswresample/x86/asm{$n} $config_asm
-}
-
-# @@ TODO Other CPU architectures (probably aarch64 next).
+include ./x86.build
 
 # Windows Resources
 #

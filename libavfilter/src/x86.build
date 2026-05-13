@@ -1,0 +1,106 @@
+# x86
+#
+libul{avfilter}: libavfilter/x86/c{af_afir_init}: include = ($ARCH_X86 && $CONFIG_AFIR_FILTER)
+libul{avfilter}: libavfilter/x86/c{af_anlmdn_init}: include = ($ARCH_X86 && $CONFIG_ANLMDN_FILTER)
+libul{avfilter}: libavfilter/x86/c{af_volume_init}: include = ($ARCH_X86 && $CONFIG_VOLUME_FILTER)
+libul{avfilter}: libavfilter/x86/c{avf_showcqt_init}: include = ($ARCH_X86 && $CONFIG_SHOWCQT_FILTER)
+libul{avfilter}: libavfilter/x86/c{colorspacedsp_init}: include = ($ARCH_X86 && $CONFIG_COLORSPACE_FILTER)
+libul{avfilter}: libavfilter/x86/c{scene_sad_init}: include = ($ARCH_X86 && $CONFIG_SCENE_SAD)
+libul{avfilter}: libavfilter/x86/c{vf_atadenoise_init}: include = ($ARCH_X86 && $CONFIG_ATADENOISE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_blend_init}: include = ($ARCH_X86 && ($CONFIG_BLEND_FILTER || $CONFIG_TBLEND_FILTER))
+libul{avfilter}: libavfilter/x86/c{vf_bwdif_init}: include = ($ARCH_X86 && $CONFIG_BWDIF_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_convolution_init}: include = ($ARCH_X86 && $CONFIG_CONVOLUTION_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_eq_init}: include = ($ARCH_X86 && $CONFIG_EQ_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_framerate_init}: include = ($ARCH_X86 && $CONFIG_FRAMERATE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_fspp_init}: include = ($ARCH_X86 && $CONFIG_FSPP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_gblur_init}: include = ($ARCH_X86 && $CONFIG_GBLUR_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_gradfun_init}: include = ($ARCH_X86 && $CONFIG_GRADFUN_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_hflip_init}: include = ($ARCH_X86 && $CONFIG_HFLIP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_hqdn3d_init}: include = ($ARCH_X86 && $CONFIG_HQDN3D_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_idet_init}: include = ($ARCH_X86 && $CONFIG_IDET_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_limiter_init}: include = ($ARCH_X86 && $CONFIG_LIMITER_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_lut3d_init}: include = ($ARCH_X86 && $CONFIG_LUT3D_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_maskedclamp_init}: include = ($ARCH_X86 && $CONFIG_MASKEDCLAMP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_maskedmerge_init}: include = ($ARCH_X86 && $CONFIG_MASKEDMERGE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_nlmeans_init}: include = ($ARCH_X86 && $CONFIG_NLMEANS_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_noise}: include = ($ARCH_X86 && $CONFIG_NOISE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_overlay_init}: include = ($ARCH_X86 && $CONFIG_OVERLAY_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_pp7_init}: include = ($ARCH_X86 && $CONFIG_PP7_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_psnr_init}: include = ($ARCH_X86 && $CONFIG_PSNR_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_pullup_init}: include = ($ARCH_X86 && $CONFIG_PULLUP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_removegrain_init}: include = ($ARCH_X86 && $CONFIG_REMOVEGRAIN_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_spp}: include = ($ARCH_X86 && $CONFIG_SPP_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_ssim_init}: include = ($ARCH_X86 && $CONFIG_SSIM_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_stereo3d_init}: include = ($ARCH_X86 && $CONFIG_STEREO3D_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_threshold_init}: include = ($ARCH_X86 && $CONFIG_THRESHOLD_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_tinterlace_init}: include = ($ARCH_X86 && ($CONFIG_INTERLACE_FILTER || $CONFIG_TINTERLACE_FILTER))
+libul{avfilter}: libavfilter/x86/c{vf_transpose_init}: include = ($ARCH_X86 && $CONFIG_TRANSPOSE_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_v360_init}: include = ($ARCH_X86 && $CONFIG_V360_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_w3fdif_init}: include = ($ARCH_X86 && $CONFIG_W3FDIF_FILTER)
+libul{avfilter}: libavfilter/x86/c{vf_yadif_init}: include = ($ARCH_X86 && $CONFIG_YADIF_FILTER)
+
+# X86 assembly sources
+#
+# There is no built-in rule to synthesize the libu{s,a} -> obj{s,a} -> asm{}
+# dependencies so we have to do it manually.
+#
+# First is the source file name and second the value of the controlling
+# feature check macros (in addition to the usual HAVE_X86ASM).
+#
+for p: af_afir@$CONFIG_AFIR_FILTER                                      \
+       af_anlmdn@$CONFIG_ANLMDN_FILTER                                  \
+       af_volume@$CONFIG_VOLUME_FILTER                                  \
+       avf_showcqt@$CONFIG_SHOWCQT_FILTER                               \
+       colorspacedsp@$CONFIG_COLORSPACE_FILTER                          \
+       scene_sad@$CONFIG_SCENE_SAD                                      \
+       vf_atadenoise@$CONFIG_ATADENOISE_FILTER                          \
+       vf_blend@$CONFIG_BLEND_FILTER                                    \
+       vf_blend@$CONFIG_TBLEND_FILTER                                   \
+       vf_bwdif@$CONFIG_BWDIF_FILTER                                    \
+       vf_convolution@$CONFIG_CONVOLUTION_FILTER                        \
+       vf_eq@$CONFIG_EQ_FILTER                                          \
+       vf_framerate@$CONFIG_FRAMERATE_FILTER                            \
+       vf_fspp@$CONFIG_FSPP_FILTER                                      \
+       vf_gblur@$CONFIG_GBLUR_FILTER                                    \
+       vf_gradfun@$CONFIG_GRADFUN_FILTER                                \
+       vf_hflip@$CONFIG_HFLIP_FILTER                                    \
+       vf_hqdn3d@$CONFIG_HQDN3D_FILTER                                  \
+       vf_idet@$CONFIG_IDET_FILTER                                      \
+       vf_interlace@$CONFIG_INTERLACE_FILTER                            \
+       vf_interlace@$CONFIG_TINTERLACE_FILTER                           \
+       vf_limiter@$CONFIG_LIMITER_FILTER                                \
+       vf_lut3d@$CONFIG_LUT3D_FILTER                                    \
+       vf_maskedclamp@$CONFIG_MASKEDCLAMP_FILTER                        \
+       vf_maskedmerge@$CONFIG_MASKEDMERGE_FILTER                        \
+       vf_nlmeans@$CONFIG_NLMEANS_FILTER                                \
+       vf_overlay@$CONFIG_OVERLAY_FILTER                                \
+       vf_pp7@$CONFIG_PP7_FILTER                                        \
+       vf_psnr@$CONFIG_PSNR_FILTER                                      \
+       vf_pullup@$CONFIG_PULLUP_FILTER                                  \
+       vf_removegrain@($CONFIG_GPL && $CONFIG_REMOVEGRAIN_FILTER)       \
+       vf_ssim@$CONFIG_SSIM_FILTER                                      \
+       vf_stereo3d@$CONFIG_STEREO3D_FILTER                              \
+       vf_threshold@$CONFIG_THRESHOLD_FILTER                            \
+       vf_transpose@$CONFIG_TRANSPOSE_FILTER                            \
+       vf_v360@$CONFIG_V360_FILTER                                      \
+       vf_w3fdif@$CONFIG_W3FDIF_FILTER                                  \
+       vf_yadif@$CONFIG_YADIF_FILTER                                    \
+       yadif-10@$CONFIG_YADIF_FILTER                                    \
+       yadif-16@$CONFIG_YADIF_FILTER
+{
+  n = $first($p)  # Source file name
+  m = $second($p) # Check macro value
+
+  # Dependencies of the shared and static libraries on their respective object
+  # files.
+  #
+  libus{avfilter}: libavfilter/x86/objs{$(n).asm.so.o}: \
+    include = ($HAVE_X86ASM && $m)
+  libua{avfilter}: libavfilter/x86/obja{$(n).asm.a.o}: \
+    include = ($HAVE_X86ASM && $m)
+
+  # Dependencies of the object files on the .asm source file.
+  #
+  libavfilter/x86/objs{$(n).asm.so.o}: libavfilter/x86/asm{$n} $config_asm
+  libavfilter/x86/obja{$(n).asm.a.o}:  libavfilter/x86/asm{$n} $config_asm
+}

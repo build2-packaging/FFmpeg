@@ -1,0 +1,70 @@
+# X86
+
+# Included assembly sources.
+#
+libul{avutil}: libavutil/x86/asm{x86util x86inc}: \
+  include = ($ARCH_X86 ? adhoc : false)
+
+libul{avutil}: libavutil/x86/c{cpu              \
+                               fixed_dsp_init   \
+                               float_dsp_init   \
+                               imgutils_init    \
+                               lls_init}: include = $ARCH_X86
+
+libul{avutil}: libavutil/c{x86/tx_float_init}: include = $HAVE_X86ASM
+
+libul{avutil}: libavutil/c{x86/pixelutils_init}: include = ($ARCH_X86 &&        \
+                                                            $CONFIG_PIXELUTILS)
+
+# X86 assembly sources
+#
+# There is no built-in rule to synthesize the libu{s,a} -> obj{s,a} -> asm{}
+# dependencies so we have to do it manually.
+#
+for n: cpuid            \
+       fixed_dsp        \
+       float_dsp        \
+       imgutils         \
+       lls              \
+       tx_float
+{
+  # Dependencies of the shared and static libraries on their respecive object
+  # files.
+  #
+  libus{avutil}: libavutil/x86/objs{$(n).asm.so.o}: include = $HAVE_X86ASM
+  libua{avutil}: libavutil/x86/obja{$(n).asm.a.o}:  include = $HAVE_X86ASM
+
+  # Dependencies of the object files on the .asm source file.
+  #
+  libavutil/x86/objs{$(n).asm.so.o}: libavutil/x86/asm{$n} file{config.asm}
+  libavutil/x86/obja{$(n).asm.a.o}:  libavutil/x86/asm{$n} file{config.asm}
+}
+
+# As above but only for emms.asm which is a bit different.
+#
+# Note that due to the way HAVE_*_INLINE and HAVE_*_EXTERNAL are defined in
+# config.h we cannot import the values into the buildfile. Fortunately this is
+# the only place we need any HAVE_*_INLINE or HAVE_*_EXTERNAL variables in a
+# buildfile so it's probably OK to duplicate the config.h logic here.
+#
+have_mmx_external = $HAVE_MMX
+have_mmx_inline = ($HAVE_MMX && $HAVE_INLINE_ASM)
+
+include_emms = ($ARCH_X86          &&   \
+                $have_mmx_external &&   \
+                !$have_mmx_inline  &&   \
+                !$HAVE_MM_EMPTY)
+
+libus{avutil}: libavutil/x86/objs{emms.asm.so.o}: include = $include_emms
+libua{avutil}: libavutil/x86/obja{emms.asm.a.o}:  include = $include_emms
+libavutil/x86/objs{emms.asm.so.o}: libavutil/x86/asm{emms} file{config.asm}
+libavutil/x86/obja{emms.asm.a.o}:  libavutil/x86/asm{emms} file{config.asm}
+
+# As above but only for pixelutils.asm which is a bit different.
+#
+libus{avutil}: libavutil/x86/objs{pixelutils.asm.so.o}: \
+  include = ($ARCH_X86 && $CONFIG_PIXELUTILS)
+libua{avutil}: libavutil/x86/obja{pixelutils.asm.a.o}: \
+  include = ($ARCH_X86 && $CONFIG_PIXELUTILS)
+libavutil/x86/objs{pixelutils.asm.so.o}: libavutil/x86/asm{pixelutils} file{config.asm}
+libavutil/x86/obja{pixelutils.asm.a.o}:  libavutil/x86/asm{pixelutils} file{config.asm}
