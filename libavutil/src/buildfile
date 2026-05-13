@@ -745,7 +745,7 @@ libul{avutil}: libavutil/c{hwcontext_vdpau}:      include = $CONFIG_VDPAU
 libul{avutil}: libavutil/c{hwcontext_videotoolbox}:  include = $CONFIG_VIDEOTOOLBOX
 libul{avutil}: libavutil/c{hwcontext_vulkan vulkan}: include = $CONFIG_VULKAN
 
-include ./x86.build
+source ./x86.build
 
 # Windows Resources
 #

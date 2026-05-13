@@ -692,7 +692,7 @@ libul{avfilter}: buildfile{config} # Ensure it gets cleaned.
 #
 # @@ TODO include $(SRC_PATH)/libavfilter/dnn/Makefile
 
-include ./x86.build
+source ./x86.build
 
 libul{avfilter}: libavfilter/c{aeval}: include = ($CONFIG_AEVALSRC_FILTER || $CONFIG_AEVAL_FILTER)
 libul{avfilter}: libavfilter/c{af_aap}: include = $CONFIG_AAP_FILTER

@@ -2348,7 +2348,7 @@ libul{avcodec}: libavcodec/vvc/c{vvc_thread}: include = $CONFIG_VVC_DECODER
 libul{avcodec}: libavcodec/vvc/c{vvcdec}: include = $CONFIG_VVC_DECODER
 libul{avcodec}: libavcodec/vvc/c{vvcdsp}: include = $CONFIG_VVC_DECODER
 
-include ./x86.build
+source ./x86.build
 
 # Windows Resources
 #

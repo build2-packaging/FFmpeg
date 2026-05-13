@@ -112,7 +112,7 @@ libul{swscale}: buildfile{config} # Ensure it gets cleaned.
 # Conditionally-compiled source files
 #
 
-include ./x86.build
+source ./x86.build
 
 # Windows Resources
 #
