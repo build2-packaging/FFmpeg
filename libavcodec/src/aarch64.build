@@ -1,0 +1,105 @@
+# AARCH64
+#
+# subsystems
+libul{avcodec}: libavcodec/aarch64/c{fmtconvert_init}: include = ($ARCH_AARCH64 && $CONFIG_FMTCONVERT)
+
+libul{avcodec}: libavcodec/aarch64/c{h264chroma_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_H264CHROMA)
+
+libul{avcodec}: libavcodec/aarch64/c{h264dsp_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_H264DSP)
+
+libul{avcodec}: libavcodec/aarch64/c{h264pred_init}: include = ($ARCH_AARCH64 && $CONFIG_H264PRED)
+
+libul{avcodec}: libavcodec/aarch64/c{h264qpel_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_H264QPEL)
+
+libul{avcodec}: libavcodec/aarch64/c{hpeldsp_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_HPELDSP)
+
+libul{avcodec}: libavcodec/aarch64/c{idctdsp_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_IDCTDSP)
+
+libul{avcodec}: libavcodec/aarch64/c{me_cmp_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_ME_CMP)
+
+libul{avcodec}: libavcodec/aarch64/c{mpegaudiodsp_init}: include = ($ARCH_AARCH64 && $CONFIG_MPEGAUDIODSP)
+
+libul{avcodec}: libavcodec/aarch64/c{neontest}: include = ($ARCH_AARCH64 && $CONFIG_NEON_CLOBBER_TEST)
+
+libul{avcodec}: libavcodec/aarch64/c{pixblockdsp_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_PIXBLOCKDSP)
+
+libul{avcodec}: libavcodec/aarch64/c{videodsp_init}: include = ($ARCH_AARCH64 && $CONFIG_VIDEODSP)
+
+libul{avcodec}: libavcodec/aarch64/c{vp8dsp_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_VP8DSP)
+
+# decoders/encoders
+libul{avcodec}: libavcodec/aarch64/c{aacpsdsp_init_aarch64 \
+                                     sbrdsp_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_AAC_DECODER)
+
+libul{avcodec}: libavcodec/aarch64/c{synth_filter_init}: include = ($ARCH_AARCH64 && $CONFIG_DCA_DECODER)
+
+libul{avcodec}: libavcodec/aarch64/c{opusdsp_init}: include = ($ARCH_AARCH64 && $CONFIG_OPUS_DECODER)
+
+libul{avcodec}: libavcodec/aarch64/c{rv40dsp_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_RV40_DECODER)
+
+libul{avcodec}: libavcodec/aarch64/c{vc1dsp_init_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_VC1DSP)
+
+libul{avcodec}: libavcodec/aarch64/c{vorbisdsp_init}: include = ($ARCH_AARCH64 && $CONFIG_VORBIS_DECODER)
+
+libul{avcodec}: libavcodec/aarch64/c{vp9dsp_init_10bpp_aarch64 \
+                                     vp9dsp_init_12bpp_aarch64  \
+                                     vp9dsp_init_aarch64}       \
+                libavcodec/aarch64/S{vp9mc_aarch64}: include = ($ARCH_AARCH64 && $CONFIG_VP9_DECODER)
+
+# ARMv8 optimizations
+#
+libul{avcodec}: libavcodec/aarch64/S{videodsp}: include = ($CONFIG_VIDEODSP && $HAVE_ARMV8)
+
+# NEON optimizations
+#
+# subsystems
+libul{avcodec}: libavcodec/aarch64/S{fmtconvert_neon}: include = ($CONFIG_FMTCONVERT && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{h264cmc_neon}: include = ($CONFIG_H264CHROMA && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{h264dsp_neon  \
+                                     h264idct_neon}: include = ($CONFIG_H264DSP && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{h264pred_neon}: include = ($CONFIG_H264PRED && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{h264qpel_neon}: include = ($CONFIG_H264QPEL && $HAVE_NEON)
+
+# hpeldsp_neon.S is shared between CONFIG_H264QPEL and CONFIG_HPELDSP
+libul{avcodec}: libavcodec/aarch64/S{hpeldsp_neon}: include = (($CONFIG_H264QPEL || $CONFIG_HPELDSP) && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{idctdsp_neon    \
+                                     simple_idct_neon}: include = ($CONFIG_IDCTDSP && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{me_cmp_neon}: include = ($CONFIG_ME_CMP && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{mpegaudiodsp_neon}: include = ($CONFIG_MPEGAUDIODSP && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{pixblockdsp_neon}: include = ($CONFIG_PIXBLOCKDSP && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{vc1dsp_neon}: include = ($CONFIG_VC1DSP && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{vp8dsp_neon}: include = ($CONFIG_VP8DSP && $HAVE_NEON)
+
+# decoders/encoders
+libul{avcodec}: libavcodec/aarch64/S{aacpsdsp_neon \
+                                     sbrdsp_neon}: include = ($CONFIG_AAC_DECODER && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{synth_filter_neon}: include = ($CONFIG_DCA_DECODER && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{opusdsp_neon}: include = ($CONFIG_OPUS_DECODER && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{vorbisdsp_neon}: include = ($CONFIG_VORBIS_DECODER && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/S{vp9itxfm_16bpp_neon \
+                                     vp9itxfm_neon        \
+                                     vp9lpf_16bpp_neon    \
+                                     vp9lpf_neon          \
+                                     vp9mc_16bpp_neon     \
+                                     vp9mc_neon}: include = ($CONFIG_VP9_DECODER && $HAVE_NEON)
+
+libul{avcodec}: libavcodec/aarch64/c{hevcdsp_init_aarch64}  \
+                libavcodec/aarch64/S{hevcdsp_deblock_neon    \
+                                     hevcdsp_epel_neon       \
+                                     hevcdsp_idct_neon       \
+                                     hevcdsp_qpel_neon       \
+                                     hevcdsp_sao_neon}: include = ($CONFIG_HEVC_DECODER && $HAVE_NEON)

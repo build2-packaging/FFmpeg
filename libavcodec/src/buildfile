@@ -113,7 +113,10 @@ libul{avcodec}: libavcodec/c{log2_tab \
 
 # The macros to be extracted from config.h as buildfile variables.
 #
-config_macros = ARCH_X86                                \
+config_macros = ARCH_AARCH64                            \
+                ARCH_ARM                                \
+                ARCH_PPC                                \
+                ARCH_X86                                \
                 ARCH_X86_64                             \
                 CONFIG_A64MULTI5_ENCODER                \
                 CONFIG_A64MULTI_ENCODER                 \
@@ -442,6 +445,7 @@ config_macros = ARCH_X86                                \
                 CONFIG_FTR_DECODER                      \
                 CONFIG_FTR_PARSER                       \
                 CONFIG_G2M_DECODER                      \
+                CONFIG_G722DSP                          \
                 CONFIG_G723_1_DECODER                   \
                 CONFIG_G723_1_ENCODER                   \
                 CONFIG_G723_1_PARSER                    \
@@ -793,6 +797,7 @@ config_macros = ARCH_X86                                \
                 CONFIG_MXPEG_DECODER                    \
                 CONFIG_NELLYMOSER_DECODER               \
                 CONFIG_NELLYMOSER_ENCODER               \
+                CONFIG_NEON_CLOBBER_TEST                \
                 CONFIG_NOISE_BSF                        \
                 CONFIG_NOTCHLC_DECODER                  \
                 CONFIG_NULL_BSF                         \
@@ -1208,10 +1213,16 @@ config_macros = ARCH_X86                                \
                 CONFIG_ZLIB_ENCODER                     \
                 CONFIG_ZMBV_DECODER                     \
                 CONFIG_ZMBV_ENCODER                     \
+                HAVE_ARMV5TE                            \
+                HAVE_ARMV6                              \
+                HAVE_ARMV8                              \
                 HAVE_GNU_WINDRES                        \
+                HAVE_INTRINSICS_NEON                    \
                 HAVE_LIBC_MSVCRT                        \
                 HAVE_MMX                                \
+                HAVE_NEON                               \
                 HAVE_THREADS                            \
+                HAVE_VFP                                \
                 HAVE_X86ASM
 
 # Note that we don't need to pass *.poptions because every macro imported from
@@ -2348,7 +2359,13 @@ libul{avcodec}: libavcodec/vvc/c{vvc_thread}: include = $CONFIG_VVC_DECODER
 libul{avcodec}: libavcodec/vvc/c{vvcdec}: include = $CONFIG_VVC_DECODER
 libul{avcodec}: libavcodec/vvc/c{vvcdsp}: include = $CONFIG_VVC_DECODER
 
+# NEON intrinsics (C files using arm_neon.h, all architectures with NEON)
+#
+libul{avcodec}: libavcodec/neon/c{mpegvideo}: include = ($CONFIG_MPEGVIDEO && $HAVE_INTRINSICS_NEON)
+
 source ./x86.build
+source ./arm.build
+source ./aarch64.build
 
 # Windows Resources
 #

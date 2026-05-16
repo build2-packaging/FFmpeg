@@ -746,6 +746,8 @@ libul{avutil}: libavutil/c{hwcontext_videotoolbox}:  include = $CONFIG_VIDEOTOOL
 libul{avutil}: libavutil/c{hwcontext_vulkan vulkan}: include = $CONFIG_VULKAN
 
 source ./x86.build
+source ./arm.build
+source ./aarch64.build
 
 # Windows Resources
 #
