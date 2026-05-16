@@ -1,0 +1,9 @@
+# AARCH64
+#
+libul{swresample}: libswresample/aarch64/c{audio_convert_init \
+                                           resample_init}: include = $ARCH_AARCH64
+
+libul{swresample}: libswresample/aarch64/c{neontest}: include = ($ARCH_AARCH64 && $CONFIG_NEON_CLOBBER_TEST)
+
+libul{swresample}: libswresample/aarch64/S{audio_convert_neon \
+                                           resample}: include = ($ARCH_AARCH64 && $HAVE_NEON)

@@ -1,0 +1,9 @@
+# ARM
+#
+libul{swresample}: libswresample/arm/c{audio_convert_init \
+                                       resample_init}: include = $ARCH_ARM
+
+libul{swresample}: libswresample/arm/c{neontest}: include = ($ARCH_ARM && $CONFIG_NEON_CLOBBER_TEST)
+
+libul{swresample}: libswresample/arm/S{audio_convert_neon \
+                                       resample}: include = ($ARCH_ARM && $HAVE_NEON)

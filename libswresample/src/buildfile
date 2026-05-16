@@ -66,9 +66,15 @@ libul{swresample}: libswresample/c{log2_tab}
 
 # The macros to be extracted from config.h as buildfile variables.
 #
-config_macros = ARCH_X86                \
-                CONFIG_LIBSOXR          \
-                CONFIG_XMM_CLOBBER_TEST \
+config_macros = ARCH_AARCH64              \
+                ARCH_ARM                  \
+                ARCH_PPC                  \
+                ARCH_X86                  \
+                CONFIG_LIBSOXR            \
+                CONFIG_NEON_CLOBBER_TEST  \
+                CONFIG_XMM_CLOBBER_TEST   \
+                HAVE_NEON                 \
+                HAVE_VFP                  \
                 HAVE_X86ASM
 
 # Note that we don't need to pass *.poptions because every macro imported from
@@ -106,6 +112,8 @@ libul{swresample}: buildfile{config} # Ensure it gets cleaned.
 #
 
 source ./x86.build
+source ./arm.build
+source ./aarch64.build
 
 # Windows Resources
 #
