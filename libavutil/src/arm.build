@@ -1,0 +1,10 @@
+# ARM
+#
+libul{avutil}: libavutil/arm/c{cpu              \
+                               float_dsp_init_arm}: include = $ARCH_ARM
+
+libul{avutil}: libavutil/arm/c{float_dsp_init_vfp}: include = ($ARCH_ARM && $HAVE_VFP)
+libul{avutil}: libavutil/arm/S{float_dsp_vfp}:      include = ($ARCH_ARM && $HAVE_VFP)
+
+libul{avutil}: libavutil/arm/c{float_dsp_init_neon}: include = ($ARCH_ARM && $HAVE_NEON)
+libul{avutil}: libavutil/arm/S{float_dsp_neon}:      include = ($ARCH_ARM && $HAVE_NEON)

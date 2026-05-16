@@ -1,0 +1,8 @@
+# AARCH64
+#
+libul{avutil}: libavutil/aarch64/c{cpu            \
+                                   float_dsp_init  \
+                                   tx_float_init}: include = $ARCH_AARCH64
+
+libul{avutil}: libavutil/aarch64/S{float_dsp_neon \
+                                   tx_float_neon}: include = ($ARCH_AARCH64 && $HAVE_NEON)
