@@ -1,0 +1,10 @@
+# ARM
+#
+libul{swscale}: libswscale/arm/c{swscale          \
+                                 swscale_unscaled}: include = $ARCH_ARM
+
+libul{swscale}: libswscale/arm/S{rgb2yuv_neon_32 \
+                                 rgb2yuv_neon_16  \
+                                 hscale          \
+                                 output          \
+                                 yuv2rgb_neon}: include = ($ARCH_ARM && $HAVE_NEON)

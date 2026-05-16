@@ -72,10 +72,15 @@ libul{swscale}: libswscale/c{half2float \
 
 # The macros to be extracted from config.h as buildfile variables.
 #
-config_macros = ARCH_X86                \
+config_macros = ARCH_AARCH64            \
+                ARCH_ARM                \
+                ARCH_PPC                \
+                ARCH_X86                \
                 CONFIG_SWSCALE_ALPHA    \
                 CONFIG_XMM_CLOBBER_TEST \
                 HAVE_MMX                \
+                HAVE_NEON               \
+                HAVE_VFP                \
                 HAVE_X86ASM
 
 # Note that we don't need to pass *.poptions because every macro imported from
@@ -113,6 +118,8 @@ libul{swscale}: buildfile{config} # Ensure it gets cleaned.
 #
 
 source ./x86.build
+source ./arm.build
+source ./aarch64.build
 
 # Windows Resources
 #

@@ -1,0 +1,10 @@
+# AARCH64
+#
+libul{swscale}: libswscale/aarch64/c{rgb2rgb         \
+                                     swscale         \
+                                     swscale_unscaled}: include = $ARCH_AARCH64
+
+libul{swscale}: libswscale/aarch64/S{hscale      \
+                                     output      \
+                                     rgb2rgb_neon \
+                                     yuv2rgb_neon}: include = ($ARCH_AARCH64 && $HAVE_NEON)
