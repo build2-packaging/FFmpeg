@@ -43,6 +43,8 @@ libul{avcodec}: libavcodec/aarch64/c{vc1dsp_init_aarch64}: include = ($ARCH_AARC
 
 libul{avcodec}: libavcodec/aarch64/c{vorbisdsp_init}: include = ($ARCH_AARCH64 && $CONFIG_VORBIS_DECODER)
 
+libul{avcodec}: libavcodec/aarch64/c{vp9dsp_init_16bpp_aarch64_template}: include = ($ARCH_AARCH64 ? adhoc : false)
+
 libul{avcodec}: libavcodec/aarch64/c{vp9dsp_init_10bpp_aarch64 \
                                      vp9dsp_init_12bpp_aarch64  \
                                      vp9dsp_init_aarch64}       \

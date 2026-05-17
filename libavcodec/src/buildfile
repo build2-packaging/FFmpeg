@@ -2434,7 +2434,9 @@ for p: avcodec@true                             \
 
 # Source files included by tests.
 #
-libavcodec/exe{dct.test...}: libavcodec/include-test/x86/c{dct}: include = adhoc
+libavcodec/exe{dct.test...}: libavcodec/include-test/x86/c{dct}     \
+                              libavcodec/include-test/aarch64/c{dct} \
+                              libavcodec/include-test/arm/c{dct}: include = adhoc
 
 libavcodec/c{codec_list}: libavcodec/c{allcodecs}
 {{

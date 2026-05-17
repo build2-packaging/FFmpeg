@@ -75,6 +75,8 @@ libul{avcodec}: libavcodec/arm/c{vorbisdsp_init_arm}: include = ($ARCH_ARM && $C
 
 libul{avcodec}: libavcodec/arm/c{vp6dsp_init_arm}: include = ($ARCH_ARM && $CONFIG_VP6_DECODER)
 
+libul{avcodec}: libavcodec/arm/c{vp9dsp_init_16bpp_arm_template}: include = ($ARCH_ARM ? adhoc : false)
+
 libul{avcodec}: libavcodec/arm/c{vp9dsp_init_10bpp_arm \
                                  vp9dsp_init_12bpp_arm  \
                                  vp9dsp_init_arm}: include = ($ARCH_ARM && $CONFIG_VP9_DECODER)
