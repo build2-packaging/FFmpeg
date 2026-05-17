@@ -1,5 +1,7 @@
 # ARM
 #
+libul{avcodec}: libavcodec/arm/S{neon}: include = ($ARCH_ARM ? adhoc : false)
+
 # subsystems
 libul{avcodec}: libavcodec/arm/c{ac3dsp_init_arm} \
                 libavcodec/arm/S{ac3dsp_arm}: include = ($ARCH_ARM && $CONFIG_AC3DSP)

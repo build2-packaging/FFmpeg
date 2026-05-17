@@ -1,5 +1,7 @@
 # AARCH64
 #
+libul{avcodec}: libavcodec/aarch64/S{neon}: include = ($ARCH_AARCH64 ? adhoc : false)
+
 # subsystems
 libul{avcodec}: libavcodec/aarch64/c{fmtconvert_init}: include = ($ARCH_AARCH64 && $CONFIG_FMTCONVERT)
 

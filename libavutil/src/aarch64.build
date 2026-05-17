@@ -1,5 +1,7 @@
 # AARCH64
 #
+libul{avutil}: libavutil/aarch64/S{asm}: include = ($ARCH_AARCH64 ? adhoc : false)
+
 libul{avutil}: libavutil/aarch64/c{cpu            \
                                    float_dsp_init  \
                                    tx_float_init}: include = $ARCH_AARCH64

@@ -1,5 +1,7 @@
 # ARM
 #
+libul{avutil}: libavutil/arm/S{asm}: include = ($ARCH_ARM ? adhoc : false)
+
 libul{avutil}: libavutil/arm/c{cpu              \
                                float_dsp_init_arm}: include = $ARCH_ARM
 

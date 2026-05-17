@@ -1,5 +1,7 @@
 # ARM
 #
+libul{swscale}: libswscale/arm/S{rgb2yuv_neon_common}: include = ($ARCH_ARM ? adhoc : false)
+
 libul{swscale}: libswscale/arm/c{swscale          \
                                  swscale_unscaled}: include = $ARCH_ARM
 
