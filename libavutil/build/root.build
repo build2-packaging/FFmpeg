@@ -263,6 +263,10 @@ config [bool] config.libavutil.swscale_alpha                 ?= false
 config [bool] config.libavutil.gpl                           ?= false
 config [bool] config.libavutil.nonfree                       ?= false
 config [bool] config.libavutil.version3                      ?= false
+
+# Derived from gpl + version3; not independently configurable (mirrors upstream configure).
+config.libavutil.lgplv3 = ($config.libavutil.version3 && !$config.libavutil.gpl)
+config.libavutil.gplv3  = ($config.libavutil.version3 && $config.libavutil.gpl)
 config [bool] config.libavutil.dwt                           ?= false
 config [bool] config.libavutil.error_resilience              ?= true
 config [bool] config.libavutil.faan                          ?= false
@@ -325,7 +329,6 @@ config [bool] config.libavutil.fmtconvert                    ?= true
 config [bool] config.libavutil.frame_thread_encoder          ?= true
 config [bool] config.libavutil.g722dsp                       ?= true
 config [bool] config.libavutil.golomb                        ?= true
-config [bool] config.libavutil.gplv3                         ?= false
 config [bool] config.libavutil.h263dsp                       ?= true
 config [bool] config.libavutil.h264chroma                    ?= true
 config [bool] config.libavutil.h264dsp                       ?= true
@@ -348,7 +351,6 @@ config [bool] config.libavutil.intrax8                       ?= true
 config [bool] config.libavutil.iso_media                     ?= true
 config [bool] config.libavutil.ividsp                        ?= true
 config [bool] config.libavutil.jpegtables                    ?= true
-config [bool] config.libavutil.lgplv3                        ?= false
 config [bool] config.libavutil.libx262                       ?= false
 config [bool] config.libavutil.libx264_hdr10                 ?= false
 config [bool] config.libavutil.llauddsp                      ?= true
