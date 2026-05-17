@@ -786,6 +786,11 @@ libavutil/exe{cpu.test...}: compat/getopt.c: include = (!$HAVE_GETOPT ? adhoc : 
 #
 libavutil/exe{random_seed.test...}: test = false
 
+# softfloat.test reads pmccntr_el0 via timer.h which SIGILLs on Linux aarch64
+# because kernel PMU user-space access (PMUSERENR_EL0.EN) is disabled by default.
+#
+libavutil/exe{softfloat.test...}: test = (!$tgt_aarch64 || $tgt_macos)
+
 # Conditional test pixelutils.test.
 #
 if! $CONFIG_PIXELUTILS
