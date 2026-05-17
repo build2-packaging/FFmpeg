@@ -20,7 +20,7 @@ config [bool] config.libavutil.avdevice   ?= true
 config [bool] config.libavutil.avfilter   ?= true
 config [bool] config.libavutil.avformat   ?= true
 config [bool] config.libavutil.avutil     ?= true
-config [bool] config.libavutil.postproc   ?= true
+config [bool] config.libavutil.postproc   ?= false
 config [bool] config.libavutil.swresample ?= true
 config [bool] config.libavutil.swscale    ?= true
 
@@ -348,7 +348,7 @@ config [bool] config.libavutil.intrax8                       ?= true
 config [bool] config.libavutil.iso_media                     ?= true
 config [bool] config.libavutil.ividsp                        ?= true
 config [bool] config.libavutil.jpegtables                    ?= true
-config [bool] config.libavutil.lgplv3                        ?= true
+config [bool] config.libavutil.lgplv3                        ?= false
 config [bool] config.libavutil.libx262                       ?= false
 config [bool] config.libavutil.libx264_hdr10                 ?= false
 config [bool] config.libavutil.llauddsp                      ?= true

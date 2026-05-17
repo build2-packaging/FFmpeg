@@ -25,7 +25,7 @@ h{config}: in{config.h.cmake}
   CONFIG_AVDEVICE                      = true
   CONFIG_AVFILTER                      = true
   CONFIG_SWSCALE                       = true
-  CONFIG_POSTPROC                      = true
+  CONFIG_POSTPROC                      = $config.libavutil.postproc
   CONFIG_AVFORMAT                      = true
   CONFIG_AVCODEC                       = true
   CONFIG_SWRESAMPLE                    = true
