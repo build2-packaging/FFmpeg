@@ -1,4 +1,7 @@
+aarch64 symlink=dir
+arm symlink=dir
 bsf symlink=dir
 h26x symlink=dir
+neon symlink=dir
 vvc symlink=dir
 x86 symlink=dir

@@ -1,1 +1,3 @@
+aarch64 symlink=dir
+arm symlink=dir
 x86 symlink=dir
