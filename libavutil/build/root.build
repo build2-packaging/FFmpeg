@@ -264,9 +264,41 @@ config [bool] config.libavutil.gpl                           ?= false
 config [bool] config.libavutil.nonfree                       ?= false
 config [bool] config.libavutil.version3                      ?= false
 
-# Derived from gpl + version3; not independently configurable (mirrors upstream configure).
+# Derived from gpl + version3. Not independently configurable (mirrors upstream
+# configure).
+#
 config.libavutil.lgplv3 = ($config.libavutil.version3 && !$config.libavutil.gpl)
 config.libavutil.gplv3  = ($config.libavutil.version3 && $config.libavutil.gpl)
+
+# License enforcement (mirrors upstream configure's die_license_disabled checks).
+#
+if ($config.libavutil.postproc && !$config.libavutil.gpl)
+  fail "postproc requires config.libavutil.gpl=true"
+
+for gpl_lib: avisynth frei0r libcdio libdavs2 libdvdnav libdvdread librubberband libvidstab libx264 libx265 libxavs libxavs2 libxvid
+{
+  n = config.libavutil.$gpl_lib
+  if ($($n) && !$config.libavutil.gpl)
+    fail "$gpl_lib requires config.libavutil.gpl=true"
+}
+
+if ($config.libavutil.libsmbclient && (!$config.libavutil.gpl || !$config.libavutil.version3))
+  fail "libsmbclient requires config.libavutil.gpl=true and config.libavutil.version3=true"
+
+for version3_lib: gmp libaribb24 liblensfun libopencore_amrnb libopencore_amrwb libvo_amrwbenc mbedtls rkmpp
+{
+  n = config.libavutil.$version3_lib
+  if ($($n) && !$config.libavutil.version3)
+    fail "$version3_lib requires config.libavutil.version3=true"
+}
+
+for nonfree_lib: decklink libfdk_aac libtls
+{
+  n = config.libavutil.$nonfree_lib
+  if ($($n) && !$config.libavutil.nonfree)
+    fail "$nonfree_lib requires config.libavutil.nonfree=true"
+}
+
 config [bool] config.libavutil.dwt                           ?= false
 config [bool] config.libavutil.error_resilience              ?= true
 config [bool] config.libavutil.faan                          ?= false
