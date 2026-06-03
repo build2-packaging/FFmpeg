@@ -521,6 +521,13 @@ if $windows
   }
 }
 
+# @@ TODO Update the autoconf check to reflect it's not available on
+# arm/aarch64.
+# Pending: https://github.com/build2/libbuild2-autoconf/pull/86
+#
+if ($regex.match("$c.target.cpu", '(arm|aarch64)') && $c.id == 'clang')
+  h{config-autoconf-checks}: HAVE_AS_FUNC = false
+
 # Although MSVC does support F16C it does not support the _Float16 type that
 # FFmpeg uses when this macro is true.
 #
