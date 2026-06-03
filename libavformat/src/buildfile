@@ -1288,9 +1288,6 @@ for p: fifo_muxer@($CONFIG_NETWORK && $CONFIG_FIFO_MUXER)       \
   s = $d/c{$(n).test...}
   t = $d/exe{$(n).test...}
 
-  if! $i
-    text 'skip test' $t
-
   ./: $t: include = $i
   $t: $s $d/testscript
   $t: libul{avformat}: bin.whole = false

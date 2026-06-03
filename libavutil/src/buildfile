@@ -793,9 +793,6 @@ libavutil/exe{softfloat.test...}: test = (!$tgt_aarch64 || $tgt_macos)
 
 # Conditional test pixelutils.test.
 #
-if! $CONFIG_PIXELUTILS
-  text 'skip test' libavutil/exe{pixelutils.test...}
-
 ./: libavutil/exe{pixelutils.test...}: include = $CONFIG_PIXELUTILS
 libavutil/exe{pixelutils.test...}: libavutil/c{pixelutils.test...} libavutil/testscript
 libavutil/exe{pixelutils.test...}: libul{avutil}: bin.whole = false

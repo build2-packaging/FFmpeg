@@ -1231,9 +1231,6 @@ for p: drawutils@true   \
   s = $d/c{$(n).test...}
   t = $d/exe{$(n).test...}
 
-  if! $i
-    text 'skip test' $t
-
   ./: $t: include = $i
   $t: $s $d/testscript
   $t: libul{avfilter}: bin.whole = false

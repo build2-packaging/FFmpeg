@@ -2424,9 +2424,6 @@ for p: avcodec@true                             \
   s = $d/c{$(n).test...}
   t = $d/exe{$(n).test...}
 
-  if! $i
-    text 'skip test' $t
-
   ./: $t: include = $i
   $t: $s $d/c{dctref} $d/testscript
   $t: libul{avcodec}: bin.whole = false
