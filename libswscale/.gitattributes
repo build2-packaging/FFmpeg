@@ -1,0 +1,3 @@
+src/libswscale/aarch64 symlink=dir
+src/libswscale/arm symlink=dir
+src/libswscale/x86 symlink=dir

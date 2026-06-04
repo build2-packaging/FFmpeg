@@ -1,0 +1,7 @@
+src/libavcodec/aarch64 symlink=dir
+src/libavcodec/arm symlink=dir
+src/libavcodec/bsf symlink=dir
+src/libavcodec/h26x symlink=dir
+src/libavcodec/neon symlink=dir
+src/libavcodec/vvc symlink=dir
+src/libavcodec/x86 symlink=dir

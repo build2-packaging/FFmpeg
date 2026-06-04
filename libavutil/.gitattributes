@@ -1,0 +1,10 @@
+src/compat symlink=dir
+src/libavutil/aarch64 symlink=dir
+src/libavutil/arm symlink=dir
+src/libavutil/avr32 symlink=dir
+src/libavutil/loongarch symlink=dir
+src/libavutil/mips symlink=dir
+src/libavutil/ppc symlink=dir
+src/libavutil/riscv symlink=dir
+src/libavutil/sh4 symlink=dir
+src/libavutil/x86 symlink=dir

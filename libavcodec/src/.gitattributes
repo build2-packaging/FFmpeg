@@ -1,3 +1,0 @@
-libavcodec  symlink=dir
-libavfilter symlink=dir
-libavformat symlink=dir

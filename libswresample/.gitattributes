@@ -1,0 +1,3 @@
+src/libswresample/aarch64 symlink=dir
+src/libswresample/arm symlink=dir
+src/libswresample/x86 symlink=dir
