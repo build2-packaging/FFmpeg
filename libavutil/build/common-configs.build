@@ -434,11 +434,16 @@ if ($build.mode != 'skeleton')
   {{
     diag nasm ($<[0]) -> ($>[0])
 
+    # PIC is always enabled (mirrors common_poptions above). config.h.cmake
+    # intentionally omits CONFIG_PIC so config.asm never defines it, and NASM
+    # rules do not inherit common_poptions, so the defines must be set here
+    # explicitly.
+    #
     # Cause the `_` prefix to be applied to external symbols on macOS.
     #
-    defs=
+    defs = -DCONFIG_PIC=1 -DPIC
     if $tgt_macos
-      defs = -DPREFIX
+      defs += -DPREFIX
 
     $nasm -f $nasm_ofmt                                 \
           $defs                                         \
@@ -450,11 +455,13 @@ if ($build.mode != 'skeleton')
   {{
     diag nasm ($<[0]) -> ($>[0])
 
+    # See comment in objs rule above.
+    #
     # Cause the `_` prefix to be applied to external symbols on macOS.
     #
-    defs=
+    defs = -DCONFIG_PIC=1 -DPIC
     if $tgt_macos
-      defs = -DPREFIX
+      defs += -DPREFIX
 
     $nasm -f $nasm_ofmt                                 \
           $defs                                         \
