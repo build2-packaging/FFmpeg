@@ -67,10 +67,8 @@ is_opt_disabled = $regex.find_match($cc.coptions $c.coptions, '[-\/]O[0d]')
 if (!$regex.find_match($cc.coptions $c.coptions, '[-\/]O[a-z0-9]') || \
     $is_opt_disabled)
 {
-  if $is_libavutil
-  {
+  if ($is_libavutil && $build.meta_operation == 'configure')
     text  "($is_opt_disabled ? 'force' : 'append') -O1 \(optimization required)"
-  }
 
   # Remove existing 'no optimization'-flag.
   if $is_opt_disabled
@@ -94,7 +92,7 @@ if ($c.id == 'msvc')
 
   if ($regex.find_match($cc.coptions $c.coptions, $regex))
   {
-    if $is_libavutil
+    if ($is_libavutil && $build.meta_operation == 'configure')
       text "removed -RTC \(incompatible with optimizations)"
     cc.coptions = $regex.filter_out_match($cc.coptions, $regex)
     c.coptions = $regex.filter_out_match($c.coptions, $regex)
@@ -126,7 +124,7 @@ if(!$regex.find_search($c.coptions $cc.coptions, '[-\/](m|arch)'))
   elif($c.target.cpu == 'riscv64' && !$disable_rvv)
     simd_flag = $flag_rvv64
 
-  if ($is_libavutil)
+  if ($is_libavutil && $build.meta_operation == 'configure')
     text "append $simd_flag \(SIMD auto-detected)"
   c.coptions += $simd_flag
 }
