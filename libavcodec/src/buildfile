@@ -2,7 +2,7 @@ import intf_libs = libswresample%lib{swresample}
 import impl_libs = libz%lib{z}
 
 import! [metadata, rule_hint=c.link] avutil_priv   = libavutil%lib{avutil_private}
-import                               avutil_static = libavutil%liba{avutil}
+import                               avutil        = libavutil%lib{avutil}
 
 # The paths to config.h and config.asm from libavutil.
 #
@@ -2376,15 +2376,7 @@ source ./aarch64.build
 
 # Libraries
 #
-# We have to also link to liba{avutil} under MSVC because for some reason the
-# libavutil function avpriv_emms_asm is reported by link.exe as an unresolved
-# external when avcodec.dll is linked, despite it being listed in `dumpbin
-# -EXPORTS avutil.dll.lib`.
-#
-# Note that the static library must be linked first for this to work, and that
-# lib{avutil} still needs to be added as prerequisite.
-#
-libul{avcodec}: $avutil_static: include = ($c.target.system == 'win32-msvc')
+libul{avcodec}: $avutil
 libul{avcodec}: $intf_libs $impl_libs
 
 # Set up the upstream tests as unit tests.
