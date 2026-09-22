@@ -260,9 +260,12 @@ config [bool] config.libavutil.runtime_cpudetect             ?= false
 config [bool] config.libavutil.safe_bitstream_reader         ?= false
 config [bool] config.libavutil.small                         ?= false
 config [bool] config.libavutil.swscale_alpha                 ?= false
-config [bool] config.libavutil.gpl                           ?= false
-config [bool] config.libavutil.nonfree                       ?= false
-config [bool] config.libavutil.version3                      ?= false
+config [bool] config.libavutil.gpl                           ?= \
+  (!$null($config.ffmpeg.gpl) ? $config.ffmpeg.gpl : false)
+config [bool] config.libavutil.nonfree                       ?= \
+  (!$null($config.ffmpeg.nonfree) ? $config.ffmpeg.nonfree : false)
+config [bool] config.libavutil.version3                      ?= \
+  (!$null($config.ffmpeg.version3) ? $config.ffmpeg.version3 : false)
 
 # Derived from gpl + version3. Not independently configurable (mirrors upstream
 # configure).
@@ -297,6 +300,22 @@ for nonfree_lib: decklink libfdk_aac libtls cuda_nvcc cuda_sdk libnpp
   n = config.libavutil.$nonfree_lib
   if ($($n) && !$config.libavutil.nonfree)
     fail "$nonfree_lib requires config.libavutil.nonfree=true"
+}
+
+# Strict LGPL-only mode: no GPL or nonfree component may be enabled, and this
+# package (and every other FFmpeg package, see their own build/root.build)
+# builds shared-only so it can never be statically linked into a consumer.
+#
+config [bool] config.libavutil.lgpl_only ?= \
+  (!$null($config.ffmpeg.lgpl_only) ? $config.ffmpeg.lgpl_only : false)
+
+if $config.libavutil.lgpl_only
+{
+  assert (!$config.libavutil.gpl)     'config.libavutil.lgpl_only forbids config.libavutil.gpl'
+  assert (!$config.libavutil.nonfree) 'config.libavutil.lgpl_only forbids config.libavutil.nonfree'
+
+  assert ($bin.lib != 'static') 'libavutil is shared-only under strict LGPL mode (config.libavutil.lgpl_only)'
+  bin.lib = shared
 }
 
 config [bool] config.libavutil.dwt                           ?= false

@@ -15,5 +15,18 @@ c{*}: extension = c
 #
 test.target = $c.target
 
+# Strict LGPL-only mode: this package builds shared-only so it can never be
+# statically linked into a consumer. See libavutil/build/root.build for the
+# umbrella config.ffmpeg.lgpl_only this defaults from.
+#
+config [bool] config.libavformat.lgpl_only ?= \
+  (!$null($config.ffmpeg.lgpl_only) ? $config.ffmpeg.lgpl_only : false)
+
+if $config.libavformat.lgpl_only
+{
+  assert ($bin.lib != 'static') 'avformat is shared-only under strict LGPL mode (config.libavformat.lgpl_only)'
+  bin.lib = shared
+}
+
 if ($build.mode != 'skeleton')
   source build/common-configs.build

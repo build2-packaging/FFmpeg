@@ -3,4 +3,9 @@ $out_root/
   include src/
 }
 
+lgpl_only = $($out_root/ config.libavformat.lgpl_only)
+
+if (!$null($lgpl_only) && $lgpl_only)
+  assert ($import.target != liba{avformat}) "avformat may not be imported statically, LGPL compliance: config.libavformat.lgpl_only=$lgpl_only"
+
 export $out_root/src/$import.target

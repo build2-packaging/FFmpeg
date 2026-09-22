@@ -3,4 +3,9 @@ $out_root/
   include src/
 }
 
+lgpl_only = $($out_root/ config.libavcodec.lgpl_only)
+
+if (!$null($lgpl_only) && $lgpl_only)
+  assert ($import.target != liba{avcodec}) "avcodec may not be imported statically, LGPL compliance: config.libavcodec.lgpl_only=$lgpl_only"
+
 export $out_root/src/$import.target

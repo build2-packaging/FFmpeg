@@ -13,5 +13,23 @@ c{*}: extension = c
 #
 test.target = $c.target
 
+# Strict LGPL-only mode: this package builds shared-only so it can never be
+# statically linked into a consumer. See libavutil/build/root.build for the
+# umbrella config.ffmpeg.lgpl_only this defaults from.
+#
+# Note: libpostproc itself is GPL-licensed (requires config.libavutil.gpl
+# and config.libavutil.postproc), so it can never be built at all under
+# strict LGPL mode elsewhere in the suite. This assertion only covers this
+# package's own linkage mode for the case where it is built regardless.
+#
+config [bool] config.libpostproc.lgpl_only ?= \
+  (!$null($config.ffmpeg.lgpl_only) ? $config.ffmpeg.lgpl_only : false)
+
+if $config.libpostproc.lgpl_only
+{
+  assert ($bin.lib != 'static') 'postproc is shared-only under strict LGPL mode (config.libpostproc.lgpl_only)'
+  bin.lib = shared
+}
+
 if ($build.mode != 'skeleton')
   source build/common-configs.build
