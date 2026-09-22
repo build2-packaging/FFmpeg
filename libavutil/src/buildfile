@@ -505,6 +505,7 @@ h{config-autoconf-checks}: in{config-autoconf-checks}
   autoconf.aliases = HAVE_ALIGNED_MALLOC@HAVE__ALIGNED_MALLOC                   \
                      HAVE_FAST_FLOAT16@HAVE_F16C                                \
                      HAVE_GMTIME@HAVE__GMTIME                                   \
+                     HAVE_MM_EMPTY@HAVE__MM_EMPTY                               \
                      HAVE_PTHREADS@HAVE_PTHREAD                                 \
                      HAVE_X86ASM@HAVE_X86_ASM
 }
