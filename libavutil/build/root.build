@@ -292,7 +292,7 @@ for version3_lib: gmp libaribb24 liblensfun libopencore_amrnb libopencore_amrwb 
     fail "$version3_lib requires config.libavutil.version3=true"
 }
 
-for nonfree_lib: decklink libfdk_aac libtls
+for nonfree_lib: decklink libfdk_aac libtls cuda_nvcc cuda_sdk libnpp
 {
   n = config.libavutil.$nonfree_lib
   if ($($n) && !$config.libavutil.nonfree)
@@ -1663,7 +1663,7 @@ config [bool] config.libavutil.blockdetect_filter            ?= false
 config [bool] config.libavutil.blurdetect_filter             ?= false
 config [bool] config.libavutil.bm3d_filter                   ?= false
 config [bool] config.libavutil.boxblur_filter                ?= false
-config [bool] config.libavutil.boxblur_opencl_filter         ?= $config.libavutil.opencl
+config [bool] config.libavutil.boxblur_opencl_filter         ?= ($config.libavutil.opencl && $config.libavutil.gpl)
 config [bool] config.libavutil.bwdif_filter                  ?= false
 config [bool] config.libavutil.bwdif_cuda_filter             ?= $config.libavutil.cuda
 config [bool] config.libavutil.bwdif_vulkan_filter           ?= $config.libavutil.vulkan
@@ -2663,6 +2663,49 @@ config [bool] config.libavutil.libsmbclient_protocol         ?= false
 config [bool] config.libavutil.libzmq_protocol               ?= false
 config [bool] config.libavutil.ipfs_gateway_protocol         ?= false
 config [bool] config.libavutil.ipns_gateway_protocol         ?= false
+
+# License enforcement for the internal GPL-only libavfilter filters (mirrors
+# upstream configure's *_filter_deps="gpl" entries). Kept separate from the
+# main enforcement block above (see build/root.build) because these options
+# are only declared further down in this file.
+#
+for gpl_filter: blackframe_filter       \
+                boxblur_filter         \
+                colormatrix_filter     \
+                cropdetect_filter      \
+                delogo_filter          \
+                eq_filter              \
+                find_rect_filter       \
+                fspp_filter            \
+                histeq_filter          \
+                hqdn3d_filter          \
+                interlace_filter       \
+                kerndeint_filter       \
+                mcdeint_filter         \
+                mpdecimate_filter      \
+                mptestsrc_filter       \
+                nnedi_filter           \
+                owdenoise_filter       \
+                perspective_filter     \
+                phase_filter           \
+                pp_filter              \
+                pp7_filter             \
+                pullup_filter          \
+                repeatfields_filter    \
+                sab_filter             \
+                signature_filter       \
+                smartblur_filter       \
+                spp_filter             \
+                stereo3d_filter        \
+                super2xsai_filter      \
+                tinterlace_filter      \
+                uspp_filter            \
+                vaguedenoiser_filter
+{
+  n = config.libavutil.$gpl_filter
+  if ($($n) && !$config.libavutil.gpl)
+    fail "$gpl_filter requires config.libavutil.gpl=true"
+}
 
 if ($build.mode != 'skeleton')
 {
