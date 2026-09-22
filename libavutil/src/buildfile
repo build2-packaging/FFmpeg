@@ -858,8 +858,22 @@ lib{avutil}: c.loptions += $common_loptions
 
 # Export all symbols from the DLL if on Windows.
 #
-libs{avutil}: def{avutil}: include = ($c.target.system == 'win32-msvc')
-def{avutil}: libul{avutil}
+libs{avutil}: def{avutil-post}: include = ($c.target.system == 'win32-msvc')
+def{avutil-pre}: libul{avutil}
+
+# Work around a build2 bin.def-generation bug: it classifies a symbol as
+# DATA unless dumpbin reports a function-type marker, which NASM never
+# emits for Win32/Win64 COFF. avpriv_emms_asm is our only NASM-defined,
+# publicly-exported function, so it comes out misclassified as DATA in the
+# generated .def, producing a non-callable import. Strip that one
+# misclassification before it reaches the linker.
+#
+def{avutil-post}: def{avutil-pre}
+{{
+  diag def-patch ($<[0]) -> ($>[0])
+
+  sed -e 's/^(\s*avpriv_emms_asm) DATA$/\1/' $path($<[0]) >$path($>[0])
+}}
 
 if $tgt_mingw
   libs{avutil}: c.loptions += -Wl,--export-all-symbols
