@@ -861,18 +861,52 @@ lib{avutil}: c.loptions += $common_loptions
 libs{avutil}: def{avutil-post}: include = ($c.target.system == 'win32-msvc')
 def{avutil-pre}: libul{avutil}
 
-# Work around a build2 bin.def-generation bug: it classifies a symbol as
-# DATA unless dumpbin reports a function-type marker, which NASM never
-# emits for Win32/Win64 COFF. avpriv_emms_asm is our only NASM-defined,
-# publicly-exported function, so it comes out misclassified as DATA in the
-# generated .def, producing a non-callable import. Strip that one
-# misclassification before it reaches the linker.
+# Work around build2 bin.def-generation misdetections. It classifies symbols
+# from the dumpbin type and section information, which goes wrong in two
+# toolset-dependent ways:
 #
-def{avutil-post}: def{avutil-pre}
+# - A symbol is marked DATA unless dumpbin reports a function-type marker,
+#   which NASM never emits for Win32/Win64 COFF (e.g., avpriv_emms_asm),
+#   producing a non-callable import.
+#
+# - A symbol whose dumpbin line is not recognized is silently dropped (seen
+#   with the avpriv_*_font tables on some MSVC hosts), producing an
+#   unresolved __imp_ symbol in consumers.
+#
+# So, similar to upstream's compat/windows/makedef, we treat every public
+# symbol matching the libavutil/libavutil.v global patterns (av*) as an
+# export: strip DATA from such entries (upstream never emits it and consumers
+# import data via dllimport anyway) and append any such public symbol of the
+# utility library that the generated .def is missing.
+#
+def_public = 'av\S*'
+
+# The extern "C" symbol prefix that dumpbin reports but the .def must not
+# contain.
+#
+def_prefix = ($c.target.cpu == 'i686' ? '_' : '')
+
+def{avutil-post}: def{avutil-pre} libus{avutil}
 {{
   diag def-patch ($<[0]) -> ($>[0])
 
-  sed -e 's/^(\s*avpriv_emms_asm) DATA$/\1/' $path($<[0]) >$path($>[0])
+  d = $path($>[0])
+
+  sed -e 's/^(\s+'$def_public') DATA$/\1/' $path($<[0]) >$d
+
+  sed -n -e 's/^\s+(\S+).*$/\1/p' $d | set -n exported [strings]
+
+  $bin.ld.path /DUMP /NOLOGO /LINKERMEMBER:1 $path($<[1]) | \
+    sed -n -e 's/^\s+[0-9A-Fa-f]+\s+'$def_prefix'('$def_public')\s*$/\1/p' | \
+    set -n public [strings]
+
+  for s: $public
+  {
+    if (!$find($exported, $s))
+    {
+      echo "  $s" >>$d
+    }
+  }
 }}
 
 if $tgt_mingw
