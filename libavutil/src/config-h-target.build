@@ -288,7 +288,7 @@ h{config}: in{config.h.cmake}
   CONFIG_FRAME_THREAD_ENCODER          = $config.libavutil.frame_thread_encoder
   CONFIG_G722DSP                       = $config.libavutil.g722dsp
   CONFIG_GOLOMB                        = $config.libavutil.golomb
-  CONFIG_GPLV3                         = $config.libavutil.gplv3
+  CONFIG_GPLV3                         = $gplv3
   CONFIG_H263DSP                       = $config.libavutil.h263dsp
   CONFIG_H264CHROMA                    = $config.libavutil.h264chroma
   CONFIG_H264DSP                       = $config.libavutil.h264dsp
@@ -311,7 +311,7 @@ h{config}: in{config.h.cmake}
   CONFIG_ISO_MEDIA                     = $config.libavutil.iso_media
   CONFIG_IVIDSP                        = $config.libavutil.ividsp
   CONFIG_JPEGTABLES                    = $config.libavutil.jpegtables
-  CONFIG_LGPLV3                        = $config.libavutil.lgplv3
+  CONFIG_LGPLV3                        = $lgplv3
   CONFIG_LIBX262                       = $config.libavutil.libx262
   CONFIG_LIBX264_HDR10                 = $config.libavutil.libx264_hdr10
   CONFIG_LLAUDDSP                      = $config.libavutil.llauddsp

@@ -270,8 +270,14 @@ config [bool] config.libavutil.version3                      ?= \
 # Derived from gpl + version3. Not independently configurable (mirrors upstream
 # configure).
 #
-config.libavutil.lgplv3 = ($config.libavutil.version3 && !$config.libavutil.gpl)
-config.libavutil.gplv3  = ($config.libavutil.version3 && $config.libavutil.gpl)
+# Note: deliberately not named config.libavutil.* (a plain buildfile
+# assignment, not a config-directive variable) -- bpkg's dependency
+# configuration negotiation walks every config.<project>.* variable in the
+# skeleton and asserts on any whose origin isn't default/override/undefined,
+# which a plain assignment under that prefix can never satisfy.
+#
+lgplv3 = ($config.libavutil.version3 && !$config.libavutil.gpl)
+gplv3  = ($config.libavutil.version3 && $config.libavutil.gpl)
 
 # License enforcement (mirrors upstream configure's die_license_disabled checks).
 #

@@ -282,7 +282,7 @@ lib{avutil}:
   libavutil.frame_thread_encoder          = $config.libavutil.frame_thread_encoder
   libavutil.g722dsp                       = $config.libavutil.g722dsp
   libavutil.golomb                        = $config.libavutil.golomb
-  libavutil.gplv3                         = $config.libavutil.gplv3
+  libavutil.gplv3                         = $gplv3
   libavutil.h263dsp                       = $config.libavutil.h263dsp
   libavutil.h264chroma                    = $config.libavutil.h264chroma
   libavutil.h264dsp                       = $config.libavutil.h264dsp
@@ -305,7 +305,7 @@ lib{avutil}:
   libavutil.iso_media                     = $config.libavutil.iso_media
   libavutil.ividsp                        = $config.libavutil.ividsp
   libavutil.jpegtables                    = $config.libavutil.jpegtables
-  libavutil.lgplv3                        = $config.libavutil.lgplv3
+  libavutil.lgplv3                        = $lgplv3
   libavutil.libx262                       = $config.libavutil.libx262
   libavutil.libx264_hdr10                 = $config.libavutil.libx264_hdr10
   libavutil.llauddsp                      = $config.libavutil.llauddsp
