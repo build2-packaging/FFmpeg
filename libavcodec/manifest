@@ -14,6 +14,26 @@ package-email: libav-user@ffmpeg.org ; Mailing list.
 depends: * build2 >= 0.18.0
 depends: * bpkg >= 0.18.0
 depends: * nasm ^ 2.16.3
-depends: libavutil == $
-depends: libswresample == $
+depends:
+\
+libavutil == $
+{
+  require
+  {
+    if $config.libavcodec.lgpl_only
+      config.libavutil.lgpl_only = true
+  }
+}
+\
+depends:
+\
+libswresample == $
+{
+  require
+  {
+    if $config.libavcodec.lgpl_only
+      config.libswresample.lgpl_only = true
+  }
+}
+\
 depends: libz ^1.2.1200
